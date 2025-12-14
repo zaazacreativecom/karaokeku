@@ -23,6 +23,9 @@
         <router-link to="/request" class="nav-item"><i class="bi bi-plus-circle-fill"></i><span>Request
             Lagu</span></router-link>
         <router-link to="/donation" class="nav-item"><i class="bi bi-heart-fill"></i><span>Donasi</span></router-link>
+        <div class="nav-divider"></div>
+        <router-link to="/settings" class="nav-item"><i
+            class="bi bi-gear-fill"></i><span>Pengaturan</span></router-link>
       </nav>
     </aside>
 
@@ -54,7 +57,10 @@
         <div class="songs-grid">
           <div v-for="song in songs" :key="song.id" class="song-card">
             <div class="song-thumbnail">
-              <i class="bi bi-music-note-beamed"></i>
+              <img v-if="getThumbnailUrl(song)" :src="getThumbnailUrl(song)" :alt="song.title" loading="lazy" />
+              <div v-else class="thumbnail-placeholder">
+                <i class="bi bi-music-note-beamed"></i>
+              </div>
               <div class="song-overlay">
                 <button class="btn-play-song" @click="playSong(song)">
                   <i class="bi bi-play-fill"></i>
@@ -120,19 +126,26 @@
         </div>
       </div>
     </div>
+
+    <!-- Mobile Navigation -->
+    <MobileNav />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePlayerStore } from '@/stores/player'
 import { usePlaylistStore } from '@/stores/playlist'
 import { songsAPI } from '@/services/api'
+import MobileNav from '@/components/MobileNav.vue'
+import axios from 'axios'
+import { getThumbnailUrl } from '@/utils/media'
 
 const router = useRouter()
 const playerStore = usePlayerStore()
 const playlistStore = usePlaylistStore()
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
 
 const songs = ref([])
 const genres = ref([])
@@ -352,13 +365,31 @@ onMounted(() => {
 }
 
 .song-thumbnail {
-  height: 140px;
-  background: var(--gradient-primary);
+  width: 80px;
+  height: 80px;
+  background: var(--bg-darker);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 3rem;
+  font-size: 2rem;
+  color: var(--text-muted);
   position: relative;
+  overflow: hidden;
+}
+
+.song-thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.thumbnail-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-darker);
 }
 
 .song-overlay {

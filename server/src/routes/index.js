@@ -13,6 +13,10 @@ const playlistRoutes = require('./playlistRoutes');
 const playbackRoutes = require('./playbackRoutes');
 const uploadRoutes = require('./uploadRoutes');
 const adminRoutes = require('./adminRoutes');
+const requestRoutes = require('./requests');
+const donationRoutes = require('./donations');
+const chatRoutes = require('./chat');
+const paymentMethodRoutes = require('./paymentMethods');
 
 // API health check
 router.get('/', (req, res) => {
@@ -26,7 +30,11 @@ router.get('/', (req, res) => {
       playlists: '/api/playlists',
       playback: '/api/playback',
       uploads: '/api/uploads',
-      admin: '/api/admin'
+      admin: '/api/admin',
+      requests: '/api/requests',
+      donations: '/api/donations',
+      chat: '/api/chat',
+      paymentMethods: '/api/payment-methods'
     }
   });
 });
@@ -38,5 +46,9 @@ router.use('/playlists', playlistRoutes);
 router.use('/playback', playbackRoutes);
 router.use('/uploads', uploadRoutes);
 router.use('/admin', adminRoutes);
+router.use('/requests', requestRoutes);
+router.use('/donations', donationRoutes);
+router.use('/chat', chatRoutes);
+router.use('/payment-methods', paymentMethodRoutes);
 
 module.exports = router;

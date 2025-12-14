@@ -194,6 +194,9 @@
         </div>
       </div>
     </main>
+
+    <!-- Mobile Navigation -->
+    <MobileNav />
   </div>
 </template>
 
@@ -202,6 +205,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { playbackAPI, songsAPI } from '@/services/api'
+import MobileNav from '@/components/MobileNav.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()

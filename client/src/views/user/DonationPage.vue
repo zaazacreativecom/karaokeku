@@ -30,9 +30,31 @@
                     <span>Playlist Saya</span>
                 </router-link>
 
+                <router-link to="/upload" class="nav-item">
+                    <i class="bi bi-cloud-upload-fill"></i>
+                    <span>Upload Lagu</span>
+                </router-link>
+
+                <router-link to="/history" class="nav-item">
+                    <i class="bi bi-clock-history"></i>
+                    <span>Riwayat & Score</span>
+                </router-link>
+
+                <router-link to="/request" class="nav-item">
+                    <i class="bi bi-plus-circle-fill"></i>
+                    <span>Request Lagu</span>
+                </router-link>
+
                 <router-link to="/donation" class="nav-item active">
                     <i class="bi bi-heart-fill"></i>
                     <span>Donasi</span>
+                </router-link>
+
+                <div class="nav-divider"></div>
+
+                <router-link to="/settings" class="nav-item">
+                    <i class="bi bi-gear-fill"></i>
+                    <span>Pengaturan</span>
                 </router-link>
             </nav>
         </aside>
@@ -42,78 +64,55 @@
             <div class="donation-container">
                 <div class="page-header">
                     <h1><i class="bi bi-heart-fill text-danger"></i> Donasi / Traktir</h1>
-                    <p class="lead">Dukung kami untuk terus mengembangkan KaraokeKu</p>
+                    <p class="lead">Dukung kami untuk terus mempertahankan KaraokeKu agar tetap bisa diakses oleh semua,
+                        karena biaya sewa server terlalu mahal.</p>
                 </div>
 
                 <!-- Payment Methods -->
-                <div class="payment-methods">
-                    <!-- QR Code Section -->
-                    <div class="payment-card qr-card">
+                <!-- Payment Methods -->
+                <div v-if="loading" class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+
+                <div v-else class="payment-methods">
+                    <!-- QRIS Section -->
+                    <div v-if="qrisMethods.length > 0" class="payment-card qr-card">
                         <div class="card-header">
                             <i class="bi bi-qr-code"></i>
-                            <h3>Scan QR Code</h3>
+                            <h3>QRIS / Scan Payment</h3>
                         </div>
                         <div class="card-body">
-                            <div class="qr-wrapper">
-                                <img src="/assets/qrcode.png" alt="QR Code Donasi" class="qr-image" />
-                            </div>
-                            <p class="qr-desc">Scan QR code di atas menggunakan aplikasi e-wallet atau mobile banking
-                                Anda</p>
-                            <div class="supported-apps">
-                                <span class="app-badge">GoPay</span>
-                                <span class="app-badge">OVO</span>
-                                <span class="app-badge">DANA</span>
-                                <span class="app-badge">ShopeePay</span>
+                            <div v-for="method in qrisMethods" :key="method.id" class="qr-item mb-4">
+                                <h4 class="mb-3">{{ method.name }}</h4>
+                                <div class="qr-wrapper" v-if="method.qr_code_url">
+                                    <img :src="getImageUrl(method.qr_code_url)" :alt="method.name" class="qr-image" />
+                                </div>
+                                <p class="qr-desc">Scan QR code di atas menggunakan aplikasi e-wallet atau mobile
+                                    banking</p>
                             </div>
                         </div>
                     </div>
 
                     <!-- E-Wallet Section -->
-                    <div class="payment-card wallet-card">
+                    <div v-if="ewalletMethods.length > 0" class="payment-card wallet-card">
                         <div class="card-header">
                             <i class="bi bi-wallet2"></i>
                             <h3>E-Wallet</h3>
                         </div>
                         <div class="card-body">
                             <div class="wallet-list">
-                                <div class="wallet-item">
-                                    <div class="wallet-icon gopay">
-                                        <i class="bi bi-phone"></i>
+                                <div v-for="method in ewalletMethods" :key="method.id" class="wallet-item">
+                                    <div class="wallet-icon" :class="getMethodClass(method.name)">
+                                        <i class="bi" :class="method.icon || 'bi-phone'"></i>
                                     </div>
                                     <div class="wallet-info">
-                                        <span class="wallet-name">GoPay</span>
-                                        <span class="wallet-number">0812-3456-7890</span>
+                                        <span class="wallet-name">{{ method.name }}</span>
+                                        <span class="wallet-number">{{ method.account_number }}</span>
                                     </div>
                                     <button class="btn btn-sm btn-ghost"
-                                        @click="copyToClipboard('081234567890', 'GoPay')">
-                                        <i class="bi bi-copy"></i>
-                                    </button>
-                                </div>
-
-                                <div class="wallet-item">
-                                    <div class="wallet-icon ovo">
-                                        <i class="bi bi-phone"></i>
-                                    </div>
-                                    <div class="wallet-info">
-                                        <span class="wallet-name">OVO</span>
-                                        <span class="wallet-number">0812-3456-7890</span>
-                                    </div>
-                                    <button class="btn btn-sm btn-ghost"
-                                        @click="copyToClipboard('081234567890', 'OVO')">
-                                        <i class="bi bi-copy"></i>
-                                    </button>
-                                </div>
-
-                                <div class="wallet-item">
-                                    <div class="wallet-icon dana">
-                                        <i class="bi bi-phone"></i>
-                                    </div>
-                                    <div class="wallet-info">
-                                        <span class="wallet-name">DANA</span>
-                                        <span class="wallet-number">0812-3456-7890</span>
-                                    </div>
-                                    <button class="btn btn-sm btn-ghost"
-                                        @click="copyToClipboard('081234567890', 'DANA')">
+                                        @click="copyToClipboard(method.account_number, method.name)">
                                         <i class="bi bi-copy"></i>
                                     </button>
                                 </div>
@@ -122,52 +121,26 @@
                     </div>
 
                     <!-- Bank Transfer Section -->
-                    <div class="payment-card bank-card">
+                    <div v-if="bankMethods.length > 0" class="payment-card bank-card">
                         <div class="card-header">
                             <i class="bi bi-bank"></i>
                             <h3>Transfer Bank</h3>
                         </div>
                         <div class="card-body">
                             <div class="bank-list">
-                                <div class="bank-item">
-                                    <div class="bank-icon bca">
-                                        <span>BCA</span>
+                                <div v-for="method in bankMethods" :key="method.id" class="bank-item">
+                                    <div class="bank-icon" :class="getMethodClass(method.name)">
+                                        <span v-if="!method.icon">{{ method.name.substring(0, 4) }}</span>
+                                        <i v-else :class="method.icon"></i>
                                     </div>
                                     <div class="bank-info">
-                                        <span class="bank-name">Bank Central Asia</span>
-                                        <span class="bank-number">1234567890</span>
-                                        <span class="bank-holder">a.n. KaraokeKu</span>
-                                    </div>
-                                    <button class="btn btn-sm btn-ghost" @click="copyToClipboard('1234567890', 'BCA')">
-                                        <i class="bi bi-copy"></i>
-                                    </button>
-                                </div>
-
-                                <div class="bank-item">
-                                    <div class="bank-icon bni">
-                                        <span>BNI</span>
-                                    </div>
-                                    <div class="bank-info">
-                                        <span class="bank-name">Bank Negara Indonesia</span>
-                                        <span class="bank-number">0987654321</span>
-                                        <span class="bank-holder">a.n. KaraokeKu</span>
-                                    </div>
-                                    <button class="btn btn-sm btn-ghost" @click="copyToClipboard('0987654321', 'BNI')">
-                                        <i class="bi bi-copy"></i>
-                                    </button>
-                                </div>
-
-                                <div class="bank-item">
-                                    <div class="bank-icon mandiri">
-                                        <span>Mandiri</span>
-                                    </div>
-                                    <div class="bank-info">
-                                        <span class="bank-name">Bank Mandiri</span>
-                                        <span class="bank-number">1122334455</span>
-                                        <span class="bank-holder">a.n. KaraokeKu</span>
+                                        <span class="bank-name">{{ method.name }}</span>
+                                        <span class="bank-number">{{ method.account_number }}</span>
+                                        <span class="bank-holder" v-if="method.account_name">a.n. {{ method.account_name
+                                            }}</span>
                                     </div>
                                     <button class="btn btn-sm btn-ghost"
-                                        @click="copyToClipboard('1122334455', 'Mandiri')">
+                                        @click="copyToClipboard(method.account_number, method.name)">
                                         <i class="bi bi-copy"></i>
                                     </button>
                                 </div>
@@ -191,14 +164,57 @@
                 </div>
             </div>
         </main>
+
+        <!-- Mobile Navigation -->
+        <MobileNav />
     </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import axios from 'axios'
+import MobileNav from '@/components/MobileNav.vue'
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
+const loading = ref(true)
+const paymentMethods = ref([])
 const showToast = ref(false)
 const toastMessage = ref('')
+
+const fetchPaymentMethods = async () => {
+    try {
+        const response = await axios.get(`${API_URL}/payment-methods`)
+        paymentMethods.value = response.data.data || []
+    } catch (error) {
+        console.error('Error fetching payment methods:', error)
+    } finally {
+        loading.value = false
+    }
+}
+
+const getImageUrl = (url) => {
+    if (!url) return ''
+    if (url.startsWith('http')) return url
+    return `${API_URL.replace('/api', '')}${url}`
+}
+
+const getMethodClass = (name) => {
+    const n = name.toLowerCase().replace(/\s/g, '')
+    if (n.includes('bca')) return 'bca'
+    if (n.includes('bni')) return 'bni'
+    if (n.includes('mandiri')) return 'mandiri'
+    if (n.includes('bri')) return 'bri'
+    if (n.includes('cimb')) return 'cimb'
+    if (n.includes('gopay')) return 'gopay'
+    if (n.includes('ovo')) return 'ovo'
+    if (n.includes('dana')) return 'dana'
+    if (n.includes('shopee')) return 'shopee'
+    return n
+}
+
+const qrisMethods = computed(() => paymentMethods.value.filter(m => m.type === 'qris'))
+const ewalletMethods = computed(() => paymentMethods.value.filter(m => m.type === 'ewallet'))
+const bankMethods = computed(() => paymentMethods.value.filter(m => m.type === 'bank'))
 
 const copyToClipboard = async (text, label) => {
     try {
@@ -210,8 +226,24 @@ const copyToClipboard = async (text, label) => {
         }, 2500)
     } catch (err) {
         console.error('Failed to copy:', err)
+        // Fallback for unconnected environments or non-secure contexts
+        const textArea = document.createElement("textarea")
+        textArea.value = text
+        document.body.appendChild(textArea)
+        textArea.select()
+        try {
+            document.execCommand('copy')
+            toastMessage.value = `Nomor ${label} berhasil disalin!`
+            showToast.value = true
+        } catch (err) {
+            console.error('Fallback copy failed', err)
+        }
+        document.body.removeChild(textArea)
+        setTimeout(() => { showToast.value = false }, 2500)
     }
 }
+
+onMounted(fetchPaymentMethods)
 </script>
 
 <style scoped>
@@ -571,24 +603,59 @@ const copyToClipboard = async (text, label) => {
 /* Responsive */
 @media (max-width: 768px) {
     .dashboard-sidebar {
-        width: 70px;
-    }
-
-    .brand span,
-    .nav-item span {
         display: none;
     }
 
     .donation-main {
-        margin-left: 70px;
+        margin-left: 0;
+        padding: 1rem;
+        padding-bottom: 80px;
     }
 
-    .nav-item {
-        justify-content: center;
+    .page-header {
+        margin-bottom: 1.5rem;
+    }
+
+    .page-header h1 {
+        font-size: 1.5rem;
     }
 
     .payment-methods {
         grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .qr-image {
+        width: 160px;
+        height: 160px;
+    }
+
+    .thank-you-section {
+        padding: 1.5rem;
+    }
+
+    .thank-you-section i {
+        font-size: 2rem;
+    }
+
+    .toast-notification {
+        bottom: 90px;
+    }
+}
+
+@media (max-width: 425px) {
+    .donation-main {
+        padding: 0.75rem;
+        padding-bottom: 80px;
+    }
+
+    .card-body {
+        padding: 1rem;
+    }
+
+    .wallet-item,
+    .bank-item {
+        padding: 0.75rem;
     }
 }
 </style>

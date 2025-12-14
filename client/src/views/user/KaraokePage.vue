@@ -49,41 +49,55 @@
           <i class="bi bi-heart-fill"></i>
           <span>Donasi</span>
         </router-link>
+
+        <div class="nav-divider"></div>
+
+        <router-link to="/settings" class="nav-item">
+          <i class="bi bi-gear-fill"></i>
+          <span>Pengaturan</span>
+        </router-link>
       </nav>
     </aside>
 
     <!-- Main Karaoke Area -->
     <main class="karaoke-main">
       <!-- Video Player -->
-      <div class="video-container">
-        <div v-if="!playerStore.currentSong" class="video-placeholder">
-          <div class="placeholder-content">
-            <i class="bi bi-music-note-beamed"></i>
-            <h2>Belum Ada Lagu</h2>
-            <p>Pilih lagu untuk mulai karaoke</p>
-            <button class="btn btn-primary btn-lg" @click="playerStore.toggleOverlay()">
-              <i class="bi bi-search me-2"></i>
-              Pilih Lagu
-            </button>
+      <div class="player-wrapper">
+        <div class="video-glow" :style="{ backgroundImage: `url(${glowImage})` }"></div>
+        <div class="video-container">
+          <div v-if="!playerStore.currentSong" class="video-placeholder">
+            <video class="video-intro" autoplay loop muted playsinline>
+              <source src="/assets/video_intro.mp4" type="video/mp4">
+            </video>
+            <div class="placeholder-content">
+              <i class="bi bi-music-note-beamed"></i>
+              <h2>KaraokeKu</h2>
+              <p>Pilih lagu untuk mulai bernyanyi</p>
+              <button class="btn btn-primary btn-lg" @click="playerStore.toggleOverlay()">
+                <i class="bi bi-search me-2"></i>
+                Pilih Lagu
+              </button>
+            </div>
           </div>
-        </div>
 
-        <!-- Single Video with Web Audio API for channel control -->
-        <video ref="videoRef" class="video-player" :src="currentSong?.video_url_full" @timeupdate="onTimeUpdate"
-          @loadedmetadata="onLoadedMetadata" @ended="onVideoEnded" @play="onPlay" @pause="onPause"
-          crossorigin="anonymous"></video>
+          <!-- Single Video with Web Audio API for channel control -->
+          <video ref="videoRef" class="video-player" :src="currentSong?.video_url_full" @timeupdate="onTimeUpdate"
+            @loadedmetadata="onLoadedMetadata" @ended="onVideoEnded" @play="onPlay" @pause="onPause"
+            crossorigin="anonymous">
+          </video>
 
-        <!-- Lyrics Overlay -->
-        <div v-if="playerStore.currentSong && currentLyrics" class="lyrics-overlay">
-          <p class="lyric-line" :class="{ active: true }">
-            {{ currentLyrics }}
-          </p>
-        </div>
+          <!-- Lyrics Overlay -->
+          <div v-if="playerStore.currentSong && currentLyrics" class="lyrics-overlay">
+            <p class="lyric-line" :class="{ active: true }">
+              {{ currentLyrics }}
+            </p>
+          </div>
 
-        <!-- Song Info Overlay -->
-        <div v-if="playerStore.currentSong" class="song-info-overlay">
-          <h3>{{ playerStore.currentSong.title }}</h3>
-          <p>{{ playerStore.currentSong.artist }}</p>
+          <!-- Song Info Overlay -->
+          <div v-if="playerStore.currentSong" class="song-info-overlay">
+            <h3>{{ playerStore.currentSong.title }}</h3>
+            <p>{{ playerStore.currentSong.artist }}</p>
+          </div>
         </div>
       </div>
 
@@ -269,6 +283,9 @@
         </div>
       </div>
     </main>
+
+    <!-- Mobile Navigation -->
+    <MobileNav />
   </div>
 </template>
 
@@ -277,6 +294,8 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { usePlayerStore } from '@/stores/player'
 import { songsAPI } from '@/services/api'
+import MobileNav from '@/components/MobileNav.vue'
+import { getHighResThumbnailUrl } from '@/utils/media'
 
 const route = useRoute()
 const playerStore = usePlayerStore()
@@ -294,6 +313,10 @@ let leftGain = null
 let rightGain = null
 
 const currentSong = computed(() => playerStore.currentSong)
+const glowImage = computed(() => {
+  if (!currentSong.value) return ''
+  return getHighResThumbnailUrl(currentSong.value)
+})
 
 // State
 const searchQuery = ref('')
@@ -783,32 +806,88 @@ onUnmounted(() => {
 }
 
 /* Video Container - fills remaining space after controls */
-.video-container {
+/* Player Wrapper & Glow */
+.player-wrapper {
   flex: 1;
   position: relative;
-  background: #000;
   display: flex;
   align-items: center;
   justify-content: center;
+  margin: 1rem;
+  max-width: 1200px;
+  width: 100%;
+  align-self: center;
+}
+
+.video-glow {
+  position: absolute;
+  inset: -20px;
+  background-size: cover;
+  background-position: center;
+  filter: blur(40px);
+  opacity: 0.3;
+  z-index: 0;
+  border-radius: 30px;
+  transition: background-image 0.5s ease;
+}
+
+/* Video Container */
+.video-container {
+  width: 100%;
+  aspect-ratio: 16/9;
+  position: relative;
+  background: #000;
+  border-radius: 20px;
   overflow: hidden;
-  min-height: 0;
-  /* Important: allows flex item to shrink */
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  z-index: 1;
 }
 
 .video-placeholder {
+  width: 100%;
+  height: 100%;
   text-align: center;
   color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: black;
+  position: relative;
+  overflow: hidden;
+}
+
+.video-intro {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.4;
+  z-index: 0;
+}
+
+.placeholder-content {
+  position: relative;
+  z-index: 1;
 }
 
 .placeholder-content i {
   font-size: 5rem;
-  color: var(--primary);
+  background: var(--gradient-primary);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
   margin-bottom: 1rem;
   display: block;
 }
 
 .placeholder-content h2 {
   margin-bottom: 0.5rem;
+  background: var(--gradient-primary);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .placeholder-content p {
@@ -818,7 +897,6 @@ onUnmounted(() => {
 .video-player {
   width: 100%;
   height: 100%;
-  max-height: 100%;
   object-fit: contain;
 }
 
@@ -845,6 +923,8 @@ onUnmounted(() => {
 
 .lyric-line.active {
   color: var(--primary-light);
+  background-clip: text;
+  -webkit-background-clip: text;
 }
 
 /* Song Info Overlay */
@@ -869,11 +949,17 @@ onUnmounted(() => {
 }
 
 /* Controls Bar - fixed at bottom, never shrinks */
+/* Controls Bar */
 .controls-bar {
-  background: var(--bg-card);
-  border-top: 1px solid var(--border-color);
-  padding: 1rem 2rem;
+  background: rgba(25, 25, 35, 0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 1.5rem 2rem;
   flex-shrink: 0;
+  margin: 0 1rem 1rem;
+  border-radius: 20px;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
 }
 
 .progress-container {
@@ -1336,6 +1422,137 @@ onUnmounted(() => {
 
   .volume-slider {
     display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-sidebar {
+    display: none;
+  }
+
+  .karaoke-main {
+    margin-left: 0;
+    padding-bottom: 70px;
+  }
+
+  .controls-bar {
+    padding: 0.75rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .controls-left {
+    order: 2;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .controls-center {
+    order: 1;
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .controls-right {
+    order: 3;
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .btn-control {
+    min-width: 80px;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.75rem;
+  }
+
+  .btn-control span {
+    display: none;
+  }
+
+  .pitch-control,
+  .tempo-control {
+    padding: 0.4rem 0.6rem;
+    gap: 0.3rem;
+  }
+
+  .control-label {
+    font-size: 0.6rem;
+  }
+
+  .control-value {
+    font-size: 0.75rem;
+    min-width: 30px;
+  }
+
+  .btn-sm-control {
+    width: 28px;
+    height: 28px;
+    font-size: 0.7rem;
+  }
+
+  .time-display {
+    font-size: 0.7rem;
+  }
+
+  .volume-control {
+    display: none;
+  }
+
+  .overlay-content {
+    width: 95%;
+    max-height: 80vh;
+  }
+
+  .overlay-header {
+    padding: 1rem;
+  }
+
+  .overlay-header h2 {
+    font-size: 1.25rem;
+  }
+
+  .songs-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .score-modal .modal-content {
+    width: 95%;
+    padding: 1.5rem;
+  }
+}
+
+@media (max-width: 425px) {
+  .controls-bar {
+    padding: 0.5rem;
+  }
+
+  .btn-control {
+    min-width: 60px;
+    padding: 0.4rem 0.5rem;
+  }
+
+  .pitch-control,
+  .tempo-control {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .btn-sm-control {
+    width: 32px;
+    height: 32px;
+  }
+
+  .progress-bar {
+    height: 6px;
+  }
+
+  .lyrics-overlay {
+    bottom: 100px;
+    font-size: 1.25rem;
+    padding: 0.5rem 1rem;
   }
 }
 </style>

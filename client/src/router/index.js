@@ -27,6 +27,9 @@ const AdminSongs = () => import('@/views/admin/AdminSongs.vue')
 const AdminUsers = () => import('@/views/admin/AdminUsers.vue')
 const AdminUploads = () => import('@/views/admin/AdminUploads.vue')
 const AdminSettings = () => import('@/views/admin/AdminSettings.vue')
+const AdminRequests = () => import('@/views/admin/AdminRequests.vue')
+const AdminDonations = () => import('@/views/admin/AdminDonations.vue')
+const AdminPaymentMethods = () => import('@/views/admin/AdminPaymentMethods.vue')
 
 const routes = [
   // ==========================================
@@ -135,6 +138,21 @@ const routes = [
         path: 'settings',
         name: 'AdminSettings',
         component: AdminSettings
+      },
+      {
+        path: 'requests',
+        name: 'AdminRequests',
+        component: AdminRequests
+      },
+      {
+        path: 'donations',
+        name: 'AdminDonations',
+        component: AdminDonations
+      },
+      {
+        path: 'payment-methods',
+        name: 'AdminPaymentMethods',
+        component: AdminPaymentMethods
       }
     ]
   },

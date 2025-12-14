@@ -12,6 +12,10 @@ const PlayHistory = require('./PlayHistory');
 const UserScore = require('./UserScore');
 const Upload = require('./Upload');
 const Setting = require('./Setting');
+const SongRequest = require('./SongRequest');
+const Donation = require('./Donation');
+const ChatMessage = require('./ChatMessage');
+const PaymentMethod = require('./PaymentMethod');
 
 // ==========================================
 // RELASI ANTAR MODEL
@@ -51,6 +55,22 @@ Upload.belongsTo(User, { foreignKey: 'user_id', as: 'uploader' });
 
 // Upload reviewer (admin)
 Upload.belongsTo(User, { foreignKey: 'reviewed_by', as: 'reviewer' });
+
+// User - SongRequest (1:N)
+User.hasMany(SongRequest, { foreignKey: 'user_id', as: 'songRequests' });
+SongRequest.belongsTo(User, { foreignKey: 'user_id', as: 'requester' });
+SongRequest.belongsTo(User, { foreignKey: 'reviewed_by', as: 'reviewer' });
+
+// User - Donation (1:N)
+User.hasMany(Donation, { foreignKey: 'user_id', as: 'donations' });
+Donation.belongsTo(User, { foreignKey: 'user_id', as: 'donor' });
+Donation.belongsTo(User, { foreignKey: 'verified_by', as: 'verifier' });
+
+// User - ChatMessage (sender/receiver)
+User.hasMany(ChatMessage, { foreignKey: 'sender_id', as: 'sentMessages' });
+User.hasMany(ChatMessage, { foreignKey: 'receiver_id', as: 'receivedMessages' });
+ChatMessage.belongsTo(User, { foreignKey: 'sender_id', as: 'sender' });
+ChatMessage.belongsTo(User, { foreignKey: 'receiver_id', as: 'receiver' });
 
 // ==========================================
 // SINKRONISASI DATABASE
@@ -109,5 +129,9 @@ module.exports = {
   UserScore,
   Upload,
   Setting,
+  SongRequest,
+  Donation,
+  ChatMessage,
+  PaymentMethod,
   syncDatabase
 };

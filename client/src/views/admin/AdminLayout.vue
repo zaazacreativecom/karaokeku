@@ -8,42 +8,58 @@
           <span>Admin Panel</span>
         </router-link>
       </div>
-      
+
       <nav class="sidebar-nav">
         <router-link to="/admin" class="nav-item" :class="{ active: $route.name === 'AdminDashboard' }">
           <i class="bi bi-speedometer2"></i>
           <span>Dashboard</span>
         </router-link>
-        
+
         <router-link to="/admin/songs" class="nav-item" :class="{ active: $route.name === 'AdminSongs' }">
           <i class="bi bi-music-note-list"></i>
           <span>Manajemen Lagu</span>
         </router-link>
-        
+
         <router-link to="/admin/users" class="nav-item" :class="{ active: $route.name === 'AdminUsers' }">
           <i class="bi bi-people-fill"></i>
           <span>Manajemen User</span>
         </router-link>
-        
+
         <router-link to="/admin/uploads" class="nav-item" :class="{ active: $route.name === 'AdminUploads' }">
           <i class="bi bi-cloud-upload-fill"></i>
           <span>Review Upload</span>
           <span v-if="pendingUploads > 0" class="badge">{{ pendingUploads }}</span>
         </router-link>
-        
+
         <router-link to="/admin/settings" class="nav-item" :class="{ active: $route.name === 'AdminSettings' }">
           <i class="bi bi-gear-fill"></i>
           <span>Pengaturan</span>
         </router-link>
-        
+
+        <router-link to="/admin/requests" class="nav-item" :class="{ active: $route.name === 'AdminRequests' }">
+          <i class="bi bi-plus-circle-fill"></i>
+          <span>Request Lagu</span>
+        </router-link>
+
+        <router-link to="/admin/donations" class="nav-item" :class="{ active: $route.name === 'AdminDonations' }">
+          <i class="bi bi-heart-fill"></i>
+          <span>Donasi</span>
+        </router-link>
+
+        <router-link to="/admin/payment-methods" class="nav-item"
+          :class="{ active: $route.name === 'AdminPaymentMethods' }">
+          <i class="bi bi-credit-card"></i>
+          <span>Metode Pembayaran</span>
+        </router-link>
+
         <div class="nav-divider"></div>
-        
+
         <router-link to="/dashboard" class="nav-item">
           <i class="bi bi-arrow-left"></i>
           <span>Kembali ke App</span>
         </router-link>
       </nav>
-      
+
       <div class="sidebar-footer">
         <div class="user-info">
           <i class="bi bi-person-circle"></i>
@@ -51,7 +67,7 @@
         </div>
       </div>
     </aside>
-    
+
     <!-- Main Content -->
     <main class="admin-main">
       <RouterView />

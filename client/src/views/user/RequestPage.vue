@@ -25,6 +25,21 @@
                     <span>Pilih Lagu</span>
                 </router-link>
 
+                <router-link to="/playlists" class="nav-item">
+                    <i class="bi bi-collection-play-fill"></i>
+                    <span>Playlist Saya</span>
+                </router-link>
+
+                <router-link to="/upload" class="nav-item">
+                    <i class="bi bi-cloud-upload-fill"></i>
+                    <span>Upload Lagu</span>
+                </router-link>
+
+                <router-link to="/history" class="nav-item">
+                    <i class="bi bi-clock-history"></i>
+                    <span>Riwayat & Score</span>
+                </router-link>
+
                 <router-link to="/request" class="nav-item active">
                     <i class="bi bi-plus-circle-fill"></i>
                     <span>Request Lagu</span>
@@ -33,6 +48,13 @@
                 <router-link to="/donation" class="nav-item">
                     <i class="bi bi-heart-fill"></i>
                     <span>Donasi</span>
+                </router-link>
+
+                <div class="nav-divider"></div>
+
+                <router-link to="/settings" class="nav-item">
+                    <i class="bi bi-gear-fill"></i>
+                    <span>Pengaturan</span>
                 </router-link>
             </nav>
         </aside>
@@ -144,7 +166,7 @@
                 <div class="modal-body">
                     <div class="success-message">
                         <p>Request lagu <strong>"{{ submittedRequest.title }}"</strong> oleh <strong>{{
-                                submittedRequest.artist
+                            submittedRequest.artist
                                 }}</strong> berhasil dikirim!</p>
                     </div>
 
@@ -157,28 +179,36 @@
                     </div>
 
                     <!-- Quick Donation Options -->
+                    <!-- Quick Donation Options -->
                     <div class="donation-methods">
-                        <div class="qr-section">
-                            <img src="/assets/qrcode.png" alt="QR Code Donasi" class="qr-small">
-                            <span>Scan QR</span>
+                        <div v-if="loadingMethods" class="text-center w-100 py-3">
+                            <div class="spinner-border spinner-border-sm text-primary"></div>
                         </div>
-
-                        <div class="wallet-section">
-                            <h5>E-Wallet</h5>
-                            <div class="wallet-quick">
-                                <span class="wallet-badge gopay">GoPay: 0812-3456-7890</span>
-                                <span class="wallet-badge ovo">OVO: 0812-3456-7890</span>
-                                <span class="wallet-badge dana">DANA: 0812-3456-7890</span>
+                        <template v-else>
+                            <div class="qr-section" v-if="qrisMethod">
+                                <img :src="getImageUrl(qrisMethod.qr_code_url)" :alt="qrisMethod.name" class="qr-small">
+                                <span>{{ qrisMethod.name }}</span>
                             </div>
-                        </div>
 
-                        <div class="bank-section">
-                            <h5>Transfer Bank</h5>
-                            <div class="bank-quick">
-                                <span class="bank-badge">BCA: 1234567890</span>
-                                <span class="bank-badge">BNI: 0987654321</span>
+                            <div class="wallet-section" v-if="ewalletMethods.length">
+                                <h5>E-Wallet</h5>
+                                <div class="wallet-quick">
+                                    <span v-for="w in ewalletMethods.slice(0, 3)" :key="w.id" class="wallet-badge"
+                                        :class="getMethodClass(w.name)">
+                                        {{ w.name }}: {{ w.account_number }}
+                                    </span>
+                                </div>
                             </div>
-                        </div>
+
+                            <div class="bank-section" v-if="bankMethods.length">
+                                <h5>Transfer Bank</h5>
+                                <div class="bank-quick">
+                                    <span v-for="b in bankMethods.slice(0, 3)" :key="b.id" class="bank-badge">
+                                        {{ b.name }}: {{ b.account_number }}
+                                    </span>
+                                </div>
+                            </div>
+                        </template>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -190,11 +220,18 @@
                 </div>
             </div>
         </div>
+
+        <!-- Mobile Navigation -->
+        <MobileNav />
     </div>
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
+import axios from 'axios'
+import MobileNav from '@/components/MobileNav.vue'
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
 
 const form = reactive({
     title: '',
@@ -207,29 +244,95 @@ const form = reactive({
 
 const showDonationModal = ref(false)
 const submittedRequest = ref({})
+const isSubmitting = ref(false)
+const paymentMethods = ref([])
+const loadingMethods = ref(true)
 
-const submitRequest = () => {
-    // Save submitted data for modal
-    submittedRequest.value = {
-        title: form.title,
-        artist: form.artist
+const getAuthHeader = () => ({
+    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+})
+
+const fetchPaymentMethods = async () => {
+    try {
+        const response = await axios.get(`${API_URL}/payment-methods`)
+        paymentMethods.value = response.data.data || []
+    } catch (error) {
+        console.error('Error fetching payment methods:', error)
+    } finally {
+        loadingMethods.value = false
     }
+}
 
-    // Show donation modal
-    showDonationModal.value = true
+const getImageUrl = (url) => {
+    if (!url) return ''
+    if (url.startsWith('http')) return url
+    return `${API_URL.replace('/api', '')}${url}`
+}
 
-    // Reset form
-    form.title = ''
-    form.artist = ''
-    form.genre = ''
-    form.language = ''
-    form.link = ''
-    form.notes = ''
+const getMethodClass = (name) => {
+    const n = name.toLowerCase().replace(/\s/g, '')
+    if (n.includes('bca')) return 'bca'
+    if (n.includes('bni')) return 'bni'
+    if (n.includes('mandiri')) return 'mandiri'
+    if (n.includes('bri')) return 'bri'
+    if (n.includes('cimb')) return 'cimb'
+    if (n.includes('gopay')) return 'gopay'
+    if (n.includes('ovo')) return 'ovo'
+    if (n.includes('dana')) return 'dana'
+    if (n.includes('shopee')) return 'shopee'
+    return n
+}
+
+const qrisMethod = computed(() => paymentMethods.value.find(m => m.type === 'qris'))
+const ewalletMethods = computed(() => paymentMethods.value.filter(m => m.type === 'ewallet'))
+const bankMethods = computed(() => paymentMethods.value.filter(m => m.type === 'bank'))
+
+const submitRequest = async () => {
+    if (isSubmitting.value) return
+    isSubmitting.value = true
+
+    try {
+        // Save to database via API
+        await axios.post(`${API_URL}/requests`, {
+            title: form.title,
+            artist: form.artist,
+            genre: form.genre,
+            language: form.language,
+            link: form.link,
+            notes: form.notes
+        }, getAuthHeader())
+
+        // Save submitted data for modal
+        submittedRequest.value = {
+            title: form.title,
+            artist: form.artist
+        }
+
+        // Show donation modal
+        showDonationModal.value = true
+
+        // Reset form
+        form.title = ''
+        form.artist = ''
+        form.genre = ''
+        form.language = ''
+        form.link = ''
+        form.notes = ''
+    } catch (error) {
+        console.error('Error submitting request:', error)
+        alert('Gagal mengirim request. Silakan coba lagi.')
+    } finally {
+        isSubmitting.value = false
+    }
 }
 
 const closeDonationModal = () => {
     showDonationModal.value = false
 }
+
+onMounted(() => {
+    fetchPaymentMethods()
+})
 </script>
 
 <style scoped>
@@ -528,21 +631,29 @@ const closeDonationModal = () => {
 /* Responsive */
 @media (max-width: 768px) {
     .dashboard-sidebar {
-        width: 70px;
-    }
-
-    .brand span,
-    .nav-item span {
         display: none;
     }
 
     .request-main {
-        margin-left: 70px;
+        margin-left: 0;
+        padding: 1rem;
+        padding-bottom: 80px;
+    }
+
+    .page-header h1 {
+        font-size: 1.5rem;
+    }
+
+    .request-form-card {
         padding: 1rem;
     }
 
-    .nav-item {
-        justify-content: center;
+    .row {
+        flex-direction: column;
+    }
+
+    .col-md-6 {
+        width: 100%;
     }
 
     .info-section {
@@ -552,6 +663,34 @@ const closeDonationModal = () => {
     .donation-methods {
         grid-template-columns: 1fr;
         text-align: center;
+    }
+
+    .modal-content {
+        width: 95%;
+        margin: 1rem;
+    }
+
+    .modal-footer {
+        flex-direction: column;
+    }
+
+    .modal-footer .btn {
+        width: 100%;
+    }
+}
+
+@media (max-width: 425px) {
+    .request-main {
+        padding: 0.75rem;
+        padding-bottom: 80px;
+    }
+
+    .info-card {
+        padding: 1rem;
+    }
+
+    .info-card i {
+        font-size: 1.5rem;
     }
 }
 </style>

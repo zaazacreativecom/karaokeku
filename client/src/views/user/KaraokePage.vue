@@ -83,7 +83,7 @@
           </div>
 
           <!-- Single Video with Web Audio API for channel control -->
-          <video ref="videoRef" class="video-player" :src="currentSong?.video_url_full" @timeupdate="onTimeUpdate"
+          <video ref="videoRef" class="video-player" :src="encodedVideoUrl" @timeupdate="onTimeUpdate"
             @loadedmetadata="onLoadedMetadata" @ended="onVideoEnded" @play="onPlay" @pause="onPause"
             crossorigin="anonymous">
           </video>
@@ -319,6 +319,21 @@ const glowImage = computed(() => {
   if (!currentSong.value) return ''
   return getHighResThumbnailUrl(currentSong.value)
 })
+
+// Fix for URLs with special characters (like #)
+const encodedVideoUrl = computed(() => {
+  const url = currentSong.value?.video_url_full;
+  if (!url) return '';
+
+  // Split key parts to encode filenames properly
+  const parts = url.split('/');
+  const filename = parts.pop();
+  const basePath = parts.join('/');
+
+  // We only encode the filename, but keeping common path separators
+  // Using encodeURIComponent triggers correctness for #, ?, etc.
+  return `${basePath}/${encodeURIComponent(filename)}`;
+});
 
 // State
 const searchQuery = ref('')

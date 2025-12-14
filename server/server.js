@@ -1,0 +1,105 @@
+/**
+ * Server Entry Point
+ * File: server.js
+ * 
+ * Jalankan dengan: npm run dev (development) atau npm start (production)
+ */
+
+const app = require('./app');
+const { testConnection } = require('./src/config/database');
+const { syncDatabase } = require('./src/models');
+require('dotenv').config();
+
+const PORT = process.env.PORT || 3000;
+
+/**
+ * Inisialisasi dan jalankan server
+ */
+const startServer = async () => {
+  try {
+    console.log('🎵 ====================================');
+    console.log('   KARAOKE SERVER');
+    console.log('====================================\n');
+    
+    // Test koneksi database
+    console.log('📦 Menghubungkan ke database...');
+    await testConnection();
+    
+    // Sync database (create/alter tables)
+    console.log('🔄 Sinkronisasi tabel database...');
+    await syncDatabase({ alter: process.env.NODE_ENV === 'development' });
+    
+    // Buat admin default jika belum ada
+    await createDefaultAdmin();
+    
+    // Start server
+    app.listen(PORT, () => {
+      console.log(`\n🚀 Server berjalan di port ${PORT}`);
+      console.log(`📍 Local: http://localhost:${PORT}`);
+      console.log(`📍 API: http://localhost:${PORT}/api`);
+      console.log(`\n🎤 Karaoke server siap digunakan!`);
+      console.log('====================================\n');
+    });
+    
+  } catch (error) {
+    console.error('\n❌ Gagal menjalankan server:', error.message);
+    console.error(error.stack);
+    process.exit(1);
+  }
+};
+
+/**
+ * Buat user admin default jika belum ada
+ */
+const createDefaultAdmin = async () => {
+  try {
+    const { User } = require('./src/models');
+    
+    const adminExists = await User.findOne({ where: { role: 'admin' } });
+    
+    if (!adminExists) {
+      console.log('👤 Membuat admin default...');
+      
+      await User.create({
+        name: 'Administrator',
+        email: 'admin@karaoke.local',
+        username: 'admin',
+        password_hash: 'admin123', // Akan di-hash oleh hook
+        role: 'admin'
+      });
+      
+      console.log('✅ Admin default dibuat:');
+      console.log('   Username: admin');
+      console.log('   Password: admin123');
+      console.log('   ⚠️  SEGERA GANTI PASSWORD DI PRODUCTION!\n');
+    }
+  } catch (error) {
+    console.error('⚠️  Gagal membuat admin default:', error.message);
+  }
+};
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+  console.error('❌ Uncaught Exception:', error);
+  process.exit(1);
+});
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('\n👋 SIGTERM received. Shutting down gracefully...');
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  console.log('\n👋 SIGINT received. Shutting down gracefully...');
+  process.exit(0);
+});
+
+// Jalankan server
+startServer();

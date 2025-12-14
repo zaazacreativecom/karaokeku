@@ -155,4 +155,13 @@ export const favoritesAPI = {
     toggle: (songId) => api.post('/favorites/toggle', { songId })
 }
 
+export const chatAPI = {
+    getConversations: () => api.get('/chat/conversations'),
+    getMessages: (partnerId) => api.get(`/chat/messages/${partnerId}`),
+    sendMessage: (data) => api.post('/chat/send', data),
+    getUsers: () => api.get('/chat/users'),
+    getUnreadCount: () => api.get('/chat/unread'),
+    markRead: (messageId) => api.put(`/chat/read/${messageId}`)
+}
+
 export default api

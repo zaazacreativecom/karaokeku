@@ -5,12 +5,23 @@
  * Jalankan dengan: npm run dev (development) atau npm start (production)
  */
 
+const http = require('http');
 const app = require('./app');
 const { testConnection } = require('./src/config/database');
 const { syncDatabase } = require('./src/models');
+const { initializeSocket } = require('./src/socket');
 require('dotenv').config();
 
 const PORT = process.env.PORT || 3000;
+
+// Create HTTP Server
+const server = http.createServer(app);
+
+// Initialize Socket.io
+const io = initializeSocket(server);
+
+// Make io available in app locals (optional, but using helper is better)
+app.set('io', io);
 
 /**
  * Inisialisasi dan jalankan server
@@ -33,7 +44,7 @@ const startServer = async () => {
     await createDefaultAdmin();
     
     // Start server
-    app.listen(PORT, () => {
+    server.listen(PORT, () => {
       console.log(`\n🚀 Server berjalan di port ${PORT}`);
       console.log(`📍 Local: http://localhost:${PORT}`);
       console.log(`📍 API: http://localhost:${PORT}/api`);

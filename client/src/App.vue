@@ -1,8 +1,10 @@
 <template>
-  <RouterView />
+  <router-view></router-view>
+  <ChatWidget />
 </template>
 
 <script setup>
+import ChatWidget from './components/chat/ChatWidget.vue';
 import { onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 

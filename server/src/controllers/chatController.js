@@ -5,6 +5,7 @@
 
 const { ChatMessage, User } = require('../models');
 const { Op } = require('sequelize');
+const { emitToUser } = require('../socket');
 
 // Get conversations list
 exports.getConversations = async (req, res) => {
@@ -124,6 +125,16 @@ exports.sendMessage = async (req, res) => {
       ]
     });
     
+    // Emit real-time event to receiver
+    emitToUser(receiver_id, 'receive_message', {
+      message: chatMessage,
+      sender: {
+          id: req.user.id,
+          name: req.user.name,
+          role: req.user.role // Add sender info for UI
+      }
+    });
+
     res.status(201).json({
       success: true,
       message: 'Pesan terkirim',
@@ -150,6 +161,12 @@ exports.markAsRead = async (req, res) => {
     
     await message.update({ is_read: true, read_at: new Date() });
     
+    // Emit read receipt to sender
+    emitToUser(message.sender_id, 'message_read', {
+      messageId: messageId,
+      readAt: new Date()
+    });
+
     res.json({ success: true, message: 'Pesan ditandai sudah dibaca' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

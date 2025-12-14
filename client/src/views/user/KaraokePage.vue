@@ -39,6 +39,16 @@
           <i class="bi bi-clock-history"></i>
           <span>Riwayat & Score</span>
         </router-link>
+
+        <router-link to="/request" class="nav-item">
+          <i class="bi bi-plus-circle-fill"></i>
+          <span>Request Lagu</span>
+        </router-link>
+
+        <router-link to="/donation" class="nav-item">
+          <i class="bi bi-heart-fill"></i>
+          <span>Donasi</span>
+        </router-link>
       </nav>
     </aside>
 
@@ -143,19 +153,19 @@
               </button>
             </div>
 
-            <!-- Transpose/Modulasi Control -->
-            <div class="semitone-control">
-              <span class="control-label">Transpose:</span>
-              <button class="btn-sm-control" @click="decreaseSemitone" :disabled="semitones <= -12" title="-1 Semitone">
-                <i class="bi bi-caret-down-fill"></i>
+            <!-- Tempo Control -->
+            <div class="tempo-control">
+              <span class="control-label">Tempo:</span>
+              <button class="btn-sm-control" @click="decreaseTempo" :disabled="tempo <= 0.5" title="Slower">
+                <i class="bi bi-dash"></i>
               </button>
-              <span class="control-value" :class="{ positive: semitones > 0, negative: semitones < 0 }">
-                {{ semitones > 0 ? '+' : '' }}{{ semitones }}
+              <span class="control-value">
+                {{ Math.round(tempo * 100) }}%
               </span>
-              <button class="btn-sm-control" @click="increaseSemitone" :disabled="semitones >= 12" title="+1 Semitone">
-                <i class="bi bi-caret-up-fill"></i>
+              <button class="btn-sm-control" @click="increaseTempo" :disabled="tempo >= 2.0" title="Faster">
+                <i class="bi bi-plus"></i>
               </button>
-              <button v-if="semitones !== 0" class="btn-sm-control btn-reset" @click="resetSemitones" title="Reset">
+              <button v-if="tempo !== 1.0" class="btn-sm-control btn-reset" @click="resetTempo" title="Reset">
                 <i class="bi bi-arrow-counterclockwise"></i>
               </button>
             </div>
@@ -298,7 +308,7 @@ const showScoreModal = ref(false)
 const lastScore = ref(0)
 const isHighScore = ref(false)
 const previousVolume = ref(0.8)
-const semitones = ref(0) // Semitones control
+const tempo = ref(1.0) // Tempo control (0.5x - 2.0x)
 const audioInitialized = ref(false)
 
 // Computed
@@ -486,55 +496,84 @@ const toggleMute = () => {
   }
 }
 
-// Pitch Control (uses playbackRate - affects tempo too)
+// Pitch Control dengan preservesPitch (mengubah pitch tanpa mengubah tempo)
+const playbackRate = ref(1.0)
+const preservePitch = ref(false) // true = pitch berubah, tempo tetap
+
+// Compute playback rate dari semitone
+const computePlaybackRateFromSemitone = (semi) => {
+  return Math.pow(2, semi / 12)
+}
+
 const increasePitch = () => {
-  playerStore.setPitch(playerStore.pitch + 1)
-  applyPitch()
+  if (playerStore.pitch < 6) {
+    playerStore.setPitch(playerStore.pitch + 1)
+    applyPlaybackRate()
+  }
 }
 
 const decreasePitch = () => {
-  playerStore.setPitch(playerStore.pitch - 1)
-  applyPitch()
+  if (playerStore.pitch > -6) {
+    playerStore.setPitch(playerStore.pitch - 1)
+    applyPlaybackRate()
+  }
 }
 
 const resetPitch = () => {
   playerStore.setPitch(0)
-  applyPitch()
+  applyPlaybackRate()
 }
 
-const applyPitch = () => {
-  // Pitch shift menggunakan playbackRate
-  // Rate = 2^(pitch/12) - this affects both pitch AND tempo
-  const rate = Math.pow(2, playerStore.pitch / 12)
-  if (videoRef.value) {
-    videoRef.value.playbackRate = rate
+const applyPlaybackRate = () => {
+  if (!videoRef.value) return
+
+  playbackRate.value = computePlaybackRateFromSemitone(playerStore.pitch)
+  videoRef.value.playbackRate = playbackRate.value
+
+  // Set preservesPitch (dengan vendor prefixes untuk kompatibilitas)
+  try {
+    videoRef.value.preservesPitch = preservePitch.value
+    videoRef.value.mozPreservesPitch = preservePitch.value
+    videoRef.value.webkitPreservesPitch = preservePitch.value
+  } catch (e) {
+    console.log('preservesPitch not supported')
   }
 }
 
-// Semitones Control (separate from pitch for finer control)
-const increaseSemitone = () => {
-  semitones.value = Math.min(12, semitones.value + 1)
-  applySemitones()
-}
-
-const decreaseSemitone = () => {
-  semitones.value = Math.max(-12, semitones.value - 1)
-  applySemitones()
-}
-
-const resetSemitones = () => {
-  semitones.value = 0
-  applySemitones()
-}
-
-const applySemitones = () => {
-  // Semitones control - combined with pitch for final playback rate
-  // Total shift = pitch (from store) + semitones (local fine-tune)
-  const totalShift = playerStore.pitch + semitones.value
-  const rate = Math.pow(2, totalShift / 12)
-  if (videoRef.value) {
-    videoRef.value.playbackRate = rate
+// Tempo Control (kecepatan playback)
+const increaseTempo = () => {
+  if (tempo.value < 2.0) {
+    tempo.value = Math.min(2.0, Math.round((tempo.value + 0.1) * 10) / 10)
+    applyTempo()
   }
+}
+
+const decreaseTempo = () => {
+  if (tempo.value > 0.5) {
+    tempo.value = Math.max(0.5, Math.round((tempo.value - 0.1) * 10) / 10)
+    applyTempo()
+  }
+}
+
+const resetTempo = () => {
+  tempo.value = 1.0
+  applyTempo()
+}
+
+const applyTempo = () => {
+  if (!videoRef.value) return
+
+  // Pitch dari store, tempo dari local
+  const pitchRate = computePlaybackRateFromSemitone(playerStore.pitch)
+  const finalRate = pitchRate * tempo.value
+  videoRef.value.playbackRate = finalRate
+
+  // Set preservesPitch untuk menjaga pitch saat tempo berubah
+  try {
+    videoRef.value.preservesPitch = true // Tempo changes should preserve pitch
+    videoRef.value.mozPreservesPitch = true
+    videoRef.value.webkitPreservesPitch = true
+  } catch (e) { }
 }
 
 const updateLyrics = (time) => {
@@ -609,10 +648,8 @@ const playSong = async (song) => {
 
       videoRef.value.play()
 
-      // Apply current pitch + semitones
-      const totalShift = playerStore.pitch + semitones.value
-      const rate = Math.pow(2, totalShift / 12)
-      videoRef.value.playbackRate = rate
+      // Apply current pitch + transpose settings
+      applyTempo()
     }
   }, 100)
 }
@@ -973,7 +1010,7 @@ onUnmounted(() => {
 }
 
 .pitch-control,
-.semitone-control {
+.tempo-control {
   display: flex;
   align-items: center;
   gap: 0.5rem;

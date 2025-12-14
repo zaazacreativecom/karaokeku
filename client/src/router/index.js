@@ -17,6 +17,8 @@ const PlaylistPage = () => import('@/views/user/PlaylistPage.vue')
 const UploadPage = () => import('@/views/user/UploadPage.vue')
 const HistoryPage = () => import('@/views/user/HistoryPage.vue')
 const SettingsPage = () => import('@/views/user/SettingsPage.vue')
+const DonationPage = () => import('@/views/user/DonationPage.vue')
+const RequestPage = () => import('@/views/user/RequestPage.vue')
 
 // Admin Views
 const AdminLayout = () => import('@/views/admin/AdminLayout.vue')
@@ -86,6 +88,18 @@ const routes = [
     path: '/settings',
     name: 'Settings',
     component: SettingsPage,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/donation',
+    name: 'Donation',
+    component: DonationPage,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/request',
+    name: 'Request',
+    component: RequestPage,
     meta: { requiresAuth: true }
   },
   

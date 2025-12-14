@@ -8,51 +8,62 @@
           <span>Karaoke<span class="text-gradient">Ku</span></span>
         </router-link>
       </div>
-      
+
       <nav class="sidebar-nav">
         <router-link to="/dashboard" class="nav-item" :class="{ active: $route.name === 'Dashboard' }">
           <i class="bi bi-grid-1x2-fill"></i>
           <span>Dashboard</span>
         </router-link>
-        
-        <router-link to="/karaoke" class="nav-item" :class="{ active: $route.name === 'Karaoke' || $route.name === 'KaraokePlay' }">
+
+        <router-link to="/karaoke" class="nav-item"
+          :class="{ active: $route.name === 'Karaoke' || $route.name === 'KaraokePlay' }">
           <i class="bi bi-mic-fill"></i>
           <span>Karaoke</span>
         </router-link>
-        
+
         <router-link to="/songs" class="nav-item" :class="{ active: $route.name === 'Songs' }">
           <i class="bi bi-music-note-list"></i>
           <span>Pilih Lagu</span>
         </router-link>
-        
+
         <router-link to="/playlists" class="nav-item" :class="{ active: $route.name === 'Playlists' }">
           <i class="bi bi-collection-play-fill"></i>
           <span>Playlist Saya</span>
         </router-link>
-        
+
         <router-link to="/upload" class="nav-item" :class="{ active: $route.name === 'Upload' }">
           <i class="bi bi-cloud-upload-fill"></i>
           <span>Upload Lagu</span>
         </router-link>
-        
+
         <router-link to="/history" class="nav-item" :class="{ active: $route.name === 'History' }">
           <i class="bi bi-clock-history"></i>
           <span>Riwayat & Score</span>
         </router-link>
-        
+
+        <router-link to="/request" class="nav-item" :class="{ active: $route.name === 'Request' }">
+          <i class="bi bi-plus-circle-fill"></i>
+          <span>Request Lagu</span>
+        </router-link>
+
+        <router-link to="/donation" class="nav-item" :class="{ active: $route.name === 'Donation' }">
+          <i class="bi bi-heart-fill"></i>
+          <span>Donasi</span>
+        </router-link>
+
         <div class="nav-divider"></div>
-        
+
         <router-link to="/settings" class="nav-item" :class="{ active: $route.name === 'Settings' }">
           <i class="bi bi-gear-fill"></i>
           <span>Pengaturan</span>
         </router-link>
-        
+
         <router-link v-if="authStore.isAdmin" to="/admin" class="nav-item nav-item-admin">
           <i class="bi bi-shield-lock-fill"></i>
           <span>Admin Panel</span>
         </router-link>
       </nav>
-      
+
       <!-- User Info -->
       <div class="sidebar-footer">
         <div class="user-info">
@@ -69,7 +80,7 @@
         </button>
       </div>
     </aside>
-    
+
     <!-- Main Content -->
     <main class="dashboard-main">
       <div class="main-content">
@@ -84,7 +95,7 @@
             Mulai Karaoke
           </router-link>
         </div>
-        
+
         <!-- Stats Cards -->
         <div class="stats-grid">
           <div class="stat-card">
@@ -96,7 +107,7 @@
               <span class="stat-label">Lagu Dimainkan</span>
             </div>
           </div>
-          
+
           <div class="stat-card">
             <div class="stat-icon" style="background: rgba(236, 72, 153, 0.2); color: var(--secondary);">
               <i class="bi bi-trophy-fill"></i>
@@ -106,7 +117,7 @@
               <span class="stat-label">Rata-rata Score</span>
             </div>
           </div>
-          
+
           <div class="stat-card">
             <div class="stat-icon" style="background: rgba(6, 182, 212, 0.2); color: var(--accent);">
               <i class="bi bi-clock-fill"></i>
@@ -116,7 +127,7 @@
               <span class="stat-label">Total Waktu</span>
             </div>
           </div>
-          
+
           <div class="stat-card">
             <div class="stat-icon" style="background: rgba(34, 197, 94, 0.2); color: var(--success);">
               <i class="bi bi-star-fill"></i>
@@ -127,7 +138,7 @@
             </div>
           </div>
         </div>
-        
+
         <!-- Content Grid -->
         <div class="content-grid">
           <!-- Recent Songs -->
@@ -152,7 +163,7 @@
               </div>
             </div>
           </div>
-          
+
           <!-- Top Songs -->
           <div class="content-card">
             <div class="card-header">
@@ -161,12 +172,8 @@
             </div>
             <div class="card-body">
               <div v-if="topSongs.length > 0" class="song-list">
-                <div 
-                  v-for="(song, index) in topSongs" 
-                  :key="song.id" 
-                  class="song-row clickable"
-                  @click="goToSong(song.id)"
-                >
+                <div v-for="(song, index) in topSongs" :key="song.id" class="song-row clickable"
+                  @click="goToSong(song.id)">
                   <span class="song-rank">{{ index + 1 }}</span>
                   <div class="song-info">
                     <h4>{{ song.title }}</h4>
@@ -219,20 +226,20 @@ const fetchDashboardData = async () => {
     // Fetch user scores/stats
     const scoresResponse = await playbackAPI.getScores()
     const data = scoresResponse.data.data
-    
+
     stats.value = {
       totalPlays: data.totalSongsPlayed || 0,
       avgScore: data.averageScore || 0,
       totalMinutes: data.totalDurationMinutes || 0,
       level: data.level || 'Pemula'
     }
-    
+
     recentSongs.value = data.recentPlays?.slice(0, 5) || []
-    
+
     // Fetch top songs
     const topResponse = await songsAPI.getTop(5)
     topSongs.value = topResponse.data.data || []
-    
+
   } catch (error) {
     console.error('Error fetching dashboard data:', error)
   }
@@ -536,7 +543,8 @@ onMounted(() => {
   margin: 0;
 }
 
-.song-score, .song-plays {
+.song-score,
+.song-plays {
   font-size: 0.8rem;
   color: var(--primary-light);
   display: flex;
@@ -567,34 +575,34 @@ onMounted(() => {
   .dashboard-sidebar {
     width: 70px;
   }
-  
+
   .sidebar-header .brand span,
   .nav-item span,
   .user-details {
     display: none;
   }
-  
+
   .dashboard-main {
     margin-left: 70px;
   }
-  
+
   .sidebar-nav {
     padding: 0.5rem;
   }
-  
+
   .nav-item {
     justify-content: center;
     padding: 0.75rem;
   }
-  
+
   .sidebar-footer {
     justify-content: center;
   }
-  
+
   .user-info {
     justify-content: center;
   }
-  
+
   .content-grid {
     grid-template-columns: 1fr;
   }
@@ -606,7 +614,7 @@ onMounted(() => {
     gap: 1rem;
     text-align: center;
   }
-  
+
   .stats-grid {
     grid-template-columns: 1fr;
   }

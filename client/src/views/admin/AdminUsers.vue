@@ -41,14 +41,18 @@
             <td>{{ user.total_score || 0 }}</td>
             <td>{{ formatDate(user.created_at) }}</td>
             <td>
-              <button class="btn btn-sm btn-ghost" @click="editUser(user)"><i class="bi bi-pencil"></i></button>
-              <button class="btn btn-sm btn-ghost text-danger" @click="confirmDelete(user)" :disabled="user.role === 'admin'"><i class="bi bi-trash"></i></button>
+              <button class="btn btn-sm btn-ghost text-primary" @click="editUser(user)"><i
+                  class="bi bi-pencil"></i></button>
+              <button class="btn btn-sm btn-ghost text-danger" @click="confirmDelete(user)"
+                :disabled="user.role === 'admin'"><i class="bi bi-trash"></i></button>
             </td>
           </tr>
         </tbody>
       </table>
-      
-      <div v-if="loading" class="loading-state"><div class="spinner-border text-primary"></div></div>
+
+      <div v-if="loading" class="loading-state">
+        <div class="spinner-border text-primary"></div>
+      </div>
       <div v-if="!loading && users.length === 0" class="empty-state">Tidak ada user ditemukan</div>
     </div>
 
@@ -75,7 +79,8 @@
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-ghost" @click="closeModal">Batal</button>
-            <button type="submit" class="btn btn-primary" :disabled="saving">{{ saving ? 'Menyimpan...' : 'Simpan' }}</button>
+            <button type="submit" class="btn btn-primary" :disabled="saving">{{ saving ? 'Menyimpan...' : 'Simpan'
+              }}</button>
           </div>
         </form>
       </div>
@@ -177,27 +182,138 @@ onMounted(fetchUsers)
 </script>
 
 <style scoped>
-.admin-users { max-width: 1200px; }
-.page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
-.page-header h1 { margin: 0; }
-.filters-bar { display: flex; gap: 1rem; margin-bottom: 1.5rem; }
-.filters-bar input { max-width: 300px; }
-.filters-bar select { max-width: 150px; }
-.table-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); overflow: hidden; }
-.table { width: 100%; margin: 0; color: var(--text-primary); }
-.table th, .table td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border-color); }
-.table th { background: var(--bg-darker); font-weight: 500; font-size: 0.875rem; color: var(--text-muted); text-align: left; }
-.table tbody tr:hover { background: rgba(255,255,255,0.02); }
-.role-badge { padding: 0.25rem 0.5rem; border-radius: var(--radius-sm); font-size: 0.75rem; }
-.role-badge.admin { background: rgba(245,158,11,0.2); color: var(--warning); }
-.role-badge.user { background: rgba(59,130,246,0.2); color: var(--info); }
-.loading-state, .empty-state { text-align: center; padding: 2rem; color: var(--text-muted); }
-.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 200; display: flex; align-items: center; justify-content: center; }
-.modal-content { background: var(--bg-card); border-radius: var(--radius-lg); width: 90%; max-width: 450px; }
-.modal-sm { max-width: 350px; }
-.modal-header { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; border-bottom: 1px solid var(--border-color); }
-.modal-header h3 { margin: 0; }
-.modal-header button { background: none; border: none; color: var(--text-muted); cursor: pointer; }
-.modal-body { padding: 1.5rem; }
-.modal-footer { padding: 1rem 1.5rem; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 0.5rem; }
+.admin-users {
+  max-width: 1200px;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.page-header h1 {
+  margin: 0;
+}
+
+.filters-bar {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.filters-bar input {
+  max-width: 300px;
+}
+
+.filters-bar select {
+  max-width: 150px;
+}
+
+.table-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.table {
+  width: 100%;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.table th,
+.table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.table th {
+  background: var(--bg-darker);
+  font-weight: 500;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  text-align: left;
+}
+
+.table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.role-badge {
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+}
+
+.role-badge.admin {
+  background: rgba(245, 158, 11, 0.2);
+  color: var(--warning);
+}
+
+.role-badge.user {
+  background: rgba(59, 130, 246, 0.2);
+  color: var(--info);
+}
+
+.loading-state,
+.empty-state {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-muted);
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-content {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  width: 90%;
+  max-width: 450px;
+}
+
+.modal-sm {
+  max-width: 350px;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.modal-header h3 {
+  margin: 0;
+}
+
+.modal-header button {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.modal-body {
+  padding: 1.5rem;
+}
+
+.modal-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
 </style>

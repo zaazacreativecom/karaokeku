@@ -12,6 +12,7 @@ const PlayHistory = require('./PlayHistory');
 const UserScore = require('./UserScore');
 const Upload = require('./Upload');
 const Setting = require('./Setting');
+const Favorite = require('./Favorite');
 const SongRequest = require('./SongRequest');
 const Donation = require('./Donation');
 const ChatMessage = require('./ChatMessage');
@@ -48,6 +49,14 @@ UserScore.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
 // Song - UserScore (1:N)
 Song.hasMany(UserScore, { foreignKey: 'song_id', as: 'scores' });
 UserScore.belongsTo(Song, { foreignKey: 'song_id', as: 'song' });
+
+// User - Favorite (1:N)
+User.hasMany(Favorite, { foreignKey: 'user_id', as: 'favorites' });
+Favorite.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+
+// Song - Favorite (1:N)
+Song.hasMany(Favorite, { foreignKey: 'song_id', as: 'favoritedBy' });
+Favorite.belongsTo(Song, { foreignKey: 'song_id', as: 'song' });
 
 // User - Upload (1:N)
 User.hasMany(Upload, { foreignKey: 'user_id', as: 'uploads' });
@@ -129,6 +138,7 @@ module.exports = {
   UserScore,
   Upload,
   Setting,
+  Favorite,
   SongRequest,
   Donation,
   ChatMessage,

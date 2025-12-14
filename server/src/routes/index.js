@@ -17,6 +17,7 @@ const requestRoutes = require('./requests');
 const donationRoutes = require('./donations');
 const chatRoutes = require('./chat');
 const paymentMethodRoutes = require('./paymentMethods');
+const favoriteRoutes = require('./favorites');
 
 // API health check
 router.get('/', (req, res) => {
@@ -34,7 +35,8 @@ router.get('/', (req, res) => {
       requests: '/api/requests',
       donations: '/api/donations',
       chat: '/api/chat',
-      paymentMethods: '/api/payment-methods'
+      paymentMethods: '/api/payment-methods',
+      favorites: '/api/favorites'
     }
   });
 });
@@ -50,5 +52,6 @@ router.use('/requests', requestRoutes);
 router.use('/donations', donationRoutes);
 router.use('/chat', chatRoutes);
 router.use('/payment-methods', paymentMethodRoutes);
+router.use('/favorites', favoriteRoutes);
 
 module.exports = router;

@@ -107,11 +107,27 @@
                   placeholder="/videos/nama-file.mp4">
               </div>
             </div>
+            <div class="row">
+              <div class="col-12 mb-3">
+                <label class="form-label">Thumbnail (Opsional)</label>
+                <div class="d-flex gap-3 align-items-start">
+                  <div class="flex-grow-1">
+                    <input type="file" class="form-control" @change="handleThumbSelect" accept="image/*">
+                    <small class="text-muted">Upload gambar atau biarkan kosong untuk generate dari video.</small>
+                  </div>
+                  <div v-if="thumbPreview || form.thumbnail_url" class="thumb-preview border rounded p-1"
+                    style="width: 100px; height: 56px;">
+                    <img :src="thumbPreview || getImageUrl(form.thumbnail_url)" class="w-100 h-100 object-fit-cover"
+                      alt="Thumb">
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-ghost" @click="closeModal">Batal</button>
             <button type="submit" class="btn btn-primary" :disabled="saving">{{ saving ? 'Menyimpan...' : 'Simpan'
-              }}</button>
+            }}</button>
           </div>
         </form>
       </div>
@@ -147,7 +163,16 @@ const showDeleteModal = ref(false)
 const editingId = ref(null)
 const deletingSong = ref(null)
 const saving = ref(false)
-const form = ref({ title: '', artist: '', genre: '', language: '', status: 'active', video_url_full: '', video_url_instrumental: '' })
+const form = ref({ title: '', artist: '', genre: '', language: '', status: 'active', video_url_full: '', video_url_instrumental: '', thumbnail_url: '' })
+const thumbFile = ref(null)
+const thumbPreview = ref(null)
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
+
+const getImageUrl = (url) => {
+  if (!url) return ''
+  if (url.startsWith('http')) return url
+  return `${API_URL.replace('/api', '')}${url}`
+}
 
 let searchTimeout = null
 
@@ -170,14 +195,26 @@ const debouncedFetch = () => {
 
 const openCreateModal = () => {
   editingId.value = null
-  form.value = { title: '', artist: '', genre: '', language: '', status: 'active', video_url_full: '', video_url_instrumental: '' }
+  form.value = { title: '', artist: '', genre: '', language: '', status: 'active', video_url_full: '', video_url_instrumental: '', thumbnail_url: '' }
+  thumbFile.value = null
+  thumbPreview.value = null
   showModal.value = true
 }
 
 const editSong = (song) => {
   editingId.value = song.id
   form.value = { ...song }
+  thumbFile.value = null
+  thumbPreview.value = null
   showModal.value = true
+}
+
+const handleThumbSelect = (event) => {
+  const file = event.target.files[0]
+  if (file) {
+    thumbFile.value = file
+    thumbPreview.value = URL.createObjectURL(file)
+  }
 }
 
 const closeModal = () => {
@@ -188,11 +225,24 @@ const closeModal = () => {
 const saveSong = async () => {
   saving.value = true
   try {
+    let songId
     if (editingId.value) {
       await adminAPI.updateSong(editingId.value, form.value)
+      songId = editingId.value
     } else {
-      await adminAPI.createSong(form.value)
+      const res = await adminAPI.createSong(form.value)
+      // Check response structure, createSong returns formatResponse(true, ..., song)
+      // res.data.data should be the song object
+      songId = res.data.data.id
     }
+
+    // Upload Thumbnail if selected
+    if (thumbFile.value && songId) {
+      const formData = new FormData()
+      formData.append('thumbnail', thumbFile.value)
+      await adminAPI.uploadThumbnail(songId, formData)
+    }
+
     closeModal()
     fetchSongs()
   } catch (err) {

@@ -116,6 +116,23 @@
                             <option value="bank">Transfer Bank</option>
                         </select>
                     </div>
+                    <div class="form-group" v-if="form.type === 'qris'">
+                        <label>Upload QR Code Image</label>
+                        <div class="qr-input-container">
+                            <input type="file" ref="qrModalInput" @change="handleQRModalSelect" accept="image/*"
+                                class="form-control" />
+                            <div v-if="qrPreview || (editingMethod && editingMethod.type === 'qris' && editingMethod.qr_code_url)"
+                                class="qr-preview mt-2 text-center">
+                                <img :src="qrPreview || getImageUrl(editingMethod.qr_code_url)" alt="QR Preview"
+                                    style="max-width: 150px; border-radius: 8px;" />
+                                <div class="mt-1" v-if="qrPreview">
+                                    <button class="btn btn-sm text-danger" @click="clearQRSelection">
+                                        <i class="bi bi-x"></i> Hapus yang dipilih
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     <div class="form-group">
                         <label>Nama</label>
                         <input v-model="form.name" class="form-control" placeholder="Contoh: GoPay, BCA" />
@@ -164,6 +181,9 @@ const showModal = ref(false)
 const saving = ref(false)
 const editingMethod = ref(null)
 const qrInput = ref(null)
+const qrModalInput = ref(null)
+const qrFileInModal = ref(null)
+const qrPreview = ref(null)
 const uploadingMethodId = ref(null)
 
 const form = ref({
@@ -202,24 +222,54 @@ const fetchMethods = async () => {
 
 const openAddModal = () => {
     editingMethod.value = null
-    form.value = { type: 'ewallet', name: '', icon: '', account_number: '', account_name: '', sort_order: 0, is_active: true }
+    form.value = { type: 'qris', name: '', icon: '', account_number: '', account_name: '', sort_order: 0, is_active: true }
+    clearQRSelection()
     showModal.value = true
 }
 
 const openEditModal = (method) => {
     editingMethod.value = method
     form.value = { ...method }
+    clearQRSelection()
     showModal.value = true
+}
+
+const handleQRModalSelect = (event) => {
+    const file = event.target.files[0]
+    if (file) {
+        qrFileInModal.value = file
+        qrPreview.value = URL.createObjectURL(file)
+    }
+}
+
+const clearQRSelection = () => {
+    qrFileInModal.value = null
+    qrPreview.value = null
+    if (qrModalInput.value) qrModalInput.value.value = ''
 }
 
 const saveMethod = async () => {
     saving.value = true
     try {
+        let methodId
         if (editingMethod.value) {
             await axios.put(`${API_URL}/payment-methods/${editingMethod.value.id}`, form.value, getAuthHeader())
+            methodId = editingMethod.value.id
         } else {
-            await axios.post(`${API_URL}/payment-methods`, form.value, getAuthHeader())
+            const res = await axios.post(`${API_URL}/payment-methods`, form.value, getAuthHeader())
+            methodId = res.data.data.id
         }
+
+        // Upload QR if selected in modal
+        if (qrFileInModal.value) {
+            const formData = new FormData()
+            formData.append('qr_code', qrFileInModal.value)
+            await axios.post(`${API_URL}/payment-methods/${methodId}/qr`, formData, {
+                ...getAuthHeader(),
+                headers: { ...getAuthHeader().headers, 'Content-Type': 'multipart/form-data' }
+            })
+        }
+
         showModal.value = false
         fetchMethods()
     } catch (error) {

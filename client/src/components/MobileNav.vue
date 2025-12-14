@@ -11,9 +11,17 @@
                 <span>Karaoke</span>
             </router-link>
 
-            <router-link to="/songs" class="mobile-nav-item" :class="{ active: isActive('/songs') }">
+            <router-link to="/songs" class="mobile-nav-item" :class="{ active: $route.path === '/songs' }">
                 <i class="bi bi-music-note-list"></i>
                 <span>Lagu</span>
+            </router-link>
+            <router-link to="/favorites" class="mobile-nav-item" :class="{ active: $route.path === '/favorites' }">
+                <i class="bi bi-heart-fill"></i>
+                <span>Favorit</span>
+            </router-link>
+            <router-link to="/playlists" class="mobile-nav-item" :class="{ active: $route.path === '/playlists' }">
+                <i class="bi bi-collection-play-fill"></i>
+                <span>Playlist</span>
             </router-link>
 
             <router-link to="/request" class="mobile-nav-item" :class="{ active: isActive('/request') }">

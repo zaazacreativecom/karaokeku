@@ -24,7 +24,8 @@
                     <i class="bi bi-music-note-list"></i>
                     <span>Pilih Lagu</span>
                 </router-link>
-
+                <router-link to="/favorites" class="nav-item"><i class="bi bi-heart-fill"></i><span>Lagu
+                        Favorit</span></router-link>
                 <router-link to="/playlists" class="nav-item">
                     <i class="bi bi-collection-play-fill"></i>
                     <span>Playlist Saya</span>
@@ -137,7 +138,7 @@
                                         <span class="bank-name">{{ method.name }}</span>
                                         <span class="bank-number">{{ method.account_number }}</span>
                                         <span class="bank-holder" v-if="method.account_name">a.n. {{ method.account_name
-                                            }}</span>
+                                        }}</span>
                                     </div>
                                     <button class="btn btn-sm btn-ghost"
                                         @click="copyToClipboard(method.account_number, method.name)">

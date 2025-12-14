@@ -14,6 +14,8 @@
         <router-link to="/karaoke" class="nav-item"><i class="bi bi-mic-fill"></i><span>Karaoke</span></router-link>
         <router-link to="/songs" class="nav-item active"><i class="bi bi-music-note-list"></i><span>Pilih
             Lagu</span></router-link>
+        <router-link to="/favorites" class="nav-item"><i class="bi bi-heart-fill"></i><span>Lagu
+            Favorit</span></router-link>
         <router-link to="/playlists" class="nav-item"><i class="bi bi-collection-play-fill"></i><span>Playlist
             Saya</span></router-link>
         <router-link to="/upload" class="nav-item"><i class="bi bi-cloud-upload-fill"></i><span>Upload
@@ -66,6 +68,11 @@
                   <i class="bi bi-play-fill"></i>
                 </button>
               </div>
+              <!-- Favorite Button -->
+              <button class="btn-favorite" :class="{ active: favoriteStore.isFavorite(song.id) }"
+                @click.stop="toggleFavorite(song)">
+                <i :class="favoriteStore.isFavorite(song.id) ? 'bi bi-heart-fill' : 'bi bi-heart'"></i>
+              </button>
             </div>
             <div class="song-info">
               <h4>{{ song.title }}</h4>
@@ -137,6 +144,7 @@ import { ref, onMounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePlayerStore } from '@/stores/player'
 import { usePlaylistStore } from '@/stores/playlist'
+import { useFavoriteStore } from '@/stores/favorite'
 import { songsAPI } from '@/services/api'
 import MobileNav from '@/components/MobileNav.vue'
 import axios from 'axios'
@@ -145,6 +153,7 @@ import { getThumbnailUrl } from '@/utils/media'
 const router = useRouter()
 const playerStore = usePlayerStore()
 const playlistStore = usePlaylistStore()
+const favoriteStore = useFavoriteStore()
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
 
 const songs = ref([])
@@ -228,8 +237,14 @@ const addToPlaylist = async (playlistId) => {
   }
 }
 
+const toggleFavorite = async (song) => {
+  if (!song) return
+  await favoriteStore.toggleFavorite(song.id)
+}
+
 onMounted(() => {
   fetchSongs()
+  favoriteStore.fetchFavoriteIds()
   fetchFilters()
 })
 </script>
@@ -365,8 +380,9 @@ onMounted(() => {
 }
 
 .song-thumbnail {
-  width: 80px;
-  height: 80px;
+  width: 100%;
+  aspect-ratio: 16/9;
+  height: auto;
   background: var(--bg-darker);
   display: flex;
   align-items: center;
@@ -416,6 +432,35 @@ onMounted(() => {
   color: white;
   font-size: 1.5rem;
   cursor: pointer;
+  cursor: pointer;
+}
+
+.btn-favorite {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.5);
+  border: none;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  transition: all var(--transition-fast);
+}
+
+.btn-favorite:hover,
+.btn-favorite.active {
+  background: var(--primary);
+  transform: scale(1.1);
+}
+
+.btn-favorite.active i {
+  color: white;
 }
 
 .song-info {

@@ -5,7 +5,7 @@
       <div class="bg-gradient"></div>
       <div class="bg-particles"></div>
     </div>
-    
+
     <!-- Main Content -->
     <div class="landing-content">
       <!-- Left Section - Branding & Top Songs -->
@@ -18,37 +18,59 @@
           </div>
           <p class="tagline">Nyanyi Dimana Saja, Kapan Saja 🎤</p>
         </div>
-        
-        <!-- Top Songs -->
+
+        <!-- Popular Favorites -->
         <div class="top-songs-section">
           <h3 class="section-title">
-            <i class="bi bi-fire"></i>
-            Top Lagu Minggu Ini
+            <i class="bi bi-heart-fill text-danger"></i>
+            Lagu Terfavorit
           </h3>
-          
+
           <div class="top-songs-list" v-if="!loadingSongs">
-            <div 
-              v-for="(song, index) in topSongs" 
-              :key="song.id"
-              class="top-song-item"
-            >
+            <div v-for="(song, index) in topSongs" :key="song.id" class="top-song-item">
               <span class="song-rank">{{ index + 1 }}</span>
               <div class="song-info">
                 <h4 class="song-title">{{ song.title }}</h4>
                 <p class="song-artist">{{ song.artist }}</p>
               </div>
               <span class="song-plays">
-                <i class="bi bi-play-fill"></i>
-                {{ formatPlayCount(song.play_count) }}
+                <i class="bi bi-heart-fill text-danger"></i>
+                {{ song.favorite_count || 0 }}
               </span>
             </div>
           </div>
-          
+
           <div v-else class="loading-songs">
             <div v-for="i in 5" :key="i" class="song-skeleton loading-skeleton"></div>
           </div>
         </div>
-        
+
+        <!-- Popular Songs (Most Played) -->
+        <div class="top-songs-section mt-4">
+          <h3 class="section-title">
+            <i class="bi bi-fire text-warning"></i>
+            Lagu Terpopuler
+          </h3>
+
+          <div class="top-songs-list" v-if="!loadingSongs">
+            <div v-for="(song, index) in popularSongs" :key="song.id" class="top-song-item">
+              <span class="song-rank">{{ index + 1 }}</span>
+              <div class="song-info">
+                <h4 class="song-title">{{ song.title }}</h4>
+                <p class="song-artist">{{ song.artist }}</p>
+              </div>
+              <span class="song-plays">
+                <i class="bi bi-play-fill text-primary"></i>
+                {{ formatPlayCount(song.play_count) }}
+              </span>
+            </div>
+          </div>
+
+          <div v-else class="loading-songs">
+            <div v-for="i in 5" :key="i" class="song-skeleton loading-skeleton"></div>
+          </div>
+        </div>
+
         <!-- Leaderboard Preview -->
         <div class="leaderboard-preview" v-if="leaderboard.length > 0">
           <h4 class="section-title">
@@ -56,11 +78,7 @@
             Top Singers
           </h4>
           <div class="leaderboard-list">
-            <div 
-              v-for="(user, index) in leaderboard.slice(0, 3)" 
-              :key="user.id"
-              class="leaderboard-item"
-            >
+            <div v-for="(user, index) in leaderboard.slice(0, 3)" :key="user.id" class="leaderboard-item">
               <span class="rank-badge" :class="`rank-${index + 1}`">
                 {{ index + 1 }}
               </span>
@@ -70,144 +88,89 @@
           </div>
         </div>
       </div>
-      
+
       <!-- Right Section - Auth Card -->
       <div class="landing-right">
         <div class="auth-card card card-glass">
           <!-- Tabs -->
           <div class="auth-tabs">
-            <button 
-              class="auth-tab" 
-              :class="{ active: activeTab === 'login' }"
-              @click="activeTab = 'login'"
-            >
+            <button class="auth-tab" :class="{ active: activeTab === 'login' }" @click="activeTab = 'login'">
               Masuk
             </button>
-            <button 
-              class="auth-tab" 
-              :class="{ active: activeTab === 'register' }"
-              @click="activeTab = 'register'"
-            >
+            <button class="auth-tab" :class="{ active: activeTab === 'register' }" @click="activeTab = 'register'">
               Daftar
             </button>
           </div>
-          
+
           <!-- Login Form -->
           <div v-if="activeTab === 'login'" class="auth-form animate-fadeIn">
             <form @submit.prevent="handleLogin">
               <div class="mb-3">
                 <label class="form-label">Email atau Username</label>
-                <input 
-                  type="text" 
-                  class="form-control" 
-                  v-model="loginForm.emailOrUsername"
-                  placeholder="Masukkan email atau username"
-                  required
-                >
+                <input type="text" class="form-control" v-model="loginForm.emailOrUsername"
+                  placeholder="Masukkan email atau username" required>
               </div>
-              
+
               <div class="mb-3">
                 <label class="form-label">Password</label>
                 <div class="password-input">
-                  <input 
-                    :type="showPassword ? 'text' : 'password'" 
-                    class="form-control" 
-                    v-model="loginForm.password"
-                    placeholder="Masukkan password"
-                    required
-                  >
-                  <button 
-                    type="button" 
-                    class="toggle-password"
-                    @click="showPassword = !showPassword"
-                  >
+                  <input :type="showPassword ? 'text' : 'password'" class="form-control" v-model="loginForm.password"
+                    placeholder="Masukkan password" required>
+                  <button type="button" class="toggle-password" @click="showPassword = !showPassword">
                     <i :class="showPassword ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
                   </button>
                 </div>
               </div>
-              
+
               <div class="alert alert-danger" v-if="authError">
                 {{ authError }}
               </div>
-              
-              <button 
-                type="submit" 
-                class="btn btn-primary w-100"
-                :disabled="authLoading"
-              >
+
+              <button type="submit" class="btn btn-primary w-100" :disabled="authLoading">
                 <span v-if="authLoading" class="spinner-border spinner-border-sm me-2"></span>
                 {{ authLoading ? 'Memproses...' : 'Masuk' }}
               </button>
             </form>
           </div>
-          
+
           <!-- Register Form -->
           <div v-else class="auth-form animate-fadeIn">
             <form @submit.prevent="handleRegister">
               <div class="mb-3">
                 <label class="form-label">Nama Lengkap</label>
-                <input 
-                  type="text" 
-                  class="form-control" 
-                  v-model="registerForm.name"
-                  placeholder="Masukkan nama lengkap"
-                  required
-                >
+                <input type="text" class="form-control" v-model="registerForm.name" placeholder="Masukkan nama lengkap"
+                  required>
               </div>
-              
+
               <div class="mb-3">
                 <label class="form-label">Email</label>
-                <input 
-                  type="email" 
-                  class="form-control" 
-                  v-model="registerForm.email"
-                  placeholder="Masukkan email"
-                  required
-                >
+                <input type="email" class="form-control" v-model="registerForm.email" placeholder="Masukkan email"
+                  required>
               </div>
-              
+
               <div class="mb-3">
                 <label class="form-label">Username</label>
-                <input 
-                  type="text" 
-                  class="form-control" 
-                  v-model="registerForm.username"
-                  placeholder="Pilih username"
-                  required
-                >
+                <input type="text" class="form-control" v-model="registerForm.username" placeholder="Pilih username"
+                  required>
               </div>
-              
+
               <div class="mb-3">
                 <label class="form-label">Password</label>
-                <input 
-                  type="password" 
-                  class="form-control" 
-                  v-model="registerForm.password"
-                  placeholder="Minimal 6 karakter"
-                  required
-                >
+                <input type="password" class="form-control" v-model="registerForm.password"
+                  placeholder="Minimal 6 karakter" required>
               </div>
-              
+
               <div class="mb-3">
                 <label class="form-label">Konfirmasi Password</label>
-                <input 
-                  type="password" 
-                  class="form-control" 
-                  v-model="registerForm.confirmPassword"
-                  placeholder="Ulangi password"
-                  required
-                >
+                <input type="password" class="form-control" v-model="registerForm.confirmPassword"
+                  placeholder="Ulangi password" required>
               </div>
-              
+
               <div class="alert alert-danger" v-if="authError">
                 {{ authError }}
               </div>
-              
-              <button 
-                type="submit" 
-                class="btn btn-primary w-100"
-                :disabled="authLoading"
-              >
+
+              <button type="submit" class="btn btn-primary w-100" :disabled="authLoading">
                 <span v-if="authLoading" class="spinner-border spinner-border-sm me-2"></span>
                 {{ authLoading ? 'Memproses...' : 'Daftar Sekarang' }}
               </button>
@@ -216,10 +179,11 @@
         </div>
       </div>
     </div>
-    
+
     <!-- Footer -->
     <div class="landing-footer">
-      <p>© 2024 KaraokeKu. All rights reserved.</p>
+      <p>Created by <a href="https://github.com/apriliansya">Deny Apriliansyah</a></p>
+      <p>Version 1.0.0</p>
     </div>
   </div>
 </template>
@@ -228,7 +192,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { songsAPI, playbackAPI } from '@/services/api'
+import { songsAPI, playbackAPI, favoritesAPI } from '@/services/api'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -237,7 +201,8 @@ const authStore = useAuthStore()
 const activeTab = ref('login')
 const showPassword = ref(false)
 const loadingSongs = ref(true)
-const topSongs = ref([])
+const topSongs = ref([]) // Favorites
+const popularSongs = ref([]) // Most Played
 const leaderboard = ref([])
 const authLoading = ref(false)
 const authError = ref('')
@@ -260,36 +225,36 @@ const registerForm = ref({
 const handleLogin = async () => {
   authError.value = ''
   authLoading.value = true
-  
+
   const result = await authStore.login(loginForm.value)
-  
+
   if (result.success) {
     router.push('/dashboard')
   } else {
     authError.value = result.error
   }
-  
+
   authLoading.value = false
 }
 
 const handleRegister = async () => {
   authError.value = ''
-  
+
   if (registerForm.value.password !== registerForm.value.confirmPassword) {
     authError.value = 'Password tidak cocok'
     return
   }
-  
+
   authLoading.value = true
-  
+
   const result = await authStore.register(registerForm.value)
-  
+
   if (result.success) {
     router.push('/dashboard')
   } else {
     authError.value = result.error
   }
-  
+
   authLoading.value = false
 }
 
@@ -302,10 +267,14 @@ const formatPlayCount = (count) => {
 
 const fetchData = async () => {
   try {
-    // Fetch top songs
-    const songsResponse = await songsAPI.getTop(5)
-    topSongs.value = songsResponse.data.data || []
-    
+    // Fetch popular favorites (Lagu Terfavorit)
+    const favoritesResponse = await favoritesAPI.getPopular(5)
+    topSongs.value = favoritesResponse.data.data || []
+
+    // Fetch most played (Lagu Terpopuler)
+    const popularResponse = await songsAPI.getTop(5)
+    popularSongs.value = popularResponse.data.data || []
+
     // Fetch leaderboard
     const leaderboardResponse = await playbackAPI.getLeaderboard(3)
     leaderboard.value = leaderboardResponse.data.data || []
@@ -343,8 +312,8 @@ onMounted(() => {
   position: absolute;
   inset: 0;
   background: radial-gradient(ellipse at top left, rgba(139, 92, 246, 0.15) 0%, transparent 50%),
-              radial-gradient(ellipse at bottom right, rgba(236, 72, 153, 0.15) 0%, transparent 50%),
-              var(--bg-dark);
+    radial-gradient(ellipse at bottom right, rgba(236, 72, 153, 0.15) 0%, transparent 50%),
+    var(--bg-dark);
 }
 
 .bg-particles {
@@ -517,9 +486,17 @@ onMounted(() => {
   font-weight: 700;
 }
 
-.rank-1 { background: linear-gradient(135deg, #fbbf24, #f59e0b); }
-.rank-2 { background: linear-gradient(135deg, #9ca3af, #6b7280); }
-.rank-3 { background: linear-gradient(135deg, #d97706, #b45309); }
+.rank-1 {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+}
+
+.rank-2 {
+  background: linear-gradient(135deg, #9ca3af, #6b7280);
+}
+
+.rank-3 {
+  background: linear-gradient(135deg, #d97706, #b45309);
+}
 
 .user-name {
   flex: 1;
@@ -607,21 +584,21 @@ onMounted(() => {
     gap: 2rem;
     overflow-y: auto;
   }
-  
+
   .landing-container {
     height: auto;
     min-height: 100vh;
     overflow-y: auto;
   }
-  
+
   .landing-left {
     order: 2;
   }
-  
+
   .landing-right {
     order: 1;
   }
-  
+
   .brand-name {
     font-size: 2.5rem;
   }

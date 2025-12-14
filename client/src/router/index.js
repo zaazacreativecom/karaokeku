@@ -63,14 +63,18 @@ const routes = [
     component: KaraokePage,
     meta: { requiresAuth: true }
   },
-  {
-    path: '/songs',
-    name: 'Songs',
-    component: SongsPage,
-    meta: { requiresAuth: true }
-  },
-  {
-    path: '/playlists',
+    {
+      path: '/songs',
+      component: () => import('../views/user/SongsPage.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/favorites',
+      component: () => import('../views/user/FavoritesPage.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/playlists',
     name: 'Playlists',
     component: PlaylistPage,
     meta: { requiresAuth: true }

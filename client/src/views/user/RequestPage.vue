@@ -25,6 +25,9 @@
                     <span>Pilih Lagu</span>
                 </router-link>
 
+                <router-link to="/favorites" class="nav-item"><i class="bi bi-heart-fill"></i><span>Lagu
+                        Favorit</span></router-link>
+
                 <router-link to="/playlists" class="nav-item">
                     <i class="bi bi-collection-play-fill"></i>
                     <span>Playlist Saya</span>

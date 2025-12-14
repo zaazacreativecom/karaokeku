@@ -10,6 +10,8 @@
         <router-link to="/karaoke" class="nav-item"><i class="bi bi-mic-fill"></i><span>Karaoke</span></router-link>
         <router-link to="/songs" class="nav-item"><i class="bi bi-music-note-list"></i><span>Pilih
             Lagu</span></router-link>
+        <router-link to="/favorites" class="nav-item"><i class="bi bi-heart-fill"></i><span>Lagu
+            Favorit</span></router-link>
         <router-link to="/playlists" class="nav-item active"><i class="bi bi-collection-play-fill"></i><span>Playlist
             Saya</span></router-link>
         <router-link to="/upload" class="nav-item"><i class="bi bi-cloud-upload-fill"></i><span>Upload

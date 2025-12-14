@@ -128,6 +128,9 @@ export const adminAPI = {
   deleteSong: (id) => api.delete(`/admin/songs/${id}`),
   scanSongs: (directory, dryRun = false) => 
     api.post('/admin/songs/scan', { directory, dryRun }),
+  uploadThumbnail: (id, formData) => api.post(`/admin/songs/${id}/thumbnail`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
   
   // Users
   getUsers: (params) => api.get('/admin/users', { params }),
@@ -143,6 +146,13 @@ export const adminAPI = {
   // Settings
   getSettings: () => api.get('/admin/settings'),
   updateSettings: (data) => api.put('/admin/settings', data)
+}
+
+export const favoritesAPI = {
+    getAll: (params) => api.get('/favorites', { params }),
+    getIds: () => api.get('/favorites/ids'),
+    getPopular: (limit = 5) => api.get('/favorites/popular', { params: { limit } }),
+    toggle: (songId) => api.post('/favorites/toggle', { songId })
 }
 
 export default api

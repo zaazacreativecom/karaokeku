@@ -24,6 +24,8 @@
           <i class="bi bi-music-note-list"></i>
           <span>Pilih Lagu</span>
         </router-link>
+        <router-link to="/favorites" class="nav-item"><i class="bi bi-heart-fill"></i><span>Lagu
+            Favorit</span></router-link>
 
         <router-link to="/playlists" class="nav-item">
           <i class="bi bi-collection-play-fill"></i>
@@ -876,8 +878,10 @@ onUnmounted(() => {
   font-size: 5rem;
   background: var(--gradient-primary);
   background-clip: text;
+  background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  color: var(--primary);
   margin-bottom: 1rem;
   display: block;
 }

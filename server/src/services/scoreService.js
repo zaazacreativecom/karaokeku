@@ -71,9 +71,9 @@ const endPlayback = async (userId, historyId, data) => {
   // Hitung score jika tidak diberikan
   let finalScore = providedScore;
   
-  if (finalScore === undefined && history.song && history.song.duration) {
+  if ((finalScore === undefined || finalScore === null) && history.song && history.song.duration) {
     finalScore = calculateScore(playedDuration, history.song.duration);
-  } else if (finalScore === undefined) {
+  } else if (finalScore === undefined || finalScore === null) {
     // Default score berdasarkan durasi minimal
     finalScore = playedDuration > 60 ? Math.min(playedDuration / 3, 100) : 50;
   }

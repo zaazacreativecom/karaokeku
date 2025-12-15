@@ -14,11 +14,7 @@ const Donation = sequelize.define('Donation', {
   },
   user_id: {
     type: DataTypes.INTEGER,
-    allowNull: false,
-    references: {
-      model: 'users',
-      key: 'id'
-    }
+    allowNull: false
   },
   amount: {
     type: DataTypes.DECIMAL(12, 2),
@@ -54,11 +50,7 @@ const Donation = sequelize.define('Donation', {
   },
   verified_by: {
     type: DataTypes.INTEGER,
-    allowNull: true,
-    references: {
-      model: 'users',
-      key: 'id'
-    }
+    allowNull: true
   },
   verified_at: {
     type: DataTypes.DATE,

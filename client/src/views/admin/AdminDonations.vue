@@ -44,11 +44,11 @@
                         </td>
                         <td>
                             <span class="method-badge" :class="donation.method">{{ methodLabel(donation.method)
-                            }}</span>
+                                }}</span>
                         </td>
                         <td>
                             <span class="status-badge" :class="donation.status">{{ statusLabel(donation.status)
-                            }}</span>
+                                }}</span>
                         </td>
                         <td>
                             <button v-if="donation.status === 'pending'" class="btn btn-sm btn-success"
@@ -136,7 +136,7 @@ const showDetailModal = ref(false)
 const selectedDonation = ref(null)
 const adminNotes = ref('')
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
+const API_URL = import.meta.env.VITE_API_URL || '/api'
 
 const getAuthHeader = () => ({
     headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }

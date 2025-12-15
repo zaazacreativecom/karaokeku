@@ -154,7 +154,7 @@ const router = useRouter()
 const playerStore = usePlayerStore()
 const playlistStore = usePlaylistStore()
 const favoriteStore = useFavoriteStore()
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
+const API_URL = import.meta.env.VITE_API_URL || '/api'
 
 const songs = ref([])
 const genres = ref([])

@@ -127,7 +127,7 @@
           <div class="modal-footer">
             <button type="button" class="btn btn-ghost" @click="closeModal">Batal</button>
             <button type="submit" class="btn btn-primary" :disabled="saving">{{ saving ? 'Menyimpan...' : 'Simpan'
-            }}</button>
+              }}</button>
           </div>
         </form>
       </div>
@@ -166,12 +166,25 @@ const saving = ref(false)
 const form = ref({ title: '', artist: '', genre: '', language: '', status: 'active', video_url_full: '', video_url_instrumental: '', thumbnail_url: '' })
 const thumbFile = ref(null)
 const thumbPreview = ref(null)
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
+const API_URL = import.meta.env.VITE_API_URL || '/api'
 
 const getImageUrl = (url) => {
   if (!url) return ''
-  if (url.startsWith('http')) return url
-  return `${API_URL.replace('/api', '')}${url}`
+  // Strip localhost from the input URL itself
+  if (url.includes('localhost')) {
+    url = url.replace(/^http(s)?:\/\/localhost(:\d+)?/, '');
+  }
+  if (url.startsWith('http') && !url.includes('localhost')) return url
+
+  // Clean base URL handling
+  const baseUrl = API_URL.endsWith('/api') ? API_URL.replace('/api', '') : API_URL;
+
+  // If base URL is localhost, ignore it to force relative path
+  if (baseUrl.includes('localhost')) {
+    return url.startsWith('/') ? url : `/${url}`
+  }
+
+  return `${baseUrl}${url.startsWith('/') ? '' : '/'}${url}`
 }
 
 let searchTimeout = null

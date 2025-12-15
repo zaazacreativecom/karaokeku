@@ -14,19 +14,11 @@ const ChatMessage = sequelize.define('ChatMessage', {
   },
   sender_id: {
     type: DataTypes.INTEGER,
-    allowNull: false,
-    references: {
-      model: 'users',
-      key: 'id'
-    }
+    allowNull: false
   },
   receiver_id: {
     type: DataTypes.INTEGER,
-    allowNull: false,
-    references: {
-      model: 'users',
-      key: 'id'
-    }
+    allowNull: false
   },
   message: {
     type: DataTypes.TEXT,

@@ -1,14 +1,14 @@
 <template>
     <div class="chat-widget-container" v-if="authStore.isLoggedIn">
         <!-- Chat Window (Popup) -->
-        <div class="chat-popup" :class="{ open: isOpen || chatStore.isChatOpen }">
+        <div class="chat-popup" :class="{ open: chatStore.isWidgetOpen }">
 
             <!-- Conversation List View -->
             <div v-if="!chatStore.isChatOpen" class="conversation-list-view">
                 <div class="popup-header">
                     <h3>Chat</h3>
                     <button class="btn-close-popup" @click="toggleChat">
-                        <i class="bi bi-chevron-down mb-3"></i>
+                        <i class="bi bi-x-lg"></i>
                     </button>
                 </div>
 
@@ -68,9 +68,10 @@
         <!-- Floating Trigger Button -->
         <button class="chat-trigger-btn" @click="toggleChat">
             <div class="trigger-icon">
-                <i class="bi" :class="isOpen || chatStore.isChatOpen ? 'bi-x' : 'bi-chat-dots-fill'"></i>
+                <i class="bi" :class="chatStore.isWidgetOpen ? 'bi-x' : 'bi-chat-dots-fill'"></i>
             </div>
-            <span v-if="chatStore.unreadCount > 0 && !isOpen" class="main-badge-unread">{{ chatStore.unreadCount
+            <span v-if="chatStore.unreadCount > 0 && !chatStore.isWidgetOpen" class="main-badge-unread">{{
+                chatStore.unreadCount
                 }}</span>
         </button>
     </div>
@@ -85,7 +86,6 @@ import ChatWindow from './ChatWindow.vue';
 const authStore = useAuthStore();
 const chatStore = useChatStore();
 
-const isOpen = ref(false);
 const showUsers = ref(false);
 const searchQuery = ref('');
 
@@ -98,16 +98,20 @@ const filteredUsers = computed(() => {
 
 const toggleChat = () => {
     if (chatStore.isChatOpen) {
-        chatStore.closeChat();
-        isOpen.value = true; // Keep list open
-    } else {
-        isOpen.value = !isOpen.value;
-    }
+        // If in conversation view, go back to list (keep widget open)
+        // BUT if user clicked the X button (which calls this), checks are needed
+        // Actually, the X button in popup header is only visible in List View (v-if="!chatStore.isChatOpen")
+        // The trigger button calls this too.
 
-    // Load conversations when opening
-    if (isOpen.value) {
-        chatStore.fetchConversations();
-        chatStore.fetchUsers();
+        // If clicking trigger button while in chat view -> close widget?
+        // Let's make it simple: toggle widget.
+        // If widget is closing, state is just hidden. 
+        // When reopening, it might preserve state?
+
+        // Let's just follow simpler logic:
+        chatStore.toggleWidget();
+    } else {
+        chatStore.toggleWidget();
     }
 };
 
@@ -325,5 +329,62 @@ onMounted(() => {
     text-align: center;
     padding: 2rem;
     color: var(--text-muted);
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .chat-trigger-btn {
+        display: none !important;
+    }
+
+    .chat-widget-container {
+        bottom: 0;
+        right: 0;
+        left: 0;
+        top: 0;
+        z-index: 2000;
+        width: 100%;
+        height: 100vh;
+        pointer-events: none;
+        /* Let clicks pass through when hidden */
+        justify-content: flex-end;
+        /* Bottom align?? No full screen */
+        padding: 0;
+    }
+
+    .chat-widget-container:has(.chat-popup.open) {
+        background: rgba(0, 0, 0, 0.6);
+        /* Backdrop dimming */
+        backdrop-filter: blur(4px);
+        pointer-events: all;
+    }
+
+    .chat-popup {
+        width: 100%;
+        height: 100%;
+        /* Full screen */
+        max-height: 80vh;
+        /* Leave some space at top? Or full screen? */
+        /* User said "open transparan". "tampilkan chat-popup open transparan" */
+        /* Assuming full overlay with transparent-ish background */
+        background: rgba(20, 20, 30, 0.95);
+        margin: 0;
+        border-radius: 20px 20px 0 0;
+        /* Bottom sheet style or full screen? */
+        /* Let's go with bottom sheet style taking up most of screen */
+        border: none;
+        box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
+    }
+
+    .chat-popup.open {
+        transform: translateY(0);
+        opacity: 1;
+    }
+
+    .chat-popup {
+        transform: translateY(100%);
+        /* Slide up animation for mobile */
+        transform-origin: bottom center;
+    }
 }
 </style>

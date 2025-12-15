@@ -322,8 +322,13 @@ const glowImage = computed(() => {
 
 // Fix for URLs with special characters (like #)
 const encodedVideoUrl = computed(() => {
-  const url = currentSong.value?.video_url_full;
+  let url = currentSong.value?.video_url_full;
   if (!url) return '';
+
+  // Strip localhost if present
+  if (url.includes('localhost')) {
+    url = url.replace(/^http(s)?:\/\/localhost(:\d+)?/, '');
+  }
 
   // Split key parts to encode filenames properly
   const parts = url.split('/');
@@ -449,9 +454,22 @@ const togglePlay = () => {
 }
 
 const onTimeUpdate = (e) => {
-  playerStore.updateTime(e.target.currentTime)
-  updateLyrics(e.target.currentTime)
+  const time = e.target.currentTime
+  const duration = e.target.duration
+
+  playerStore.updateTime(time)
+  updateLyrics(time)
+
+  // Auto-end song at 90% to skip outro
+  if (duration > 0 && time >= duration * 0.9 && !showScoreModal.value && !playerStore.loading) {
+    // Prevent multiple triggers
+    if (!isEnding.value) {
+      isEnding.value = true;
+      onVideoEnded();
+    }
+  }
 }
+const isEnding = ref(false);
 
 const onLoadedMetadata = (e) => {
   playerStore.setDuration(e.target.duration)
@@ -1451,127 +1469,239 @@ onUnmounted(() => {
 
   .karaoke-main {
     margin-left: 0;
-    padding-bottom: 70px;
+    padding-bottom: 220px;
+    /* Space for the taller mobile controls */
   }
 
+  /* Modern Mobile Controls Bar */
   .controls-bar {
-    padding: 0.75rem;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-  }
-
-  .controls-left {
-    order: 2;
-    width: 100%;
-    justify-content: center;
-  }
-
-  .controls-center {
-    order: 1;
-    width: 100%;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-  }
-
-  .controls-right {
-    order: 3;
-    width: 100%;
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-  }
-
-  .btn-control {
-    min-width: 80px;
-    padding: 0.5rem 0.75rem;
-    font-size: 0.75rem;
-  }
-
-  .btn-control span {
-    display: none;
-  }
-
-  .pitch-control,
-  .tempo-control {
-    padding: 0.4rem 0.6rem;
-    gap: 0.3rem;
-  }
-
-  .control-label {
-    font-size: 0.6rem;
-  }
-
-  .control-value {
-    font-size: 0.75rem;
-    min-width: 30px;
-  }
-
-  .btn-sm-control {
-    width: 28px;
-    height: 28px;
-    font-size: 0.7rem;
-  }
-
-  .time-display {
-    font-size: 0.7rem;
-  }
-
-  .volume-control {
-    display: none;
-  }
-
-  .overlay-content {
-    width: 95%;
-    max-height: 80vh;
-  }
-
-  .overlay-header {
+    position: fixed;
+    bottom: 80px;
+    /* Above mobile nav */
+    left: 1rem;
+    right: 1rem;
     padding: 1rem;
+    background: rgba(30, 30, 40, 0.85);
+    /* Semi-transparent dark */
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 24px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    z-index: 900;
   }
 
-  .overlay-header h2 {
-    font-size: 1.25rem;
-  }
-
-  .songs-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .score-modal .modal-content {
-    width: 95%;
-    padding: 1.5rem;
-  }
-}
-
-@media (max-width: 425px) {
-  .controls-bar {
-    padding: 0.5rem;
-  }
-
-  .btn-control {
-    min-width: 60px;
-    padding: 0.4rem 0.5rem;
-  }
-
-  .pitch-control,
-  .tempo-control {
+  /* 1. Progress Bar - Top Row */
+  .progress-container {
     width: 100%;
-    justify-content: center;
-  }
-
-  .btn-sm-control {
-    width: 32px;
-    height: 32px;
+    order: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.25rem;
   }
 
   .progress-bar {
     height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
   }
 
-  .lyrics-overlay {
-    bottom: 100px;
+  .progress-fill {
+    background: var(--gradient-primary);
+    border-radius: 3px;
+    box-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
+  }
+
+  .progress-thumb {
+    width: 12px;
+    height: 12px;
+    top: -3px;
+    background: white;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+  }
+
+  .time-display {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    min-width: 35px;
+  }
+
+  /* 2. Main Controls - Middle Row */
+  .controls-main {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    width: 100%;
+    order: 2;
+  }
+
+  /* Center Group: Prev, Play, Next */
+  .controls-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+  }
+
+  .btn-play {
+    width: 56px;
+    height: 56px;
+    font-size: 1.75rem;
+    background: white;
+    color: var(--bg-main);
+    box-shadow: 0 4px 15px rgba(255, 255, 255, 0.3);
+  }
+
+  .btn-play:active {
+    transform: scale(0.95);
+  }
+
+  .controls-center .btn-control {
+    width: 40px;
+    height: 40px;
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
     font-size: 1.25rem;
-    padding: 0.5rem 1rem;
+  }
+
+  /* Left Group: Song List */
+  .controls-left {
+    display: flex;
+    justify-content: flex-start;
+  }
+
+  .controls-left .btn-control {
+    width: 42px;
+    height: 42px;
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  /* Right Group: Vocal toggle */
+  .controls-right {
+    display: flex;
+    justify-content: flex-end;
+    flex-wrap: nowrap;
+    /* Prevent wrapping */
+  }
+
+  /* Move Pitch/Tempo to bottom row */
+  .controls-right {
+    display: contents;
+    /* Allow children to break out of this container in grid */
+  }
+
+  /* We need to restructure controls-right children for the grid. 
+     Since HTML structure is fixed, we use a specific hack or just flex wrap entire controls-main
+     Actually, let's keep it simple: 
+     Row 2: List - Prev - Play - Next - Vocal 
+  */
+  .controls-main {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    row-gap: 1rem;
+  }
+
+  .controls-left {
+    order: 1;
+    width: auto;
+  }
+
+  .controls-center {
+    order: 2;
+    flex: 1;
+    justify-content: center;
+    gap: 1rem;
+  }
+
+  .btn-channel {
+    order: 3;
+    width: 42px !important;
+    height: 42px !important;
+    padding: 0 !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+  }
+
+  .btn-channel span {
+    display: none;
+    /* Hide text "ON/OFF" */
+  }
+
+  .btn-channel i {
+    font-size: 1.1rem;
+  }
+
+  /* 3. Bottom Row: Pitch & Tempo (Scrollable if needed) */
+  /* Target the pitch/tempo divs specifically */
+  .pitch-control,
+  .tempo-control {
+    order: 4;
+    width: 48%;
+    /* Split width */
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    justify-content: space-between;
+    padding: 0.5rem 0.75rem;
+    margin-top: 0.5rem;
+  }
+
+  .volume-control {
+    display: none;
+    /* Hide volume on mobile */
+  }
+
+  /* Adjust Overlay for Mobile */
+  .overlay-content {
+    width: 100%;
+    height: 100%;
+    max-height: 100%;
+    border-radius: 0;
+  }
+
+  .overlay-song-item {
+    padding: 0.75rem;
+  }
+
+  .song-thumbnail {
+    width: 40px;
+    height: 40px;
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 380px) {
+
+  /* For very small screens */
+  .controls-bar {
+    left: 0.5rem;
+    right: 0.5rem;
+    padding: 0.75rem;
+  }
+
+  .controls-center {
+    gap: 0.75rem;
+  }
+
+  .btn-play {
+    width: 48px;
+    height: 48px;
+    font-size: 1.5rem;
+  }
+
+  .pitch-control,
+  .tempo-control {
+    width: 100%;
+    /* Stack them */
   }
 }
 </style>

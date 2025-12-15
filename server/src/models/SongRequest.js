@@ -14,11 +14,7 @@ const SongRequest = sequelize.define('SongRequest', {
   },
   user_id: {
     type: DataTypes.INTEGER,
-    allowNull: false,
-    references: {
-      model: 'users',
-      key: 'id'
-    }
+    allowNull: false
   },
   title: {
     type: DataTypes.STRING(255),
@@ -56,11 +52,7 @@ const SongRequest = sequelize.define('SongRequest', {
   },
   reviewed_by: {
     type: DataTypes.INTEGER,
-    allowNull: true,
-    references: {
-      model: 'users',
-      key: 'id'
-    }
+    allowNull: true
   },
   reviewed_at: {
     type: DataTypes.DATE,

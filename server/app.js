@@ -58,6 +58,25 @@ app.get('/health', (req, res) => {
 });
 
 // ==========================================
+// FRONTEND SERVING (PRODUCTION)
+// ==========================================
+if (process.env.NODE_ENV === 'production') {
+  const clientDistPath = path.join(__dirname, '../client/dist');
+  
+  // Serve static files from dist
+  app.use(express.static(clientDistPath));
+
+  // SPA Fallback: Any route not handled by API gets index.html
+  app.get('*', (req, res) => {
+    // Skip if API request (should have been handled by routes above or 404)
+    if (req.path.startsWith('/api')) {
+      return res.status(404).json({ success: false, message: 'Endpoint not found' });
+    }
+    res.sendFile(path.join(clientDistPath, 'index.html'));
+  });
+}
+
+// ==========================================
 // ERROR HANDLING
 // ==========================================
 

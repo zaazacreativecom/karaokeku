@@ -123,20 +123,41 @@ const formatDuration = (seconds) => {
  * @param {number} playedDuration - Durasi yang dimainkan (detik)
  * @param {number} totalDuration - Total durasi lagu (detik)
  */
+/**
+ * Calculate score dengan simulasi performance
+ * @param {number} playedDuration - Durasi yang dimainkan (detik)
+ * @param {number} totalDuration - Total durasi lagu (detik)
+ */
 const calculateScore = (playedDuration, totalDuration) => {
   if (!totalDuration || totalDuration <= 0) return 0;
   
   const percentage = (playedDuration / totalDuration) * 100;
   
-  // Base score dari persentase durasi
-  let score = Math.min(percentage, 100);
-  
-  // Bonus jika menyelesaikan lagu
-  if (percentage >= 95) {
-    score = Math.min(score + 10, 100);
+  // 1. Jika lagu diskip terlalu cepat (< 20%), score rendah (0-20)
+  if (percentage < 20) {
+    return Math.floor((percentage / 20) * 20);
   }
   
-  return Math.round(score);
+  // 2. Jika lagu tidak selesai (< 85%), score proporsional (20-75)
+  if (percentage < 85) {
+    // Map 20-85% to 20-75 score
+    const score = 20 + ((percentage - 20) / (85 - 20)) * 55;
+    return Math.round(score);
+  }
+  
+  // 3. Jika lagu selesai (> 85%), simulasi penilaian "real" (75-100)
+  // Base 75, sisa 25 poin adalah "Performance" (Random)
+  // Semakin lama durasi diputar, semakin tinggi peluang score bagus
+  const perfectionBonus = percentage >= 90 ? 5 : 0; // Bonus jika sampai 90% (dianggap selesai)
+  
+  // Random fluctuation (0-20)
+  // Menggunakan Math.random() agar setiap sesi unik
+  const performanceScore = Math.floor(Math.random() * 21);
+  
+  let finalScore = 75 + performanceScore + perfectionBonus;
+  
+  // Cap at 100
+  return Math.min(Math.round(finalScore), 100);
 };
 
 module.exports = {

@@ -7,8 +7,7 @@ import axios from 'axios'
 
 // Buat axios instance
 const api = axios.create({
-  baseURL: '/api',
-  timeout: 30000,
+  baseURL: '/api', // Relative path, works with proxy or same-origin
   headers: {
     'Content-Type': 'application/json'
   }

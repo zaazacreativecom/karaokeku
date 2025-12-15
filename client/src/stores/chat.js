@@ -16,6 +16,7 @@ export const useChatStore = defineStore('chat', () => {
   const unreadCount = ref(0)
   const users = ref([])
   const isChatOpen = ref(false)
+  const isWidgetOpen = ref(false)
   const socket = ref(null)
   
   const activeConversation = computed(() => {
@@ -159,12 +160,22 @@ export const useChatStore = defineStore('chat', () => {
   const openChat = (partnerId) => {
       activePartnerId.value = partnerId
       isChatOpen.value = true
+      isWidgetOpen.value = true
       fetchMessages(partnerId)
   }
   
   const closeChat = () => {
       isChatOpen.value = false
       activePartnerId.value = null
+  }
+
+  const toggleWidget = () => {
+      isWidgetOpen.value = !isWidgetOpen.value
+      // If opening, fetch conversations
+      if (isWidgetOpen.value) {
+          fetchConversations()
+          fetchUsers()
+      }
   }
 
   return {
@@ -175,6 +186,7 @@ export const useChatStore = defineStore('chat', () => {
     unreadCount,
     users,
     isChatOpen,
+    isWidgetOpen,
     init,
     fetchConversations,
     fetchMessages,
@@ -182,6 +194,7 @@ export const useChatStore = defineStore('chat', () => {
     fetchUnreadCount,
     fetchUsers,
     openChat,
-    closeChat
+    closeChat,
+    toggleWidget
   }
 })

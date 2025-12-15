@@ -142,10 +142,26 @@ const incrementPlayCount = async (songId) => {
 };
 
 /**
+ * Helper to strip localhost from URLs
+ */
+const cleanUrl = (url) => {
+  if (!url) return url;
+  if (typeof url === 'string' && url.includes('localhost')) {
+    return url.replace(/^http(s)?:\/\/localhost(:\d+)?/, '');
+  }
+  return url;
+};
+
+/**
  * Buat lagu baru (admin)
  * @param {Object} songData - Data lagu
  */
 const createSong = async (songData) => {
+  // Sanitize URLs
+  if (songData.thumbnail_url) songData.thumbnail_url = cleanUrl(songData.thumbnail_url);
+  if (songData.video_url_full) songData.video_url_full = cleanUrl(songData.video_url_full);
+  if (songData.video_url_instrumental) songData.video_url_instrumental = cleanUrl(songData.video_url_instrumental);
+
   const song = await Song.create(songData);
   return song;
 };
@@ -164,6 +180,11 @@ const updateSong = async (songId, updateData) => {
     throw error;
   }
   
+  // Sanitize URLs
+  if (updateData.thumbnail_url) updateData.thumbnail_url = cleanUrl(updateData.thumbnail_url);
+  if (updateData.video_url_full) updateData.video_url_full = cleanUrl(updateData.video_url_full);
+  if (updateData.video_url_instrumental) updateData.video_url_instrumental = cleanUrl(updateData.video_url_instrumental);
+
   await song.update(updateData);
   return song;
 };

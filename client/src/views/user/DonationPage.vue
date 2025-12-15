@@ -138,7 +138,7 @@
                                         <span class="bank-name">{{ method.name }}</span>
                                         <span class="bank-number">{{ method.account_number }}</span>
                                         <span class="bank-holder" v-if="method.account_name">a.n. {{ method.account_name
-                                        }}</span>
+                                            }}</span>
                                     </div>
                                     <button class="btn btn-sm btn-ghost"
                                         @click="copyToClipboard(method.account_number, method.name)">
@@ -176,7 +176,7 @@ import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
 import MobileNav from '@/components/MobileNav.vue'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
+const API_URL = import.meta.env.VITE_API_URL || '/api'
 const loading = ref(true)
 const paymentMethods = ref([])
 const showToast = ref(false)
@@ -195,8 +195,17 @@ const fetchPaymentMethods = async () => {
 
 const getImageUrl = (url) => {
     if (!url) return ''
+    if (url.includes('localhost')) {
+        url = url.replace(/^http(s)?:\/\/localhost(:\d+)?/, '');
+    }
     if (url.startsWith('http')) return url
-    return `${API_URL.replace('/api', '')}${url}`
+    const baseUrl = API_URL.endsWith('/api') ? API_URL.replace('/api', '') : API_URL;
+
+    if (baseUrl.includes('localhost')) {
+        return url.startsWith('/') ? url : `/${url}`
+    }
+
+    return `${baseUrl}${url.startsWith('/') ? '' : '/'}${url}`
 }
 
 const getMethodClass = (name) => {

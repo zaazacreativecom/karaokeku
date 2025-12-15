@@ -7,7 +7,7 @@ import { io } from "socket.io-client";
 import { useAuthStore } from "@/stores/auth";
 
 let socket;
-const SOCKET_URL = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : 'http://localhost:3000';
+const SOCKET_URL = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : '';
 
 export const connectSocket = () => {
   const authStore = useAuthStore();

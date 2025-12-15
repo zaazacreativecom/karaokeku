@@ -136,7 +136,7 @@ const showDetailModal = ref(false)
 const selectedRequest = ref(null)
 const adminNotes = ref('')
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
+const API_URL = import.meta.env.VITE_API_URL || '/api'
 
 const getAuthHeader = () => ({
     headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }

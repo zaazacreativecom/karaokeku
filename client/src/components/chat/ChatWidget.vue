@@ -72,7 +72,7 @@
             </div>
             <span v-if="chatStore.unreadCount > 0 && !chatStore.isWidgetOpen" class="main-badge-unread">{{
                 chatStore.unreadCount
-                }}</span>
+            }}</span>
         </button>
     </div>
 </template>
@@ -374,6 +374,9 @@ onMounted(() => {
         /* Let's go with bottom sheet style taking up most of screen */
         border: none;
         box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
+        padding-bottom: 80px;
+        /* Space for Mobile Nav */
+        box-sizing: border-box;
     }
 
     .chat-popup.open {

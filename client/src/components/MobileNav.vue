@@ -56,6 +56,13 @@ const isActive = (path) => {
 
 <style scoped>
 /* Styles defined in main.css for .mobile-nav */
+.mobile-nav {
+    z-index: 3000;
+    /* Ensure it stays above chat overlay */
+    position: fixed;
+    /* Ensure it defines stacking context */
+}
+
 .icon-wrapper {
     position: relative;
     display: flex;

@@ -118,6 +118,8 @@
         </div>
       </div>
     </div>
+    <!-- Mobile Navigation -->
+    <MobileNav />
   </div>
 </template>
 
@@ -125,6 +127,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePlaylistStore } from '@/stores/playlist'
+import MobileNav from '@/components/MobileNav.vue'
 
 const router = useRouter()
 const playlistStore = usePlaylistStore()

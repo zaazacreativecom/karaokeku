@@ -105,6 +105,34 @@
 
       <!-- Controls Bar -->
       <div class="controls-bar">
+        <!-- Mobile Control Overlays -->
+        <div v-if="activeMobileControl" class="mobile-control-overlay" @click.self="activeMobileControl = null">
+          <div class="mobile-control-popup" :class="activeMobileControl">
+            <!-- Pitch Popup -->
+            <div v-if="activeMobileControl === 'pitch'" class="control-popup-content">
+              <div class="popup-header">
+                <i class="bi bi-music-note"></i>
+                <span>Pitch Control</span>
+                <button class="btn-close-popup" @click="activeMobileControl = null"><i class="bi bi-x"></i></button>
+              </div>
+              <div class="popup-body">
+                <button class="btn-popup-control" @click="decreasePitch" :disabled="playerStore.pitch <= -12">
+                  <i class="bi bi-dash"></i>
+                </button>
+                <div class="popup-value" :class="{ positive: playerStore.pitch > 0, negative: playerStore.pitch < 0 }">
+                  {{ playerStore.pitch > 0 ? '+' : '' }}{{ playerStore.pitch }}
+                </div>
+                <button class="btn-popup-control" @click="increasePitch" :disabled="playerStore.pitch >= 12">
+                  <i class="bi bi-plus"></i>
+                </button>
+                <button v-if="playerStore.pitch !== 0" class="btn-popup-reset" @click="resetPitch">
+                  Reset
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Progress Bar -->
         <div class="progress-container">
           <span class="time-display">{{ playerStore.formattedCurrentTime }}</span>
@@ -138,7 +166,7 @@
               <i class="bi bi-skip-end-fill"></i>
             </button>
 
-            <button class="btn-control" @click="stopPlayback" title="Stop">
+            <button class="btn-control desktop-only" @click="stopPlayback" title="Stop">
               <i class="bi bi-stop-fill"></i>
             </button>
           </div>
@@ -149,11 +177,17 @@
             <button class="btn-control btn-channel" :class="{ on: playerStore.vocalOn, off: !playerStore.vocalOn }"
               @click="toggleAudioChannel" title="Toggle Audio Channel" :disabled="!playerStore.currentSong">
               <i :class="playerStore.vocalOn ? 'bi bi-mic-fill' : 'bi bi-mic-fill'"></i>
-              <span>{{ playerStore.vocalOn ? 'ON' : 'OFF' }}</span>
+              <span class="desktop-only">{{ playerStore.vocalOn ? 'ON' : 'OFF' }}</span>
             </button>
 
-            <!-- Pitch Control -->
-            <div class="pitch-control">
+            <!-- Mobile Pitch Icon -->
+            <button class="btn-control mobile-only" :class="{ active: activeMobileControl === 'pitch' }"
+              @click="toggleMobileControl('pitch')" title="Pitch" :disabled="!playerStore.currentSong">
+              <i class="bi bi-music-note"></i>
+            </button>
+
+            <!-- Desktop Pitch Control -->
+            <div class="pitch-control desktop-only">
               <span class="control-label">Pitch:</span>
               <button class="btn-sm-control" @click="decreasePitch" :disabled="playerStore.pitch <= -12" title="-1">
                 <i class="bi bi-dash"></i>
@@ -169,8 +203,8 @@
               </button>
             </div>
 
-            <!-- Tempo Control -->
-            <div class="tempo-control">
+            <!-- Desktop Tempo Control (Hidden on mobile) -->
+            <div class="tempo-control desktop-only">
               <span class="control-label">Tempo:</span>
               <button class="btn-sm-control" @click="decreaseTempo" :disabled="tempo <= 0.5" title="Slower">
                 <i class="bi bi-dash"></i>
@@ -186,8 +220,8 @@
               </button>
             </div>
 
-            <!-- Volume -->
-            <div class="volume-control">
+            <!-- Volume (Desktop) -->
+            <div class="volume-control desktop-only">
               <button class="btn-control" @click="toggleMute">
                 <i :class="volumeIcon"></i>
               </button>
@@ -355,6 +389,7 @@ const isHighScore = ref(false)
 const previousVolume = ref(0.8)
 const tempo = ref(1.0) // Tempo control (0.5x - 2.0x)
 const audioInitialized = ref(false)
+const activeMobileControl = ref(null)
 
 // Computed
 const volumeIcon = computed(() => {
@@ -653,6 +688,14 @@ const updateLyrics = (time) => {
   }
 
   currentLyrics.value = current
+}
+
+const toggleMobileControl = (control) => {
+  if (activeMobileControl.value === control) {
+    activeMobileControl.value = null
+  } else {
+    activeMobileControl.value = control
+  }
 }
 
 const handleSearch = () => {
@@ -1467,22 +1510,28 @@ onUnmounted(() => {
     display: none;
   }
 
+  /* Utility classes */
+  .desktop-only {
+    display: none !important;
+  }
+
+  .mobile-only {
+    display: inline-flex !important;
+  }
+
   .karaoke-main {
     margin-left: 0;
     padding-bottom: 220px;
-    /* Space for the taller mobile controls */
   }
 
   /* Modern Mobile Controls Bar */
   .controls-bar {
     position: fixed;
     bottom: 80px;
-    /* Above mobile nav */
     left: 1rem;
     right: 1rem;
     padding: 1rem;
     background: rgba(30, 30, 40, 0.85);
-    /* Semi-transparent dark */
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -1491,197 +1540,177 @@ onUnmounted(() => {
     display: flex;
     flex-direction: column;
     gap: 1rem;
-    z-index: 900;
+    z-index: 150;
+    /* Below Song Overlay (200), below Mobile Nav (3000) */
+    margin: 0;
   }
 
-  /* 1. Progress Bar - Top Row */
+  /* Progress Bar */
   .progress-container {
-    width: 100%;
-    order: 1;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
     margin-bottom: 0.25rem;
   }
 
   .progress-bar {
     height: 6px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 3px;
-  }
-
-  .progress-fill {
-    background: var(--gradient-primary);
-    border-radius: 3px;
-    box-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
   }
 
   .progress-thumb {
     width: 12px;
     height: 12px;
-    top: -3px;
-    background: white;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
   }
 
-  .time-display {
-    font-size: 0.7rem;
-    font-weight: 600;
-    color: var(--text-muted);
-    min-width: 35px;
-  }
-
-  /* 2. Main Controls - Middle Row */
+  /* Controls Grid */
   .controls-main {
-    display: grid;
-    grid-template-columns: 1fr auto 1fr;
+    display: flex;
+    justify-content: space-between;
     align-items: center;
-    width: 100%;
-    order: 2;
   }
 
-  /* Center Group: Prev, Play, Next */
   .controls-center {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 1.5rem;
+    gap: 1rem;
   }
 
   .btn-play {
     width: 56px;
     height: 56px;
     font-size: 1.75rem;
-    background: white;
-    color: var(--bg-main);
-    box-shadow: 0 4px 15px rgba(255, 255, 255, 0.3);
+    box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4);
   }
 
-  .btn-play:active {
-    transform: scale(0.95);
-  }
-
-  .controls-center .btn-control {
-    width: 40px;
-    height: 40px;
-    background: transparent;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: white;
-    font-size: 1.25rem;
-  }
-
-  /* Left Group: Song List */
-  .controls-left {
-    display: flex;
-    justify-content: flex-start;
-  }
-
-  .controls-left .btn-control {
+  .btn-control {
     width: 42px;
     height: 42px;
     background: rgba(255, 255, 255, 0.05);
   }
 
-  /* Right Group: Vocal toggle */
-  .controls-right {
-    display: flex;
-    justify-content: flex-end;
-    flex-wrap: nowrap;
-    /* Prevent wrapping */
+  .btn-control.active {
+    background: var(--primary);
+    color: white;
+    box-shadow: 0 0 15px rgba(139, 92, 246, 0.5);
   }
 
-  /* Move Pitch/Tempo to bottom row */
-  .controls-right {
-    display: contents;
-    /* Allow children to break out of this container in grid */
-  }
-
-  /* We need to restructure controls-right children for the grid. 
-     Since HTML structure is fixed, we use a specific hack or just flex wrap entire controls-main
-     Actually, let's keep it simple: 
-     Row 2: List - Prev - Play - Next - Vocal 
-  */
-  .controls-main {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    align-items: center;
-    row-gap: 1rem;
-  }
-
-  .controls-left {
-    order: 1;
-    width: auto;
-  }
-
-  .controls-center {
-    order: 2;
-    flex: 1;
-    justify-content: center;
-    gap: 1rem;
-  }
-
+  /* Channel Button */
   .btn-channel {
-    order: 3;
     width: 42px !important;
     height: 42px !important;
-    padding: 0 !important;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    padding: 0;
     border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
   }
 
-  .btn-channel span {
-    display: none;
-    /* Hide text "ON/OFF" */
+  /* Mobile Overlay Popup */
+  .mobile-control-overlay {
+    position: absolute;
+    bottom: 110%;
+    /* Above the controls bar */
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    z-index: 200;
   }
 
-  .btn-channel i {
+  .mobile-control-popup {
+    background: rgba(30, 30, 40, 0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 20px;
+    padding: 1rem;
+    width: 200px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    animation: slideUp 0.2s ease-out;
+  }
+
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .popup-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+
+  .popup-header i {
+    color: var(--primary);
+  }
+
+  .btn-close-popup {
+    background: none;
+    border: none;
+    color: var(--text-muted);
     font-size: 1.1rem;
   }
 
-  /* 3. Bottom Row: Pitch & Tempo (Scrollable if needed) */
-  /* Target the pitch/tempo divs specifically */
-  .pitch-control,
-  .tempo-control {
-    order: 4;
-    width: 48%;
-    /* Split width */
-    background: rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+  .popup-body {
+    display: flex;
     justify-content: space-between;
-    padding: 0.5rem 0.75rem;
-    margin-top: 0.5rem;
+    align-items: center;
+    position: relative;
   }
 
-  .volume-control {
-    display: none;
-    /* Hide volume on mobile */
+  .btn-popup-control {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: white;
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
-  /* Adjust Overlay for Mobile */
-  .overlay-content {
-    width: 100%;
-    height: 100%;
-    max-height: 100%;
-    border-radius: 0;
+  .btn-popup-control:active {
+    background: rgba(255, 255, 255, 0.2);
   }
 
-  .overlay-song-item {
-    padding: 0.75rem;
+  .popup-value {
+    font-size: 1.25rem;
+    font-weight: 800;
   }
 
-  .song-thumbnail {
-    width: 40px;
-    height: 40px;
-    font-size: 1rem;
+  .btn-popup-reset {
+    position: absolute;
+    bottom: -25px;
+    /* hang below or change layout */
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.7rem;
+    background: none;
+    border: none;
+    color: var(--warning);
+    text-decoration: underline;
   }
+
+  /* Reset adjust: let's put it inside body properly or header */
+  /* Re-adjust popup body to accommodate reset better */
 }
 
-@media (max-width: 380px) {
+/* Base styles for visibility classes default (Desktop) */
+.mobile-only {
+  display: none !important;
+}
 
-  /* For very small screens */
+/* Small Mobile Adjustments */
+@media (max-width: 380px) {
   .controls-bar {
     left: 0.5rem;
     right: 0.5rem;
@@ -1696,12 +1725,6 @@ onUnmounted(() => {
     width: 48px;
     height: 48px;
     font-size: 1.5rem;
-  }
-
-  .pitch-control,
-  .tempo-control {
-    width: 100%;
-    /* Stack them */
   }
 }
 </style>

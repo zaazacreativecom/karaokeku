@@ -264,9 +264,21 @@
           <!-- Song List -->
           <div class="overlay-songs">
             <div v-for="song in songs" :key="song.id" class="overlay-song-item">
-              <div class="song-thumbnail">
+              <!-- Desktop Thumbnail -->
+              <div class="song-thumbnail desktop-only">
                 <i class="bi bi-music-note"></i>
               </div>
+
+              <!-- Mobile Left Actions (Thumbnail replacement) -->
+              <div class="mobile-left-actions mobile-only">
+                <button class="btn btn-primary btn-icon-sm" @click="playSong(song)">
+                  <i class="bi bi-play-fill"></i>
+                </button>
+                <button class="btn btn-ghost btn-icon-sm" @click="addToQueue(song)">
+                  <i class="bi bi-plus-lg"></i>
+                </button>
+              </div>
+
               <div class="song-details">
                 <h4>{{ song.title }}</h4>
                 <p>{{ song.artist }}</p>
@@ -275,9 +287,10 @@
                   <span v-if="song.language"><i class="bi bi-globe"></i> {{ song.language }}</span>
                 </div>
               </div>
-              <div class="song-actions">
+
+              <div class="song-actions desktop-only">
                 <button class="btn btn-primary btn-sm" @click="playSong(song)">
-                  <i class="bi bi-play-fill"></i> Play
+                  <i class="bi bi-play-fill me-1"></i> Play
                 </button>
                 <button class="btn btn-ghost btn-sm" @click="addToQueue(song)">
                   <i class="bi bi-plus-lg"></i>
@@ -813,7 +826,13 @@ onUnmounted(() => {
   background: #000;
 }
 
-/* Reuse sidebar styles from dashboard */
+
+/* Utility - Visibility */
+.mobile-only {
+  display: none !important;
+}
+
+/* Reused sidebar styles from dashboard */
 .dashboard-sidebar {
   width: 260px;
   background: var(--bg-card);
@@ -1704,11 +1723,6 @@ onUnmounted(() => {
   /* Re-adjust popup body to accommodate reset better */
 }
 
-/* Base styles for visibility classes default (Desktop) */
-.mobile-only {
-  display: none !important;
-}
-
 /* Small Mobile Adjustments */
 @media (max-width: 380px) {
   .controls-bar {
@@ -1725,6 +1739,115 @@ onUnmounted(() => {
     width: 48px;
     height: 48px;
     font-size: 1.5rem;
+  }
+
+  /* Adjust Overlay for Mobile */
+  .song-overlay {
+    background: rgba(0, 0, 0, 0.6);
+    /* Semi-transparent backdrop */
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+  }
+
+  .overlay-content {
+    width: 100%;
+    height: 100%;
+    max-height: 100%;
+    border-radius: 0;
+    background: rgba(25, 25, 35, 0.85);
+    /* Glassmorphism content */
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .overlay-header {
+    background: rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 1rem 1.5rem;
+  }
+
+  .overlay-songs {
+    padding: 1rem;
+  }
+
+  .overlay-song-item {
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    /* Lighter item bg */
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    margin-bottom: 0.75rem;
+    align-items: flex-start;
+    /* Align top for wrapped text */
+  }
+
+  .song-thumbnail {
+    width: 60px;
+    height: 60px;
+    font-size: 1.5rem;
+    flex-shrink: 0;
+    border-radius: 8px;
+  }
+
+  .song-details {
+    padding-right: 0.5rem;
+  }
+
+  .song-details h4 {
+    font-size: 1rem;
+    white-space: normal;
+    /* Allow wrapping */
+    overflow: visible;
+    text-overflow: clip;
+    line-height: 1.3;
+    margin-bottom: 0.25rem;
+  }
+
+  .song-details p {
+    font-size: 0.85rem;
+    opacity: 0.8;
+  }
+
+  .song-meta {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+  }
+
+  /* Mobile Icon Buttons (New Left Placement) */
+  .mobile-left-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-right: 0.75rem;
+    flex-shrink: 0;
+  }
+
+  .btn-icon-sm {
+    display: block;
+    width: 32px;
+    height: 32px;
+    line-height: 32px;
+    border-radius: 6px;
+    padding: 0;
+    text-align: center;
+    font-size: 1rem;
+  }
+
+  /* Tweaks for song items */
+  .overlay-song-item {
+    padding: 0.75rem;
+    align-items: flex-start;
+    /* Keep them top aligned usually looks better if song title wraps */
+  }
+
+  .song-actions {
+    flex-direction: column;
+    /* Stack actions if needed, or row */
+    gap: 0.5rem;
+    align-self: center;
   }
 }
 </style>

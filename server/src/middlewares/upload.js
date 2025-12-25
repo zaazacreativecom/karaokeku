@@ -7,10 +7,10 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
-const { UPLOAD_PATH, VIDEOS_PATH, VIDEOS_LOW_PATH, TEMP_PATH } = require('../config/paths');
+const { UPLOAD_PATH, VIDEOS_PATH, VIDEOS_LOW_PATH, TEMP_PATH, THUMBNAILS_PATH } = require('../config/paths');
 
 // Pastikan direktori ada
-[UPLOAD_PATH, VIDEOS_PATH, VIDEOS_LOW_PATH, TEMP_PATH].forEach(dir => {
+[UPLOAD_PATH, VIDEOS_PATH, VIDEOS_LOW_PATH, TEMP_PATH, THUMBNAILS_PATH].forEach(dir => {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }
@@ -26,6 +26,15 @@ const getAllowedFormats = () => {
 const getMaxFileSize = () => {
   const sizeMB = parseInt(process.env.UPLOAD_MAX_SIZE) || 500;
   return sizeMB * 1024 * 1024;
+};
+
+// Format gambar yang diizinkan (thumbnail upload)
+const getAllowedImageFormats = () => {
+  const formats = process.env.ALLOWED_IMAGE_FORMATS || 'jpg,jpeg,png,webp';
+  return formats
+    .split(',')
+    .map((f) => f.trim().toLowerCase())
+    .filter(Boolean);
 };
 
 // Storage configuration
@@ -70,6 +79,56 @@ const uploadMultiple = multer({
   limits: {
     fileSize: getMaxFileSize(),
     files: 5
+  }
+});
+
+// Multer instance untuk upload video + thumbnail (user uploads)
+const uploadVideoWithThumbnailStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    if (file.fieldname === 'thumbnail') return cb(null, THUMBNAILS_PATH);
+    return cb(null, TEMP_PATH);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+
+    if (file.fieldname === 'thumbnail') {
+      const uniqueName = `upload_thumb_${uuidv4()}${ext}`;
+      return cb(null, uniqueName);
+    }
+
+    const uniqueName = `${uuidv4()}${ext}`;
+    cb(null, uniqueName);
+  }
+});
+
+const uploadVideoWithThumbnailFilter = (req, file, cb) => {
+  if (file.fieldname === 'thumbnail') {
+    const ext = path.extname(file.originalname).toLowerCase().replace('.', '');
+    const allowedFormats = getAllowedImageFormats();
+
+    if (file.mimetype?.startsWith('image/') && allowedFormats.includes(ext)) {
+      return cb(null, true);
+    }
+
+    return cb(
+      new Error(`Thumbnail tidak valid. Format gambar yang diizinkan: ${allowedFormats.join(', ')}`),
+      false
+    );
+  }
+
+  if (file.fieldname === 'video') {
+    return fileFilter(req, file, cb);
+  }
+
+  return cb(new Error('Field file tidak valid.'), false);
+};
+
+const uploadVideoWithThumbnail = multer({
+  storage: uploadVideoWithThumbnailStorage,
+  fileFilter: uploadVideoWithThumbnailFilter,
+  limits: {
+    fileSize: getMaxFileSize(),
+    files: 2
   }
 });
 
@@ -118,6 +177,7 @@ const deleteFile = (filePath) => {
 module.exports = {
   uploadVideo,
   uploadMultiple,
+  uploadVideoWithThumbnail,
   moveToFinal,
   deleteFile,
   UPLOAD_PATH,

@@ -4,6 +4,7 @@
  */
 
 const { formatResponse } = require('../utils/helpers');
+const { deleteFile } = require('./upload');
 
 /**
  * Handler untuk route yang tidak ditemukan (404)
@@ -19,6 +20,29 @@ const notFoundHandler = (req, res, next) => {
  */
 const errorHandler = (err, req, res, next) => {
   console.error('❌ Error:', err);
+
+  // Best-effort cleanup for Multer upload failures (pre-controller)
+  const isMulterFailure = err?.name === 'MulterError' || typeof err?.code === 'string';
+  if (isMulterFailure) {
+    try {
+      if (req.file?.path) {
+        deleteFile(req.file.path);
+      }
+
+      if (req.files) {
+        const fileGroups = Array.isArray(req.files) ? [req.files] : Object.values(req.files);
+        for (const group of fileGroups) {
+          if (!group) continue;
+          const files = Array.isArray(group) ? group : [group];
+          for (const f of files) {
+            if (f?.path) deleteFile(f.path);
+          }
+        }
+      }
+    } catch (_) {
+      // Ignore cleanup errors
+    }
+  }
   
   // Default error
   let statusCode = err.statusCode || 500;

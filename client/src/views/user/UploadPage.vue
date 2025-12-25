@@ -115,6 +115,32 @@
                                 </div>
                             </div>
 
+                            <div class="mb-3">
+                                <label class="form-label">Thumbnail (Opsional)</label>
+                                <div class="upload-dropzone upload-dropzone--thumb"
+                                    :class="{ 'has-file': form.thumbnail }" @click="$refs.thumbInput.click()">
+                                    <input type="file" ref="thumbInput" @change="handleThumbnailSelect" accept="image/*"
+                                        hidden>
+
+                                    <div v-if="!form.thumbnail" class="dropzone-content dropzone-content--thumb">
+                                        <i class="bi bi-image"></i>
+                                        <p>Upload thumbnail (opsional)</p>
+                                        <span>Format: JPG, PNG, WebP (opsional - jika kosong akan dibuat otomatis)</span>
+                                    </div>
+
+                                    <div v-else class="thumb-preview">
+                                        <img :src="thumbnailPreviewUrl" alt="Thumbnail preview" />
+                                        <div>
+                                            <p>{{ form.thumbnail.name }}</p>
+                                            <span>{{ formatFileSize(form.thumbnail.size) }}</span>
+                                        </div>
+                                        <button type="button" class="btn-remove" @click.stop="removeThumbnail">
+                                            <i class="bi bi-x-lg"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div v-if="uploadProgress > 0" class="upload-progress">
                                 <div class="progress">
                                     <div class="progress-bar" :style="{ width: uploadProgress + '%' }"></div>
@@ -141,7 +167,8 @@
                     <div v-else class="uploads-list">
                         <div v-for="upload in myUploads" :key="upload.id" class="upload-item">
                             <div class="upload-thumb">
-                                <i class="bi bi-music-note-beamed"></i>
+                                <img v-if="upload.thumbnail_url" :src="upload.thumbnail_url" :alt="upload.title" />
+                                <i v-else class="bi bi-music-note-beamed"></i>
                             </div>
                             <div class="upload-info">
                                 <h4>{{ upload.title }}</h4>
@@ -164,20 +191,38 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { uploadsAPI } from '@/services/api'
 import MobileNav from '@/components/MobileNav.vue'
 
-const form = ref({ title: '', artist: '', genre: '', language: '', file: null })
+const form = ref({ title: '', artist: '', genre: '', language: '', file: null, thumbnail: null })
 const uploading = ref(false)
 const uploadProgress = ref(0)
 const error = ref('')
 const success = ref('')
 const myUploads = ref([])
+const thumbnailPreviewUrl = ref('')
 
 const handleFileSelect = (e) => {
     const file = e.target.files[0]
     if (file) form.value.file = file
+}
+
+const handleThumbnailSelect = (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+
+    if (!file.type.startsWith('image/')) {
+        error.value = 'Thumbnail harus berupa gambar'
+        return
+    }
+
+    if (thumbnailPreviewUrl.value) {
+        URL.revokeObjectURL(thumbnailPreviewUrl.value)
+    }
+
+    form.value.thumbnail = file
+    thumbnailPreviewUrl.value = URL.createObjectURL(file)
 }
 
 const handleDrop = (e) => {
@@ -189,6 +234,14 @@ const handleDrop = (e) => {
 
 const removeFile = () => {
     form.value.file = null
+}
+
+const removeThumbnail = () => {
+    form.value.thumbnail = null
+    if (thumbnailPreviewUrl.value) {
+        URL.revokeObjectURL(thumbnailPreviewUrl.value)
+        thumbnailPreviewUrl.value = ''
+    }
 }
 
 const formatFileSize = (bytes) => {
@@ -212,13 +265,17 @@ const handleUpload = async () => {
         formData.append('genre', form.value.genre)
         formData.append('language', form.value.language)
         formData.append('video', form.value.file)
+        if (form.value.thumbnail) {
+            formData.append('thumbnail', form.value.thumbnail)
+        }
 
         await uploadsAPI.upload(formData, (percent) => {
             uploadProgress.value = percent
         })
 
         success.value = 'Video berhasil diupload! Menunggu review admin.'
-        form.value = { title: '', artist: '', genre: '', language: '', file: null }
+        removeThumbnail()
+        form.value = { title: '', artist: '', genre: '', language: '', file: null, thumbnail: null }
         uploadProgress.value = 0
         fetchMyUploads()
     } catch (err) {
@@ -238,6 +295,13 @@ const fetchMyUploads = async () => {
 }
 
 onMounted(fetchMyUploads)
+
+onUnmounted(() => {
+    if (thumbnailPreviewUrl.value) {
+        URL.revokeObjectURL(thumbnailPreviewUrl.value)
+        thumbnailPreviewUrl.value = ''
+    }
+})
 </script>
 
 <style scoped>
@@ -334,6 +398,10 @@ onMounted(fetchMyUploads)
     transition: all var(--transition-fast);
 }
 
+.upload-dropzone--thumb {
+    padding: 1.5rem;
+}
+
 .upload-dropzone:hover {
     border-color: var(--primary);
 }
@@ -348,6 +416,11 @@ onMounted(fetchMyUploads)
     color: var(--primary);
     margin-bottom: 1rem;
     display: block;
+}
+
+.dropzone-content--thumb i {
+    font-size: 2.25rem;
+    margin-bottom: 0.75rem;
 }
 
 .dropzone-content p {
@@ -378,6 +451,23 @@ onMounted(fetchMyUploads)
 .file-preview span {
     font-size: 0.875rem;
     color: var(--text-muted);
+}
+
+.thumb-preview {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    text-align: left;
+}
+
+.thumb-preview img {
+    width: 96px;
+    height: 54px;
+    object-fit: cover;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+    background: var(--bg-darker);
+    flex-shrink: 0;
 }
 
 .btn-remove {
@@ -473,5 +563,13 @@ onMounted(fetchMyUploads)
     justify-content: center;
     flex-shrink: 0;
     color: var(--text-muted);
+}
+
+.upload-thumb img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+    border-radius: inherit;
 }
 </style>

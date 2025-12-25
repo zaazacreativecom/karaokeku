@@ -198,10 +198,10 @@
               </button>
             </div>
             <div class="song-info">
-              <h4 :title="song.title">{{ song.title }}</h4>
-              <p :title="song.artist">{{ song.artist }}</p>
+              <h4 :title="toCamelCase(song.title)">{{ toCamelCase(song.title) }}</h4>
+              <p :title="toCamelCase(song.artist)">{{ toCamelCase(song.artist) }}</p>
               <div class="song-meta">
-                <span v-if="song.genre" class="meta-pill"><i class="bi bi-tag"></i> {{ song.genre }}</span>
+                <span v-if="song.genre" class="meta-pill"><i class="bi bi-tag"></i> {{ toCamelCase(song.genre) }}</span>
                 <span class="meta-pill meta-pill--soft"><i class="bi bi-play-fill"></i> {{ song.play_count || 0 }}</span>
               </div>
             </div>
@@ -279,6 +279,32 @@ import { getThumbnailUrl } from '@/utils/media'
 const router = useRouter()
 const playlistStore = usePlaylistStore()
 const favoriteStore = useFavoriteStore()
+
+const toCamelCase = (value) => {
+  if (value === null || value === undefined) return ''
+  const input = String(value).trim()
+  if (!input) return ''
+
+  return input
+    .replace(/_/g, ' ')
+    .split(/\s+/g)
+    .filter(Boolean)
+    .map((word) =>
+      word
+        .split('-')
+        .filter(Boolean)
+        .map((part) => {
+          const clean = part.trim()
+          if (!clean) return ''
+          if (/\d/.test(clean)) return clean.toUpperCase()
+          if (clean === clean.toUpperCase() && clean.length <= 2) return clean
+          const lower = clean.toLowerCase()
+          return lower.charAt(0).toUpperCase() + lower.slice(1)
+        })
+        .join('-')
+    )
+    .join(' ')
+}
 
 const songs = ref([])
 const genres = ref([])

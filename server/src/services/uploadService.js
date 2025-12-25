@@ -7,36 +7,77 @@ const { Upload, User, Song } = require('../models');
 const { moveToFinal, deleteFile, VIDEOS_PATH } = require('../middlewares/upload');
 const path = require('path');
 const { ensureLowVideoVariant } = require('../utils/videoLowVariant');
+const { ensureSongThumbnail } = require('../utils/songThumbnail');
+const { uploadsUrlToFilePath } = require('../config/paths');
+const { optimizeUploadedVideo, optimizeUploadedThumbnail } = require('../utils/mediaOptimizer');
+const fs = require('fs');
 
 /**
  * Proses upload video karaoke dari user
  * @param {number} userId - ID user
  * @param {Object} uploadData - Data upload
- * @param {Object} file - Multer file object
+ * @param {Object} videoFile - Multer file object (video)
+ * @param {Object|null} thumbnailFile - Multer file object (thumbnail, optional)
  */
-const processUpload = async (userId, uploadData, file) => {
+const processUpload = async (userId, uploadData, videoFile, thumbnailFile = null) => {
   const { title, artist, genre, language, lyrics_data } = uploadData;
   
-  if (!file) {
+  if (!videoFile) {
     const error = new Error('File video tidak ditemukan.');
     error.statusCode = 400;
     throw error;
   }
-  
-  // Buat upload record (status: pending)
-  const upload = await Upload.create({
-    user_id: userId,
-    title,
-    artist,
-    genre,
-    language,
-    file_path: file.path, // Masih di temp
-    file_size: file.size,
-    lyrics_data: lyrics_data ? JSON.parse(lyrics_data) : null,
-    status: 'pending'
-  });
-  
-  return upload;
+
+  // Auto-compress/optimize uploaded media (best-effort)
+  const shouldOptimizeVideo = (process.env.UPLOAD_OPTIMIZE_VIDEO || 'true').toLowerCase() !== 'false';
+  const shouldOptimizeThumbnail = (process.env.UPLOAD_OPTIMIZE_THUMBNAIL || 'true').toLowerCase() !== 'false';
+
+  if (shouldOptimizeVideo && videoFile?.path) {
+    try {
+      const result = await optimizeUploadedVideo(videoFile.path);
+      videoFile.path = result.outputPath;
+      const stat = fs.existsSync(videoFile.path) ? fs.statSync(videoFile.path) : null;
+      if (stat?.isFile()) videoFile.size = stat.size;
+    } catch (error) {
+      console.warn('Video optimization failed (non-fatal):', error.message);
+    }
+  }
+
+  if (shouldOptimizeThumbnail && thumbnailFile?.path) {
+    try {
+      const result = await optimizeUploadedThumbnail(thumbnailFile.path);
+      thumbnailFile.path = result.outputPath;
+      const stat = fs.existsSync(thumbnailFile.path) ? fs.statSync(thumbnailFile.path) : null;
+      if (stat?.isFile()) thumbnailFile.size = stat.size;
+    } catch (error) {
+      console.warn('Thumbnail optimization failed (non-fatal):', error.message);
+    }
+  }
+
+  const thumbnailUrl = thumbnailFile?.path ? `/uploads/thumbnails/${path.basename(thumbnailFile.path)}` : null;
+
+  try {
+    // Buat upload record (status: pending)
+    const upload = await Upload.create({
+      user_id: userId,
+      title,
+      artist,
+      genre,
+      language,
+      file_path: videoFile.path, // Masih di temp
+      file_size: videoFile.size,
+      thumbnail_url: thumbnailUrl,
+      lyrics_data: lyrics_data ? JSON.parse(lyrics_data) : null,
+      status: 'pending'
+    });
+
+    return upload;
+  } catch (error) {
+    // Cleanup on failure to avoid orphan files
+    deleteFile(videoFile.path);
+    if (thumbnailFile?.path) deleteFile(thumbnailFile.path);
+    throw error;
+  }
 };
 
 /**
@@ -147,11 +188,15 @@ const reviewUpload = async (uploadId, adminId, reviewData) => {
         language: upload.language,
         video_url_full: `/videos/${filename}`,
         video_url_instrumental: `/videos/${filename}`,
+        thumbnail_url: upload.thumbnail_url || null,
         lyrics_data: upload.lyrics_data,
         file_path: finalPath,
         status: 'active',
         play_count: 0
       });
+
+      // Auto-generate thumbnail from the uploaded video (non-fatal)
+      await ensureSongThumbnail(song, { preferredVideoPath: finalPath });
 
       // Generate low-quality variant (non-blocking). Video quality turun, audio tetap.
       ensureLowVideoVariant(finalPath, filename).catch((error) => {
@@ -171,6 +216,10 @@ const reviewUpload = async (uploadId, adminId, reviewData) => {
   // Jika rejected, hapus file
   if (status === 'rejected') {
     deleteFile(upload.file_path);
+    if (upload.thumbnail_url) {
+      const thumbPath = uploadsUrlToFilePath(upload.thumbnail_url);
+      if (thumbPath) deleteFile(thumbPath);
+    }
   }
   
   return { upload };
@@ -207,6 +256,10 @@ const deleteUpload = async (uploadId, userId, isAdmin = false) => {
   
   // Hapus file
   deleteFile(upload.file_path);
+  if (upload.thumbnail_url) {
+    const thumbPath = uploadsUrlToFilePath(upload.thumbnail_url);
+    if (thumbPath) deleteFile(thumbPath);
+  }
   
   // Hapus record
   await upload.destroy();

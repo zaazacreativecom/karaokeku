@@ -3,6 +3,7 @@
  * File: src/models/index.js
  */
 
+const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
 const User = require('./User');
 const Song = require('./Song');
@@ -85,6 +86,24 @@ ChatMessage.belongsTo(User, { foreignKey: 'receiver_id', as: 'receiver' });
 // SINKRONISASI DATABASE
 // ==========================================
 
+const ensureSchemaUpdates = async () => {
+  const queryInterface = sequelize.getQueryInterface();
+
+  // Safe, targeted schema patch: uploads.thumbnail_url
+  try {
+    const uploadsTable = await queryInterface.describeTable('uploads');
+    if (!uploadsTable.thumbnail_url) {
+      await queryInterface.addColumn('uploads', 'thumbnail_url', {
+        type: DataTypes.STRING(500),
+        allowNull: true
+      });
+      console.log('✅ Added column uploads.thumbnail_url');
+    }
+  } catch (error) {
+    console.warn('⚠️  Could not ensure uploads.thumbnail_url column:', error.message);
+  }
+};
+
 const syncDatabase = async (options = {}) => {
   try {
     // Default: alter=true di development, force=false di production
@@ -95,6 +114,7 @@ const syncDatabase = async (options = {}) => {
     };
     
     await sequelize.sync(defaultOptions);
+    await ensureSchemaUpdates();
     console.log('✅ Database synchronized successfully!');
     
     // Buat setting default jika belum ada

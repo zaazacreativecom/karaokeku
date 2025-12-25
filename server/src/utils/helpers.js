@@ -70,23 +70,47 @@ const sanitizeFilename = (filename) => {
 };
 
 /**
- * Parse nama file lagu dengan format: JUDUL-LAGU#ARTIS#GENRE#NEGARA.mp4
+ * Parse nama file lagu dengan format: JUDUL LAGU#NAMA ARTIS#NEGARA.mp4 / .mpg
+ * Catatan: scanner hanya menerima format ini (3 bagian + .mp4/.mpg).
  * @param {string} filename - Nama file
  * @returns {Object} Parsed data {title, artist, genre, language}
  */
 const parseSongFilename = (filename) => {
-  // Hapus ekstensi
-  const baseName = filename.replace(/\.[^/.]+$/, '');
-  
-  // Split berdasarkan #
-  const parts = baseName.split('#');
-  
-  // Format: JUDUL-LAGU#ARTIS#GENRE#NEGARA
+  if (!filename || typeof filename !== 'string') {
+    const error = new Error('Nama file tidak valid.');
+    error.code = 'INVALID_FILENAME';
+    throw error;
+  }
+
+  const match = filename.match(/^([^#]*[^#\s][^#]*)#([^#]*[^#\s][^#]*)#([^#]*[^#\s][^#]*)\.(mp4|mpg)$/i);
+  if (!match) {
+    const error = new Error('Format nama file tidak valid. Gunakan: JUDUL LAGU#NAMA ARTIS#NEGARA.mp4 / .mpg');
+    error.code = 'INVALID_SONG_FILENAME_FORMAT';
+    throw error;
+  }
+
+  const [, rawTitle, rawArtist, rawCountry] = match;
+
+  const normalize = (value) =>
+    value
+      .replace(/[-_]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  const title = normalize(rawTitle);
+  const artist = normalize(rawArtist);
+  const language = normalize(rawCountry);
+
+  if (!title || !artist || !language) {
+    const error = new Error('Format nama file tidak valid. Pastikan judul, artis, dan negara tidak kosong.');
+    error.code = 'INVALID_SONG_FILENAME_FORMAT';
+    throw error;
+  }
+
   return {
-    title: parts[0] ? parts[0].replace(/-/g, ' ').trim() : 'Unknown Title',
-    artist: parts[1] ? parts[1].trim() : 'Unknown Artist',
-    genre: parts[2] ? parts[2].trim() : null,
-    language: parts[3] ? parts[3].trim() : null
+    title,
+    artist,
+    genre: null,
+    language
   };
 };
 

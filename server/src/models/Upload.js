@@ -48,6 +48,11 @@ const Upload = sequelize.define('Upload', {
     allowNull: true,
     comment: 'Ukuran file dalam bytes'
   },
+  thumbnail_url: {
+    type: DataTypes.STRING(500),
+    allowNull: true,
+    comment: 'URL thumbnail (optional), contoh: /uploads/thumbnails/xxx.jpg'
+  },
   lyrics_data: {
     type: DataTypes.JSON,
     allowNull: true

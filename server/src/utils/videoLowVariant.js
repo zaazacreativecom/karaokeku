@@ -16,8 +16,11 @@ const fs = require('fs');
 const path = require('path');
 const { VIDEOS_LOW_PATH } = require('../config/paths');
 
-// Set ffmpeg path (from ffmpeg-static)
-ffmpeg.setFfmpegPath(ffmpegPath);
+// Set ffmpeg path (env override supported).
+const configuredFfmpegPath = process.env.FFMPEG_PATH || ffmpegPath;
+if (configuredFfmpegPath) {
+  ffmpeg.setFfmpegPath(configuredFfmpegPath);
+}
 
 const inflight = new Map();
 

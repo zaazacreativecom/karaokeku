@@ -5,6 +5,7 @@
 
 const uploadService = require('../services/uploadService');
 const { formatResponse, formatPagination } = require('../utils/helpers');
+const { deleteFile } = require('../middlewares/upload');
 
 /**
  * POST /api/uploads
@@ -13,7 +14,8 @@ const { formatResponse, formatPagination } = require('../utils/helpers');
 const uploadVideo = async (req, res, next) => {
   try {
     const { title, artist, genre, language, lyrics_data } = req.body;
-    const file = req.file;
+    const videoFile = req.files?.video?.[0] || req.file;
+    const thumbnailFile = req.files?.thumbnail?.[0] || null;
     
     if (!title) {
       return res.status(400).json(
@@ -21,16 +23,33 @@ const uploadVideo = async (req, res, next) => {
       );
     }
     
-    if (!file) {
+    if (!videoFile) {
       return res.status(400).json(
         formatResponse(false, 'File video wajib diupload.')
       );
+    }
+
+    // Optional: validate thumbnail size (default 2MB)
+    if (thumbnailFile) {
+      const maxThumbSizeMB = parseInt(process.env.UPLOAD_THUMBNAIL_MAX_SIZE) || 2;
+      const maxBytes = maxThumbSizeMB * 1024 * 1024;
+
+      if (thumbnailFile.size > maxBytes) {
+        // Cleanup uploaded files
+        deleteFile(videoFile.path);
+        deleteFile(thumbnailFile.path);
+
+        return res.status(400).json(
+          formatResponse(false, `Ukuran thumbnail maksimal ${maxThumbSizeMB}MB.`)
+        );
+      }
     }
     
     const upload = await uploadService.processUpload(
       req.userId,
       { title, artist, genre, language, lyrics_data },
-      file
+      videoFile,
+      thumbnailFile
     );
     
     res.status(201).json(

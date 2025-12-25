@@ -38,7 +38,8 @@ const startServer = async () => {
     
     // Sync database (create/alter tables)
     console.log('🔄 Sinkronisasi tabel database...');
-    await syncDatabase({ alter: process.env.NODE_ENV === 'development' });
+    const shouldAlter = process.env.DB_SYNC_ALTER === 'true' || process.env.NODE_ENV === 'development';
+    await syncDatabase({ alter: shouldAlter });
     
     // Buat admin default jika belum ada
     await createDefaultAdmin();

@@ -59,6 +59,27 @@ app.get('/videos/low/:filename', (req, res, next) => {
   return res.redirect(307, `/videos/${encodeURIComponent(filename)}`);
 });
 
+// Optional helper: allow clients to request low-quality via query/header/env.
+app.get('/videos/:filename', (req, res, next) => {
+  const filename = path.basename(req.params.filename || '');
+  if (!filename) return next();
+
+  const quality = String(req.query.quality || '').toLowerCase();
+  const defaultQuality = String(process.env.DEFAULT_VIDEO_QUALITY || '').toLowerCase();
+  const saveData = String(req.headers['save-data'] || '').toLowerCase() === 'on';
+
+  const wantLow =
+    quality === 'low' ||
+    saveData ||
+    defaultQuality === 'low';
+
+  if (wantLow) {
+    return res.redirect(307, `/videos/low/${encodeURIComponent(filename)}`);
+  }
+
+  return next();
+});
+
 app.use('/videos', express.static(VIDEOS_PATH, { maxAge: '7d' }));
 app.use('/uploads', express.static(UPLOAD_PATH, { maxAge: '7d' }));
 

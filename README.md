@@ -173,13 +173,14 @@ Fitur scan otomatis untuk menambahkan lagu dari folder.
 
 ### Format Nama File
 ```
-JUDUL-LAGU#ARTIS#GENRE#NEGARA.mp4
+JUDUL LAGU#NAMA ARTIS#NEGARA.mp4
+JUDUL LAGU#NAMA ARTIS#NEGARA.mpg
 ```
 
 ### Contoh
 ```
-Laskar-Pelangi#Nidji#Pop#Indonesia.mp4
-Bohemian-Rhapsody#Queen#Rock#English.mp4
+Laskar Pelangi#Nidji#Indonesia.mp4
+Bohemian Rhapsody#Queen#UK.mpg
 ```
 
 ### Cara Penggunaan
@@ -211,6 +212,7 @@ DB_PORT=3306
 DB_NAME=karaoke_db
 DB_USER=karaoke
 DB_PASS=password
+DB_SYNC_ALTER=false
 
 # JWT
 JWT_SECRET=your-super-secret-key
@@ -218,7 +220,30 @@ JWT_EXPIRES_IN=7d
 
 # Upload
 UPLOAD_MAX_SIZE=500
+ALLOWED_VIDEO_FORMATS=mp4,mkv,webm,avi
+ALLOWED_IMAGE_FORMATS=jpg,jpeg,png,webp
+UPLOAD_THUMBNAIL_MAX_SIZE=2
 SONGS_DIRECTORY=./uploads/videos
+THUMBNAIL_TIMEMARK=00:00:05
+THUMBNAIL_FALLBACK_TIMEMARK=00:00:01
+
+# Media optimization (optional)
+UPLOAD_OPTIMIZE_VIDEO=true
+UPLOAD_VIDEO_CRF=23
+UPLOAD_VIDEO_PRESET=veryfast
+UPLOAD_VIDEO_MAX_HEIGHT=0
+UPLOAD_VIDEO_FPS=0
+UPLOAD_VIDEO_AUDIO=copy
+UPLOAD_VIDEO_AUDIO_BITRATE=192k
+
+UPLOAD_OPTIMIZE_THUMBNAIL=true
+THUMBNAIL_MAX_WIDTH=1280
+THUMBNAIL_MAX_HEIGHT=1280
+THUMBNAIL_WEBP_QUALITY=80
+THUMBNAIL_WEBP_COMPRESSION_LEVEL=4
+
+# Streaming quality (optional): set "low" to always serve /videos/low/*
+DEFAULT_VIDEO_QUALITY=
 
 # Frontend
 FRONTEND_URL=http://localhost:5173

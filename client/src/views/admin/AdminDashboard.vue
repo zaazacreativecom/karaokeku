@@ -113,7 +113,7 @@
         <div class="modal-body">
           <p class="text-muted mb-3">
             Scan folder <code>./uploads/videos</code> untuk file dengan format:<br>
-            <code>JUDUL-LAGU#ARTIS#GENRE#NEGARA.mp4</code>
+            <code>JUDUL LAGU#NAMA ARTIS#NEGARA.mp4 / .mpg</code>
           </p>
           <div class="form-check mb-3">
             <input type="checkbox" class="form-check-input" id="dryRun" v-model="scanDryRun">

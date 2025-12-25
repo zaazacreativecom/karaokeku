@@ -2,8 +2,8 @@
  * Song Scanner - Utility untuk scan file lagu di direktori
  * dan menambahkan ke database secara otomatis
  * 
- * Format nama file: JUDUL-LAGU#ARTIS#GENRE#NEGARA.mp4
- * Contoh: Bohemian-Rhapsody#Queen#Rock#UK.mp4
+ * Format nama file: JUDUL LAGU#NAMA ARTIS#NEGARA.mp4 / .mpg
+ * Contoh: Bohemian Rhapsody#Queen#UK.mp4
  * 
  * Jalankan dengan: npm run scan-songs
  * 
@@ -17,9 +17,12 @@ const { SONGS_DIRECTORY } = require('../config/paths');
 
 const { Song, sequelize } = require('../models');
 const { parseSongFilename } = require('./helpers');
+const { ensureSongThumbnail } = require('./songThumbnail');
 
 // Ekstensi video yang didukung
-const SUPPORTED_EXTENSIONS = ['.mp4', '.mkv', '.webm', '.avi', '.mov'];
+const SUPPORTED_EXTENSIONS = ['.mp4', '.mpg'];
+const SKIP_DIR_NAMES = new Set(['low']);
+const SONG_FILENAME_REGEX = /^([^#]*[^#\s][^#]*)#([^#]*[^#\s][^#]*)#([^#]*[^#\s][^#]*)\.(mp4|mpg)$/i;
 
 /**
  * Scan direktori untuk file lagu
@@ -40,6 +43,9 @@ const scanDirectory = (directory) => {
     const fullPath = path.join(directory, item.name);
     
     if (item.isDirectory()) {
+      if (SKIP_DIR_NAMES.has(item.name)) {
+        continue;
+      }
       // Rekursif scan subdirectory
       files.push(...scanDirectory(fullPath));
     } else if (item.isFile()) {
@@ -52,7 +58,8 @@ const scanDirectory = (directory) => {
           fullPath,
           relativePath: path.relative(process.cwd(), fullPath),
           size: stats.size,
-          extension: ext
+          extension: ext,
+          isValidFormat: SONG_FILENAME_REGEX.test(item.name)
         });
       }
     }
@@ -73,6 +80,7 @@ const addSongsToDatabase = async (files, options = {}) => {
     total: files.length,
     added: 0,
     skipped: 0,
+    ignored: 0,
     errors: []
   };
   
@@ -80,13 +88,20 @@ const addSongsToDatabase = async (files, options = {}) => {
   
   for (const file of files) {
     try {
+      const isValidFormat = file?.isValidFormat ?? SONG_FILENAME_REGEX.test(file.filename);
+      if (!isValidFormat) {
+        console.log(`⏭️  Abaikan (format tidak valid): ${file.filename}`);
+        results.ignored++;
+        continue;
+      }
+
       // Parse nama file untuk metadata
       const metadata = parseSongFilename(file.filename);
       
       // Cek apakah sudah ada di database
       if (skipExisting) {
         const existing = await Song.findOne({
-          where: { file_path: file.relativePath }
+          where: { video_url_full: `/videos/${file.filename}` }
         });
         
         if (existing) {
@@ -116,6 +131,8 @@ const addSongsToDatabase = async (files, options = {}) => {
         status: 'active',
         play_count: 0
       });
+
+      await ensureSongThumbnail(song, { preferredVideoPath: file.fullPath });
       
       console.log(`✅ Ditambahkan: ${song.title} - ${song.artist} (ID: ${song.id})`);
       results.added++;
@@ -145,7 +162,7 @@ const runScanner = async () => {
   const absolutePath = path.resolve(process.cwd(), songsDirectory);
   
   console.log(`📁 Scanning direktori: ${absolutePath}`);
-  console.log(`📋 Format file: JUDUL-LAGU#ARTIS#GENRE#NEGARA.mp4\n`);
+  console.log(`📋 Format file: JUDUL LAGU#NAMA ARTIS#NEGARA.mp4 / .mpg\n`);
   
   // Check arguments
   const args = process.argv.slice(2);
@@ -165,12 +182,17 @@ const runScanner = async () => {
     const files = scanDirectory(absolutePath);
     
     if (files.length === 0) {
-      console.log('⚠️  Tidak ada file video ditemukan di direktori.');
+      console.log('⚠️  Tidak ada file video dengan format yang valid ditemukan di direktori.');
       console.log('   Pastikan file memiliki ekstensi: ' + SUPPORTED_EXTENSIONS.join(', '));
+      console.log('   dan mengikuti format: JUDUL LAGU#NAMA ARTIS#NEGARA.mp4 / .mpg');
       process.exit(0);
     }
     
-    console.log(`📊 Ditemukan ${files.length} file video\n`);
+    const validCount = files.filter((f) => f.isValidFormat).length;
+    const invalidCount = files.length - validCount;
+    console.log(`📊 Ditemukan ${files.length} file video (${SUPPORTED_EXTENSIONS.join(', ')})`);
+    console.log(`✅ Valid format: ${validCount}`);
+    console.log(`⏭️  Diabaikan (format tidak valid): ${invalidCount}\n`);
     
     // Tambahkan ke database
     const results = await addSongsToDatabase(files, {
@@ -185,6 +207,7 @@ const runScanner = async () => {
     console.log(`Total file: ${results.total}`);
     console.log(`Ditambahkan: ${results.added}`);
     console.log(`Dilewati: ${results.skipped}`);
+    console.log(`Diabaikan (format tidak valid): ${results.ignored}`);
     console.log(`Error: ${results.errors.length}`);
     
     if (results.errors.length > 0) {

@@ -8,11 +8,12 @@ const songService = require('../services/songService');
 const uploadService = require('../services/uploadService');
 const { scanDirectory, addSongsToDatabase, SUPPORTED_EXTENSIONS } = require('../utils/songScanner');
 const { formatResponse, formatPagination, parseSongFilename } = require('../utils/helpers');
-const { generateThumbnail } = require('../utils/thumbnailGenerator');
+const { ensureSongThumbnail } = require('../utils/songThumbnail');
+const { optimizeUploadedThumbnail } = require('../utils/mediaOptimizer');
 const { Op } = require('sequelize');
 const path = require('path');
 const fs = require('fs');
-const { SONGS_DIRECTORY, THUMBNAILS_PATH, uploadsUrlToFilePath, videosUrlToFilePath } = require('../config/paths');
+const { SONGS_DIRECTORY, uploadsUrlToFilePath } = require('../config/paths');
 
 // ==========================================
 // DASHBOARD
@@ -124,33 +125,8 @@ const createSong = async (req, res, next) => {
     
     const song = await songService.createSong(songData);
 
-    // Auto-generate thumbnail if missing and local video exists
-    if (!songData.thumbnail_url) {
-      try {
-        let localVideoPath = null;
-
-        if (song.file_path) {
-          const resolved = path.resolve(process.cwd(), song.file_path);
-          if (fs.existsSync(resolved)) {
-            localVideoPath = resolved;
-          }
-        }
-
-        if (!localVideoPath && song.video_url_full) {
-          localVideoPath =
-            videosUrlToFilePath(song.video_url_full) ||
-            uploadsUrlToFilePath(song.video_url_full);
-        }
-
-        if (localVideoPath && fs.existsSync(localVideoPath)) {
-          const generatedThumb = await generateThumbnail(localVideoPath, THUMBNAILS_PATH, `thumb_${song.id}`);
-          await song.update({ thumbnail_url: generatedThumb });
-          await song.reload();
-        }
-      } catch (genErr) {
-        console.error('Thumbnail generation failed (non-fatal):', genErr.message);
-      }
-    }
+    // Auto-generate thumbnail from local video if not provided
+    await ensureSongThumbnail(song);
     
     res.status(201).json(
       formatResponse(true, 'Lagu berhasil ditambahkan.', song)
@@ -178,7 +154,7 @@ const uploadThumbnail = async (req, res, next) => {
         fs.unlinkSync(req.file.path);
         return res.status(404).json(formatResponse(false, 'Lagu tidak ditemukan.'));
     }
-    
+
     // Delete old thumbnail if local
     if (song.thumbnail_url) {
       const oldPath = uploadsUrlToFilePath(song.thumbnail_url);
@@ -186,8 +162,21 @@ const uploadThumbnail = async (req, res, next) => {
         fs.unlinkSync(oldPath);
       }
     }
-    
-    const thumbUrl = `/uploads/thumbnails/${req.file.filename}`;
+
+    // Auto-compress/optimize uploaded thumbnail (best-effort)
+    let finalThumbPath = req.file.path;
+    try {
+      const shouldOptimize = (process.env.UPLOAD_OPTIMIZE_THUMBNAIL || 'true').toLowerCase() !== 'false';
+      if (shouldOptimize && req.file.path) {
+        const result = await optimizeUploadedThumbnail(req.file.path);
+        finalThumbPath = result.outputPath;
+      }
+    } catch (error) {
+      console.warn('Thumbnail optimization failed (non-fatal):', error.message);
+      finalThumbPath = req.file.path;
+    }
+
+    const thumbUrl = `/uploads/thumbnails/${path.basename(finalThumbPath)}`;
     await song.update({ thumbnail_url: thumbUrl });
     
     res.json(formatResponse(true, 'Thumbnail berhasil diupload.', { thumbnail_url: thumbUrl }));

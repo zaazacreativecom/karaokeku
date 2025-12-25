@@ -8,6 +8,7 @@ const cors = require('cors');
 const morgan = require('morgan');
 const path = require('path');
 require('dotenv').config();
+const { UPLOAD_PATH, VIDEOS_PATH } = require('./src/config/paths');
 
 // Import middlewares
 const corsOptions = require('./src/config/cors');
@@ -38,8 +39,8 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Static files untuk uploads
-app.use('/videos', express.static(path.join(__dirname, 'uploads/videos')));
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/videos', express.static(VIDEOS_PATH));
+app.use('/uploads', express.static(UPLOAD_PATH));
 
 // ==========================================
 // ROUTES

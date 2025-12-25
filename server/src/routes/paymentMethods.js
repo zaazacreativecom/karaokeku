@@ -10,9 +10,10 @@ const path = require('path');
 const fs = require('fs');
 const paymentMethodController = require('../controllers/paymentMethodController');
 const { requireAuth } = require('../middlewares/auth');
+const { QR_PATH } = require('../config/paths');
 
 // Ensure QR upload directory exists
-const qrUploadDir = path.join(__dirname, '../../uploads/qr');
+const qrUploadDir = QR_PATH;
 if (!fs.existsSync(qrUploadDir)) {
   fs.mkdirSync(qrUploadDir, { recursive: true });
 }

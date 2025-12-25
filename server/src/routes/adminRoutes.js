@@ -19,9 +19,10 @@ router.get('/dashboard', adminController.getDashboardStats);
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const { THUMBNAILS_PATH } = require('../config/paths');
 
 // Ensure thumbnail upload directory exists
-const thumbUploadDir = path.join(__dirname, '../../uploads/thumbnails');
+const thumbUploadDir = THUMBNAILS_PATH;
 if (!fs.existsSync(thumbUploadDir)) {
   fs.mkdirSync(thumbUploadDir, { recursive: true });
 }

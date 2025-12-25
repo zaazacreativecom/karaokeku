@@ -6,6 +6,7 @@
 const { PaymentMethod } = require('../models');
 const path = require('path');
 const fs = require('fs');
+const { uploadsUrlToFilePath } = require('../config/paths');
 
 // Get all payment methods (public)
 exports.getAll = async (req, res) => {
@@ -102,8 +103,8 @@ exports.delete = async (req, res) => {
     
     // Delete QR code file if exists
     if (method.qr_code_url) {
-      const filePath = path.join(__dirname, '../../uploads', method.qr_code_url.replace('/uploads/', ''));
-      if (fs.existsSync(filePath)) {
+      const filePath = uploadsUrlToFilePath(method.qr_code_url);
+      if (filePath && fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);
       }
     }
@@ -132,8 +133,8 @@ exports.uploadQR = async (req, res) => {
     
     // Delete old QR if exists
     if (method.qr_code_url) {
-      const oldPath = path.join(__dirname, '../../uploads', method.qr_code_url.replace('/uploads/', ''));
-      if (fs.existsSync(oldPath)) {
+      const oldPath = uploadsUrlToFilePath(method.qr_code_url);
+      if (oldPath && fs.existsSync(oldPath)) {
         fs.unlinkSync(oldPath);
       }
     }

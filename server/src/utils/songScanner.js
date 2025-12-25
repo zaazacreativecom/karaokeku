@@ -13,6 +13,7 @@
 const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
+const { SONGS_DIRECTORY } = require('../config/paths');
 
 const { Song, sequelize } = require('../models');
 const { parseSongFilename } = require('./helpers');
@@ -140,7 +141,7 @@ const runScanner = async () => {
   console.log('====================================\n');
   
   // Ambil direktori dari env atau gunakan default
-  const songsDirectory = process.env.SONGS_DIRECTORY || './uploads/videos';
+  const songsDirectory = process.env.SONGS_DIRECTORY || SONGS_DIRECTORY;
   const absolutePath = path.resolve(process.cwd(), songsDirectory);
   
   console.log(`📁 Scanning direktori: ${absolutePath}`);

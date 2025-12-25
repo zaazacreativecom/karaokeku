@@ -12,6 +12,7 @@ const { generateThumbnail } = require('../utils/thumbnailGenerator');
 const { Op } = require('sequelize');
 const path = require('path');
 const fs = require('fs');
+const { SONGS_DIRECTORY, THUMBNAILS_PATH, uploadsUrlToFilePath, videosUrlToFilePath } = require('../config/paths');
 
 // ==========================================
 // DASHBOARD
@@ -124,39 +125,31 @@ const createSong = async (req, res, next) => {
     const song = await songService.createSong(songData);
 
     // Auto-generate thumbnail if missing and local video exists
-    if (!songData.thumbnail_url && song.video_url_full) {
-        try {
-            // Determine local path
-            // Assumes URL /videos/xyz.mp4 -> uploads/videos/xyz.mp4
-            let videoRelativePath = song.video_url_full;
-            if (videoRelativePath.startsWith('/')) videoRelativePath = videoRelativePath.substring(1);
-            
-            // Should map /videos/ -> /uploads/videos/
-            // But existing 'file_path' in DB might provide better clue?
-            // Let's assume standard mapping: /videos -> uploads/videos
-            
-            let localVideoPath = '';
-            if (videoRelativePath.startsWith('videos/')) {
-                 localVideoPath = path.join(__dirname, '../../uploads', videoRelativePath);
-            } else if (videoRelativePath.startsWith('uploads/')) {
-                 localVideoPath = path.join(__dirname, '../../', videoRelativePath);
-            } else {
-                 // Try prepending uploads/videos if it's just a filename or unknown path
-                 localVideoPath = path.join(__dirname, '../../uploads/videos', path.basename(videoRelativePath));
-            }
+    if (!songData.thumbnail_url) {
+      try {
+        let localVideoPath = null;
 
-
-            if (fs.existsSync(localVideoPath)) {
-                const thumbOutput = path.join(__dirname, '../../uploads/thumbnails');
-                const generatedThumb = await generateThumbnail(localVideoPath, thumbOutput, `thumb_${song.id}`);
-                
-                await song.update({ thumbnail_url: generatedThumb });
-                // Reload song data
-                await song.reload();
-            }
-        } catch (genErr) {
-            console.error('Thumbnail generation failed (non-fatal):', genErr.message);
+        if (song.file_path) {
+          const resolved = path.resolve(process.cwd(), song.file_path);
+          if (fs.existsSync(resolved)) {
+            localVideoPath = resolved;
+          }
         }
+
+        if (!localVideoPath && song.video_url_full) {
+          localVideoPath =
+            videosUrlToFilePath(song.video_url_full) ||
+            uploadsUrlToFilePath(song.video_url_full);
+        }
+
+        if (localVideoPath && fs.existsSync(localVideoPath)) {
+          const generatedThumb = await generateThumbnail(localVideoPath, THUMBNAILS_PATH, `thumb_${song.id}`);
+          await song.update({ thumbnail_url: generatedThumb });
+          await song.reload();
+        }
+      } catch (genErr) {
+        console.error('Thumbnail generation failed (non-fatal):', genErr.message);
+      }
     }
     
     res.status(201).json(
@@ -187,11 +180,11 @@ const uploadThumbnail = async (req, res, next) => {
     }
     
     // Delete old thumbnail if local
-    if (song.thumbnail_url && song.thumbnail_url.startsWith('/uploads/thumbnails/')) {
-        const oldPath = path.join(__dirname, '../../', song.thumbnail_url);
-        if (fs.existsSync(oldPath)) {
-            fs.unlinkSync(oldPath);
-        }
+    if (song.thumbnail_url) {
+      const oldPath = uploadsUrlToFilePath(song.thumbnail_url);
+      if (oldPath && fs.existsSync(oldPath)) {
+        fs.unlinkSync(oldPath);
+      }
     }
     
     const thumbUrl = `/uploads/thumbnails/${req.file.filename}`;
@@ -244,7 +237,7 @@ const scanSongs = async (req, res, next) => {
   try {
     const { directory, dryRun = false } = req.body;
     
-    const songsDir = directory || process.env.SONGS_DIRECTORY || './uploads/videos';
+    const songsDir = directory || process.env.SONGS_DIRECTORY || SONGS_DIRECTORY;
     const absolutePath = path.resolve(process.cwd(), songsDir);
     
     // Scan direktori

@@ -7,12 +7,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
-require('dotenv').config();
-
-// Direktori upload
-const UPLOAD_PATH = process.env.UPLOAD_PATH || './uploads';
-const VIDEOS_PATH = path.join(UPLOAD_PATH, 'videos');
-const TEMP_PATH = path.join(UPLOAD_PATH, 'temp');
+const { UPLOAD_PATH, VIDEOS_PATH, TEMP_PATH } = require('../config/paths');
 
 // Pastikan direktori ada
 [UPLOAD_PATH, VIDEOS_PATH, TEMP_PATH].forEach(dir => {

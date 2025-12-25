@@ -1,5 +1,5 @@
 # Build Stage
-FROM node:18-alpine as build-stage
+FROM node:22-alpine AS build-stage
 WORKDIR /app
 COPY client/package*.json ./
 RUN npm install
@@ -7,7 +7,7 @@ COPY client/ .
 RUN npm run build
 
 # Production Stage
-FROM node:18-alpine as production-stage
+FROM node:22-alpine AS production-stage
 WORKDIR /app
 
 # Install server dependencies
@@ -29,10 +29,10 @@ WORKDIR /app/server
 
 # Environment
 ENV NODE_ENV=production
-ENV PORT=3000
+ENV PORT=5000
 
 # Expose Port
-EXPOSE 3000
+EXPOSE 5000
 
 # Start
 CMD ["npm", "start"]

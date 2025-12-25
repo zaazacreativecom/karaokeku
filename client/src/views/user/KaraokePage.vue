@@ -367,22 +367,55 @@
       </div>
 
       <!-- Score Modal -->
-      <div v-if="showScoreModal" class="score-modal">
-        <div class="score-content">
+      <div
+        v-if="showScoreModal"
+        class="score-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Hasil skor karaoke"
+      >
+        <canvas ref="scoreFireworksCanvas" class="score-fireworks" aria-hidden="true"></canvas>
+
+        <div class="score-content" :class="{ 'is-high-score': isHighScore }">
           <div class="score-header">
-            <h2>🎉 Selesai!</h2>
-          </div>
-          <div class="score-body">
-            <div class="score-value">{{ lastScore }}</div>
-            <p>Score Kamu</p>
-            <div v-if="isHighScore" class="high-score-badge">
-              <i class="bi bi-trophy-fill"></i> High Score Baru!
+            <div class="score-header-top">
+              <i class="bi bi-stars" aria-hidden="true"></i>
+              <h2>Selesai!</h2>
+            </div>
+
+            <div class="score-mood" :class="`score-mood--${scoreMood.tone}`">
+              <div class="score-mood-ring" role="img" :aria-label="scoreMood.aria">
+                <i :class="scoreMood.icon" aria-hidden="true"></i>
+              </div>
+              <div class="score-mood-copy">
+                <div class="score-mood-title">{{ scoreMood.title }}</div>
+                <div class="score-mood-subtitle">{{ scoreMood.subtitle }}</div>
+              </div>
             </div>
           </div>
+
+          <div class="score-body">
+            <div class="score-value-line">
+              <div class="score-value">{{ animatedScore }}</div>
+              <span class="score-max">/100</span>
+            </div>
+            <p class="score-label">Score Kamu</p>
+
+            <div class="score-meter" aria-hidden="true">
+              <div class="score-meter-bar" :style="{ width: `${scorePercent}%` }"></div>
+            </div>
+
+            <div v-if="isHighScore" class="high-score-badge">
+              <i class="bi bi-trophy-fill" aria-hidden="true"></i>
+              <span>High Score Baru!</span>
+            </div>
+          </div>
+
           <div class="score-footer">
             <button class="btn btn-ghost" @click="closeScoreModal">Tutup</button>
             <button class="btn btn-primary" @click="replaySong">
-              <i class="bi bi-arrow-repeat me-2"></i> Main Lagi
+              <i class="bi bi-arrow-repeat me-2" aria-hidden="true"></i>
+              Main Lagi
             </button>
           </div>
         </div>
@@ -511,6 +544,8 @@ const currentLyrics = ref('')
 const showScoreModal = ref(false)
 const lastScore = ref(0)
 const isHighScore = ref(false)
+const animatedScore = ref(0)
+const scoreFireworksCanvas = ref(null)
 const previousVolume = ref(0.8)
 const tempo = ref(1.0) // Tempo control (0.5x - 2.0x)
 const audioInitialized = ref(false)
@@ -522,6 +557,246 @@ const volumeIcon = computed(() => {
   if (playerStore.volume < 0.5) return 'bi bi-volume-down-fill'
   return 'bi bi-volume-up-fill'
 })
+
+const scorePercent = computed(() => Math.max(0, Math.min(100, Number(animatedScore.value) || 0)))
+
+const scoreMood = computed(() => {
+  const score = Math.max(0, Math.min(100, Number(lastScore.value) || 0))
+
+  if (score >= 95) {
+    return {
+      tone: 'legend',
+      icon: 'bi bi-emoji-heart-eyes-fill',
+      title: 'Luar Biasa!',
+      subtitle: 'Nyaris sempurna — pertahankan!',
+      aria: 'Ekspresi sangat senang'
+    }
+  }
+
+  if (score >= 80) {
+    return {
+      tone: 'great',
+      icon: 'bi bi-emoji-laughing-fill',
+      title: 'Keren!',
+      subtitle: 'Sudah sangat bagus!',
+      aria: 'Ekspresi senang'
+    }
+  }
+
+  if (score >= 60) {
+    return {
+      tone: 'good',
+      icon: 'bi bi-emoji-smile-fill',
+      title: 'Bagus!',
+      subtitle: 'Dikit lagi makin mantap.',
+      aria: 'Ekspresi tersenyum'
+    }
+  }
+
+  if (score >= 40) {
+    return {
+      tone: 'okay',
+      icon: 'bi bi-emoji-neutral-fill',
+      title: 'Lumayan!',
+      subtitle: 'Yuk coba lagi biar lebih tinggi.',
+      aria: 'Ekspresi netral'
+    }
+  }
+
+  return {
+    tone: 'low',
+    icon: 'bi bi-emoji-frown-fill',
+    title: 'Coba Lagi!',
+    subtitle: 'Santai, latihan dulu ya.',
+    aria: 'Ekspresi sedih'
+  }
+})
+
+const prefersReducedMotion = () => {
+  if (typeof window === 'undefined' || !window.matchMedia) return false
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+}
+
+let scoreCountRaf = null
+let fireworksRaf = null
+let fireworksResizeCleanup = null
+const fireworksParticles = []
+
+const stopScoreEffects = () => {
+  if (scoreCountRaf) {
+    cancelAnimationFrame(scoreCountRaf)
+    scoreCountRaf = null
+  }
+
+  if (fireworksRaf) {
+    cancelAnimationFrame(fireworksRaf)
+    fireworksRaf = null
+  }
+
+  if (typeof fireworksResizeCleanup === 'function') {
+    fireworksResizeCleanup()
+    fireworksResizeCleanup = null
+  }
+
+  fireworksParticles.length = 0
+
+  const canvas = scoreFireworksCanvas.value
+  const ctx = canvas?.getContext?.('2d')
+  if (canvas && ctx) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+  }
+}
+
+const startScoreCountUp = () => {
+  const target = Math.max(0, Math.min(100, Number(lastScore.value) || 0))
+
+  if (prefersReducedMotion()) {
+    animatedScore.value = target
+    return
+  }
+
+  const durationMs = 900
+  const startAt = performance.now()
+  animatedScore.value = 0
+
+  const tick = (now) => {
+    const t = Math.min(1, (now - startAt) / durationMs)
+    const eased = 1 - Math.pow(1 - t, 3)
+    animatedScore.value = Math.round(target * eased)
+
+    if (t < 1) {
+      scoreCountRaf = requestAnimationFrame(tick)
+    } else {
+      scoreCountRaf = null
+      animatedScore.value = target
+    }
+  }
+
+  scoreCountRaf = requestAnimationFrame(tick)
+}
+
+const startScoreFireworks = () => {
+  if (prefersReducedMotion()) return
+
+  const canvas = scoreFireworksCanvas.value
+  if (!canvas) return
+
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return
+
+  const resize = () => {
+    const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1))
+    const rect = canvas.getBoundingClientRect()
+    canvas.width = Math.floor(rect.width * dpr)
+    canvas.height = Math.floor(rect.height * dpr)
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+  }
+
+  resize()
+  const onResize = () => resize()
+  window.addEventListener('resize', onResize, { passive: true })
+  fireworksResizeCleanup = () => window.removeEventListener('resize', onResize)
+
+  const palette = isHighScore.value
+    ? ['#22c55e', '#06b6d4', '#3b82f6', '#fbbf24', '#a7f3d0', '#67e8f9']
+    : ['#22c55e', '#06b6d4', '#3b82f6', '#a7f3d0', '#67e8f9']
+
+  const burstCount = isHighScore.value ? 8 : 5
+  const stopAt = performance.now() + (isHighScore.value ? 3200 : 2400)
+  let spawned = 0
+
+  const spawnBurst = () => {
+    if (spawned >= burstCount) return
+    spawned += 1
+
+    const w = canvas.clientWidth
+    const h = canvas.clientHeight
+    const cx = w * (0.18 + Math.random() * 0.64)
+    const cy = h * (0.18 + Math.random() * 0.46)
+    const count = isHighScore.value ? 46 : 34
+
+    for (let i = 0; i < count; i++) {
+      const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.25
+      const speed = (isHighScore.value ? 2.8 : 2.2) + Math.random() * (isHighScore.value ? 3.0 : 2.4)
+      fireworksParticles.push({
+        x: cx,
+        y: cy,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        life: 0,
+        ttl: 52 + Math.random() * 18,
+        size: 1.1 + Math.random() * 1.8,
+        color: palette[Math.floor(Math.random() * palette.length)]
+      })
+    }
+  }
+
+  const loop = (now) => {
+    ctx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight)
+    ctx.save()
+    ctx.globalCompositeOperation = 'lighter'
+
+    if (now < stopAt && spawned < burstCount) {
+      const chance = isHighScore.value ? 0.13 : 0.095
+      if (Math.random() < chance) spawnBurst()
+    }
+
+    for (let i = fireworksParticles.length - 1; i >= 0; i--) {
+      const p = fireworksParticles[i]
+      p.life += 1
+
+      p.vx *= 0.985
+      p.vy = p.vy * 0.985 + 0.028
+      p.x += p.vx
+      p.y += p.vy
+
+      const t = p.life / p.ttl
+      const alpha = Math.max(0, 1 - t)
+
+      ctx.fillStyle = p.color
+      ctx.globalAlpha = alpha * 0.9
+      ctx.beginPath()
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2)
+      ctx.fill()
+
+      if (p.life >= p.ttl || alpha <= 0.01) {
+        fireworksParticles.splice(i, 1)
+      }
+    }
+
+    ctx.restore()
+
+    if (now < stopAt || fireworksParticles.length > 0) {
+      fireworksRaf = requestAnimationFrame(loop)
+    } else {
+      fireworksRaf = null
+    }
+  }
+
+  fireworksRaf = requestAnimationFrame(loop)
+}
+
+watch(
+  () => showScoreModal.value,
+  async (open) => {
+    stopScoreEffects()
+    if (!open) return
+    await nextTick()
+    startScoreCountUp()
+    startScoreFireworks()
+  }
+)
+
+watch(
+  () => lastScore.value,
+  async () => {
+    if (!showScoreModal.value) return
+    stopScoreEffects()
+    await nextTick()
+    startScoreCountUp()
+    startScoreFireworks()
+  }
+)
 
 // Initialize Web Audio API for channel control
 const initAudioContext = () => {
@@ -937,6 +1212,7 @@ onUnmounted(() => {
   if (videoRef.value) {
     videoRef.value.pause()
   }
+  stopScoreEffects()
   // Cleanup audio context
   if (audioContext) {
     audioContext.close()
@@ -2412,6 +2688,7 @@ onUnmounted(() => {
 .score-modal {
   position: fixed;
   inset: 0;
+  padding: calc(1rem + env(safe-area-inset-top)) 1rem calc(1rem + env(safe-area-inset-bottom));
   background: rgba(0, 0, 0, 0.72);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
@@ -2419,7 +2696,19 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: fadeIn 0.3s ease;
+  animation: kpScoreBackdropIn 0.22s ease-out;
+  isolation: isolate;
+}
+
+.score-fireworks {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0.95;
+  mix-blend-mode: screen;
+  z-index: 0;
 }
 
 .score-content {
@@ -2433,6 +2722,9 @@ onUnmounted(() => {
   position: relative;
   overflow: hidden;
   box-shadow: 0 28px 90px rgba(0, 0, 0, 0.7);
+  max-height: calc(100vh - 2rem);
+  isolation: isolate;
+  animation: kpScorePop 0.28s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .score-content::before {
@@ -2446,37 +2738,208 @@ onUnmounted(() => {
   background: var(--gradient-glow);
   opacity: 0.75;
   pointer-events: none;
+  z-index: 1;
+}
+
+.score-content::after {
+  content: '';
+  position: absolute;
+  inset: -45%;
+  background:
+    radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.16) 0%, transparent 56%),
+    radial-gradient(circle at 70% 70%, rgba(6, 182, 212, 0.14) 0%, transparent 58%),
+    radial-gradient(circle at 18% 78%, rgba(34, 197, 94, 0.14) 0%, transparent 62%);
+  transform: translate3d(-12%, -10%, 0) rotate(18deg);
+  opacity: 0.7;
+  mix-blend-mode: screen;
+  pointer-events: none;
+  z-index: 0;
+  animation: kpLiquidSheen 3.8s ease-in-out infinite;
+}
+
+.score-content > * {
+  position: relative;
+  z-index: 2;
+}
+
+.score-content.is-high-score {
+  border-color: rgba(94, 234, 212, 0.28);
+  box-shadow:
+    0 30px 110px rgba(0, 0, 0, 0.75),
+    0 0 0 1px rgba(94, 234, 212, 0.08) inset;
+}
+
+.score-header-top {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  margin-bottom: 1.1rem;
+}
+
+.score-header-top i {
+  font-size: 1.35rem;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 12px 36px rgba(0, 0, 0, 0.7));
 }
 
 .score-header h2 {
-  font-size: 2rem;
-  margin: 0 0 1rem;
+  font-size: 1.75rem;
+  margin: 0;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 12px 48px rgba(0, 0, 0, 0.7);
+}
+
+.score-mood {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.25rem 0 1.35rem;
+}
+
+.score-mood-ring {
+  width: 112px;
+  height: 112px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  position: relative;
+  background:
+    radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.38) 0%, rgba(255, 255, 255, 0.12) 28%, transparent 60%),
+    var(--gradient-primary);
+  border: 1px solid rgba(94, 234, 212, 0.26);
+  box-shadow:
+    0 0 0 10px rgba(6, 182, 212, 0.12),
+    0 26px 90px rgba(0, 0, 0, 0.6);
+  animation: kpScoreIconPop 0.52s ease-out both;
+}
+
+.score-mood-ring::after {
+  content: '';
+  position: absolute;
+  inset: 10px;
+  border-radius: inherit;
+  background: rgba(4, 12, 16, 0.18);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12) inset;
+  opacity: 0.9;
+}
+
+.score-mood-ring i {
+  position: relative;
+  z-index: 1;
+  font-size: 3.1rem;
+  color: rgba(255, 255, 255, 0.96);
+  filter: drop-shadow(0 18px 32px rgba(0, 0, 0, 0.7));
+}
+
+.score-mood-title {
+  font-weight: 900;
+  font-size: 1.15rem;
+  letter-spacing: -0.01em;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.score-mood-subtitle {
+  margin-top: 0.15rem;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.92rem;
+}
+
+.score-mood--low .score-mood-ring {
+  background:
+    radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.34) 0%, rgba(255, 255, 255, 0.1) 28%, transparent 60%),
+    linear-gradient(135deg, rgba(239, 68, 68, 0.78) 0%, rgba(6, 182, 212, 0.9) 100%);
+}
+
+.score-mood--legend .score-mood-ring {
+  background:
+    radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.44) 0%, rgba(255, 255, 255, 0.14) 28%, transparent 60%),
+    linear-gradient(135deg, rgba(34, 197, 94, 0.95) 0%, rgba(6, 182, 212, 0.9) 55%, rgba(251, 191, 36, 0.95) 100%);
+  box-shadow:
+    0 0 0 12px rgba(251, 191, 36, 0.14),
+    0 0 0 10px rgba(6, 182, 212, 0.08),
+    0 26px 110px rgba(0, 0, 0, 0.65);
+}
+
+.score-value-line {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 0.5rem;
 }
 
 .score-value {
-  font-size: 5rem;
+  font-size: clamp(3.4rem, 11vw, 5rem);
   font-weight: 800;
   background: var(--gradient-primary);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   line-height: 1;
+  text-shadow: 0 22px 80px rgba(0, 0, 0, 0.75);
+  animation: kpScoreValuePop 0.7s ease-out both;
 }
 
-.score-body p {
+.score-max {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.58);
+  margin-bottom: 0.35rem;
+  font-weight: 750;
+  letter-spacing: 0.02em;
+}
+
+.score-label {
   color: var(--text-muted);
   margin-top: 0.5rem;
+  margin-bottom: 0;
+}
+
+.score-meter {
+  width: 100%;
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(94, 234, 212, 0.14);
+  overflow: hidden;
+  margin-top: 1.05rem;
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.55);
+}
+
+.score-meter-bar {
+  height: 100%;
+  width: 0%;
+  border-radius: 999px;
+  background: var(--gradient-primary);
+  box-shadow: 0 0 0 10px rgba(6, 182, 212, 0.12);
+  will-change: width;
 }
 
 .high-score-badge {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  background: var(--warning);
-  color: black;
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.22) 0%, rgba(6, 182, 212, 0.22) 45%, rgba(251, 191, 36, 0.26) 100%);
+  color: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(251, 191, 36, 0.28);
   padding: 0.5rem 1rem;
   border-radius: var(--radius-full);
   margin-top: 1rem;
-  font-weight: 600;
+  font-weight: 850;
+  letter-spacing: 0.02em;
+  box-shadow: 0 18px 70px rgba(0, 0, 0, 0.55);
+  animation: kpScoreBadgePop 0.55s ease-out both, kpScoreBadgePulse 1.6s ease-in-out infinite;
+}
+
+.high-score-badge i {
+  color: rgba(251, 191, 36, 0.95);
 }
 
 .score-footer {
@@ -2484,6 +2947,162 @@ onUnmounted(() => {
   gap: 1rem;
   margin-top: 2rem;
   justify-content: center;
+}
+
+@keyframes kpScoreBackdropIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes kpScorePop {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 12px, 0) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes kpScoreIconPop {
+  0% {
+    transform: translate3d(0, 8px, 0) scale(0.92);
+    filter: saturate(0.9);
+  }
+  55% {
+    transform: translate3d(0, -2px, 0) scale(1.05);
+    filter: saturate(1.12);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: saturate(1);
+  }
+}
+
+@keyframes kpScoreValuePop {
+  from {
+    transform: translate3d(0, 6px, 0) scale(0.98);
+    opacity: 0.2;
+  }
+  to {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes kpScoreBadgePop {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes kpScoreBadgePulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.03);
+  }
+}
+
+@media (max-width: 520px) {
+  .score-content {
+    padding: 1.35rem 1.15rem;
+    border-radius: 22px;
+    min-width: 0;
+  }
+
+  .score-header-top {
+    margin-bottom: 0.9rem;
+  }
+
+  .score-header h2 {
+    font-size: 1.4rem;
+  }
+
+  .score-mood {
+    margin-bottom: 1.1rem;
+  }
+
+  .score-mood-ring {
+    width: 92px;
+    height: 92px;
+  }
+
+  .score-mood-ring i {
+    font-size: 2.6rem;
+  }
+
+  .score-mood-title {
+    font-size: 1.05rem;
+  }
+
+  .score-mood-subtitle {
+    font-size: 0.86rem;
+  }
+
+  .score-footer {
+    flex-direction: column;
+    gap: 0.7rem;
+  }
+
+  .score-footer .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-height: 420px) {
+  .score-content {
+    padding: 1.05rem 1.1rem;
+  }
+
+  .score-header-top {
+    margin-bottom: 0.75rem;
+  }
+
+  .score-mood {
+    flex-direction: row;
+    justify-content: center;
+    gap: 0.9rem;
+    margin-bottom: 0.85rem;
+  }
+
+  .score-mood-copy {
+    text-align: left;
+  }
+
+  .score-mood-ring {
+    width: 74px;
+    height: 74px;
+  }
+
+  .score-mood-ring i {
+    font-size: 2.2rem;
+  }
+
+  .score-mood-subtitle {
+    display: none;
+  }
+
+  .score-value {
+    font-size: clamp(2.9rem, 9vw, 4rem);
+  }
+
+  .score-footer {
+    margin-top: 1.25rem;
+  }
 }
 
 /* Responsive */
@@ -3038,7 +3657,15 @@ onUnmounted(() => {
   .song-overlay,
   .overlay-content,
   .score-modal,
+  .score-content,
+  .score-mood-ring,
+  .score-value,
+  .high-score-badge,
   .mobile-control-popup {
+    animation: none !important;
+  }
+
+  .score-content::after {
     animation: none !important;
   }
 

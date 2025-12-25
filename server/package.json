@@ -8,7 +8,8 @@
     "dev": "nodemon server.js",
     "migrate": "node migrations/run.js",
     "seed": "node src/seeders/seeder.js",
-    "scan-songs": "node src/utils/songScanner.js"
+    "scan-songs": "node src/utils/songScanner.js",
+    "generate-low-videos": "node src/utils/generateLowVideos.js"
   },
   "keywords": [
     "karaoke",

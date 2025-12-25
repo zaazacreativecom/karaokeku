@@ -85,7 +85,7 @@
           <!-- Single Video with Web Audio API for channel control -->
           <video ref="videoRef" class="video-player" :src="encodedVideoUrl" @timeupdate="onTimeUpdate"
             @loadedmetadata="onLoadedMetadata" @ended="onVideoEnded" @play="onPlay" @pause="onPause"
-            crossorigin="anonymous">
+            @error="onVideoError" crossorigin="anonymous" preload="auto" playsinline>
           </video>
 
           <!-- Lyrics Overlay -->
@@ -339,7 +339,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { usePlayerStore } from '@/stores/player'
 import { songsAPI } from '@/services/api'
@@ -367,25 +367,81 @@ const glowImage = computed(() => {
   return getHighResThumbnailUrl(currentSong.value)
 })
 
-// Fix for URLs with special characters (like #)
-const encodedVideoUrl = computed(() => {
-  let url = currentSong.value?.video_url_full;
-  if (!url) return '';
+const forceOriginalQuality = ref(false)
 
-  // Strip localhost if present
-  if (url.includes('localhost')) {
-    url = url.replace(/^http(s)?:\/\/localhost(:\d+)?/, '');
+const shouldUseLowQuality = () => {
+  if (typeof navigator === 'undefined') return false
+  const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection
+  if (!conn) return false
+  if (conn.saveData) return true
+  const effectiveType = (conn.effectiveType || '').toLowerCase()
+  return ['slow-2g', '2g', '3g'].includes(effectiveType)
+}
+
+const preferLowQualityForSong = ref(false)
+
+watch(
+  currentSong,
+  () => {
+    forceOriginalQuality.value = false
+    preferLowQualityForSong.value = shouldUseLowQuality()
+  },
+  { immediate: true }
+)
+
+const stripLocalhost = (url) => {
+  if (!url) return ''
+  if (url.includes('localhost')) return url.replace(/^http(s)?:\/\/localhost(:\d+)?/, '')
+  return url
+}
+
+const toLowVariantUrl = (url) => {
+  if (!url) return url
+  if (url.includes('/videos/low/')) return url
+  const marker = '/videos/'
+  const idx = url.indexOf(marker)
+  if (idx === -1) return url
+  return `${url.slice(0, idx)}${marker}low/${url.slice(idx + marker.length)}`
+}
+
+const encodeFilenameInUrl = (url) => {
+  if (!url) return ''
+  const [pathPart, queryPart] = url.split('?')
+  const parts = pathPart.split('/')
+  const filename = parts.pop() || ''
+  const basePath = parts.join('/')
+  const encoded = `${basePath}/${encodeURIComponent(filename)}`
+  return queryPart ? `${encoded}?${queryPart}` : encoded
+}
+
+const selectedVideoUrl = computed(() => {
+  let url = playerStore.currentVideoUrl || currentSong.value?.video_url_full
+  url = stripLocalhost(url)
+  if (!url) return ''
+
+  // Only use low variant for local /videos/* assets
+  const canUseLow = url.includes('/videos/') && !url.includes('youtu')
+  const wantLow = preferLowQualityForSong.value && !forceOriginalQuality.value
+  if (canUseLow && wantLow) {
+    return toLowVariantUrl(url)
   }
+  return url
+})
 
-  // Split key parts to encode filenames properly
-  const parts = url.split('/');
-  const filename = parts.pop();
-  const basePath = parts.join('/');
+// Fix for URLs with special characters (like #)
+const encodedVideoUrl = computed(() => encodeFilenameInUrl(selectedVideoUrl.value))
 
-  // We only encode the filename, but keeping common path separators
-  // Using encodeURIComponent triggers correctness for #, ?, etc.
-  return `${basePath}/${encodeURIComponent(filename)}`;
-});
+const onVideoError = () => {
+  // Fallback to original quality if low variant is missing/invalid
+  if (preferLowQualityForSong.value && !forceOriginalQuality.value) {
+    forceOriginalQuality.value = true
+    nextTick(() => {
+      if (!videoRef.value) return
+      // Try to continue playback seamlessly (best effort)
+      videoRef.value.play().catch(() => {})
+    })
+  }
+}
 
 // State
 const searchQuery = ref('')

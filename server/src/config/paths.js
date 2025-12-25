@@ -13,6 +13,7 @@ const UPLOAD_PATH = resolvePath(process.env.UPLOAD_PATH) || path.resolve(process
 
 // Derived directories
 const VIDEOS_PATH = path.join(UPLOAD_PATH, 'videos');
+const VIDEOS_LOW_PATH = path.join(VIDEOS_PATH, 'low');
 const TEMP_PATH = path.join(UPLOAD_PATH, 'temp');
 const THUMBNAILS_PATH = path.join(UPLOAD_PATH, 'thumbnails');
 const QR_PATH = path.join(UPLOAD_PATH, 'qr');
@@ -57,6 +58,7 @@ const videosUrlToFilePath = (urlPath) => {
 module.exports = {
   UPLOAD_PATH,
   VIDEOS_PATH,
+  VIDEOS_LOW_PATH,
   TEMP_PATH,
   THUMBNAILS_PATH,
   QR_PATH,
@@ -65,4 +67,3 @@ module.exports = {
   uploadsUrlToFilePath,
   videosUrlToFilePath
 };
-

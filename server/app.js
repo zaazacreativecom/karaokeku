@@ -6,9 +6,11 @@
 const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
+const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
-const { UPLOAD_PATH, VIDEOS_PATH } = require('./src/config/paths');
+const { UPLOAD_PATH, VIDEOS_PATH, VIDEOS_LOW_PATH } = require('./src/config/paths');
+const { ensureLowVideoVariant } = require('./src/utils/videoLowVariant');
 
 // Import middlewares
 const corsOptions = require('./src/config/cors');
@@ -39,8 +41,26 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Static files untuk uploads
-app.use('/videos', express.static(VIDEOS_PATH));
-app.use('/uploads', express.static(UPLOAD_PATH));
+// If low-quality variant is requested but missing, generate in background and redirect to original.
+app.get('/videos/low/:filename', (req, res, next) => {
+  const filename = path.basename(req.params.filename || '');
+  if (!filename) return next();
+
+  const lowPath = path.join(VIDEOS_LOW_PATH, filename);
+  if (fs.existsSync(lowPath)) return next();
+
+  const originalPath = path.join(VIDEOS_PATH, filename);
+  if (!fs.existsSync(originalPath)) return next();
+
+  ensureLowVideoVariant(originalPath, filename).catch((error) => {
+    console.error('Error generating low-quality video variant:', error);
+  });
+
+  return res.redirect(307, `/videos/${encodeURIComponent(filename)}`);
+});
+
+app.use('/videos', express.static(VIDEOS_PATH, { maxAge: '7d' }));
+app.use('/uploads', express.static(UPLOAD_PATH, { maxAge: '7d' }));
 
 // ==========================================
 // ROUTES

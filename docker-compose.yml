@@ -10,7 +10,6 @@ services:
       - ./server/.env:/app/server/.env
     environment:
       - NODE_ENV=production
-      # Ganti dengan IP NAS Anda (misal: 192.168.1.10) atau nama container jika satu network
       - DB_HOST=${DB_HOST:-mariadb}
       - DB_PORT=${DB_PORT:-3306}
       - DB_USER=${DB_USER:-root}

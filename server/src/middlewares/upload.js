@@ -7,10 +7,10 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
-const { UPLOAD_PATH, VIDEOS_PATH, TEMP_PATH } = require('../config/paths');
+const { UPLOAD_PATH, VIDEOS_PATH, VIDEOS_LOW_PATH, TEMP_PATH } = require('../config/paths');
 
 // Pastikan direktori ada
-[UPLOAD_PATH, VIDEOS_PATH, TEMP_PATH].forEach(dir => {
+[UPLOAD_PATH, VIDEOS_PATH, VIDEOS_LOW_PATH, TEMP_PATH].forEach(dir => {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }

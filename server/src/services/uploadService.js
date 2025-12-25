@@ -6,6 +6,7 @@
 const { Upload, User, Song } = require('../models');
 const { moveToFinal, deleteFile, VIDEOS_PATH } = require('../middlewares/upload');
 const path = require('path');
+const { ensureLowVideoVariant } = require('../utils/videoLowVariant');
 
 /**
  * Proses upload video karaoke dari user
@@ -150,6 +151,11 @@ const reviewUpload = async (uploadId, adminId, reviewData) => {
         file_path: finalPath,
         status: 'active',
         play_count: 0
+      });
+
+      // Generate low-quality variant (non-blocking). Video quality turun, audio tetap.
+      ensureLowVideoVariant(finalPath, filename).catch((error) => {
+        console.error('Error generating low-quality video variant:', error);
       });
       
       return { upload, song };

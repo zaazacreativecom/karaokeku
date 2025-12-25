@@ -21,6 +21,7 @@ export const usePlayerStore = defineStore('player', () => {
   const showOverlay = ref(false) // Song selection overlay
   const queue = ref([]) // Song queue
   const loading = ref(false)
+  let playRequestId = 0
   
   // Getters
   const progress = computed(() => {
@@ -44,33 +45,40 @@ export const usePlayerStore = defineStore('player', () => {
    * Load dan play lagu
    */
   const playSong = async (song) => {
+    const requestId = ++playRequestId
     loading.value = true
-    
-    try {
-      // End session sebelumnya jika ada
-      if (historyId.value && currentSong.value) {
-        await endCurrentSession()
-      }
-      
-      // Set lagu baru
-      currentSong.value = song
-      
-      // Start playback session di backend
-      const response = await playbackAPI.start(song.id)
-      historyId.value = response.data.data.historyId
-      
-      isPlaying.value = true
-      isPaused.value = false
-      currentTime.value = 0
-      
-      // Close overlay jika terbuka
-      showOverlay.value = false
-      
-    } catch (error) {
-      console.error('Error playing song:', error)
-    } finally {
-      loading.value = false
+
+    const previousHistoryId = historyId.value
+    const previousPlayedDuration = Math.round(currentTime.value)
+
+    // Switch song immediately (don’t block UI/video start on network calls)
+    currentSong.value = song
+    historyId.value = null
+    isPlaying.value = true
+    isPaused.value = false
+    currentTime.value = 0
+    duration.value = 0
+    showOverlay.value = false
+    loading.value = false
+
+    // End previous session in background (non-blocking)
+    if (previousHistoryId) {
+      playbackAPI.end(previousHistoryId, previousPlayedDuration).catch((error) => {
+        console.error('Error ending previous session:', error)
+      })
     }
+
+    // Start new session in background (non-blocking)
+    playbackAPI
+      .start(song.id)
+      .then((response) => {
+        if (requestId !== playRequestId) return
+        historyId.value = response.data.data.historyId
+      })
+      .catch((error) => {
+        if (requestId !== playRequestId) return
+        console.error('Error starting playback session:', error)
+      })
   }
   
   /**

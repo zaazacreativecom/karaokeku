@@ -15,5 +15,9 @@ pnpm-debug.log*
 **/*firebase-adminsdk*.json
 
 # Local env files
-client/.env
-uploads/*
+.env
+.env.*
+!.env.example
+
+# Uploads (user content)
+uploads/

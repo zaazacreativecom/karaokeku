@@ -128,15 +128,16 @@
                 <h3>{{ playerStore.currentSong.title }}</h3>
                 <p>{{ playerStore.currentSong.artist }}</p>
               </div>
-              <div class="song-info-badges">
-                <span class="song-pill" :class="{ on: playerStore.vocalOn }">
-                  {{ playerStore.vocalOn ? 'VOCAL' : 'KARAOKE' }}
-                </span>
-                <span v-if="preferLowQualityForSong && !forceOriginalQuality" class="song-pill song-pill--soft">
-                  LOW
-                </span>
-              </div>
             </div>
+          </div>
+
+          <div v-if="playerStore.currentSong" class="song-info-badges song-info-badges--corner">
+            <span class="song-pill" :class="{ on: playerStore.vocalOn }">
+              {{ playerStore.vocalOn ? 'VOCAL' : 'KARAOKE' }}
+            </span>
+            <span v-if="preferLowQualityForSong && !forceOriginalQuality" class="song-pill song-pill--soft">
+              LOW
+            </span>
           </div>
         </div>
       </div>
@@ -144,7 +145,7 @@
       <!-- Controls Bar -->
       <div class="controls-bar">
         <!-- Mobile Control Overlays -->
-          <div v-if="activeMobileControl" class="mobile-control-overlay" @click.self="activeMobileControl = null">
+        <div v-if="activeMobileControl" class="mobile-control-overlay" @click.self="activeMobileControl = null">
           <div class="mobile-control-popup" :class="activeMobileControl">
             <!-- Pitch Popup -->
             <div v-if="activeMobileControl === 'pitch'" class="control-popup-content">
@@ -367,59 +368,55 @@
       </div>
 
       <!-- Score Modal -->
-      <div
-        v-if="showScoreModal"
-        class="score-modal"
-        role="dialog"
-        aria-modal="true"
-        aria-label="Hasil skor karaoke"
-      >
-        <canvas ref="scoreFireworksCanvas" class="score-fireworks" aria-hidden="true"></canvas>
+      <transition name="kp-score-modal" appear>
+        <div v-if="showScoreModal" class="score-modal" role="dialog" aria-modal="true" aria-label="Hasil skor karaoke">
+          <canvas ref="scoreFireworksCanvas" class="score-fireworks" aria-hidden="true"></canvas>
 
-        <div class="score-content" :class="{ 'is-high-score': isHighScore }">
-          <div class="score-header">
-            <div class="score-header-top">
-              <i class="bi bi-stars" aria-hidden="true"></i>
-              <h2>Selesai!</h2>
-            </div>
-
-            <div class="score-mood" :class="`score-mood--${scoreMood.tone}`">
-              <div class="score-mood-ring" role="img" :aria-label="scoreMood.aria">
-                <i :class="scoreMood.icon" aria-hidden="true"></i>
+          <div class="score-content" :class="{ 'is-high-score': isHighScore }">
+            <div class="score-header">
+              <div class="score-header-top">
+                <i class="bi bi-stars" aria-hidden="true"></i>
+                <h2>Selesai!</h2>
               </div>
-              <div class="score-mood-copy">
-                <div class="score-mood-title">{{ scoreMood.title }}</div>
-                <div class="score-mood-subtitle">{{ scoreMood.subtitle }}</div>
+
+              <div class="score-mood" :class="`score-mood--${scoreMood.tone}`">
+                <div class="score-mood-ring" role="img" :aria-label="scoreMood.aria">
+                  <i :class="scoreMood.icon" aria-hidden="true"></i>
+                </div>
+                <div class="score-mood-copy">
+                  <div class="score-mood-title">{{ scoreMood.title }}</div>
+                  <div class="score-mood-subtitle">{{ scoreMood.subtitle }}</div>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div class="score-body">
-            <div class="score-value-line">
-              <div class="score-value">{{ animatedScore }}</div>
-              <span class="score-max">/100</span>
+            <div class="score-body">
+              <div class="score-value-line">
+                <div class="score-value">{{ animatedScore }}</div>
+                <span class="score-max">/100</span>
+              </div>
+              <p class="score-label">Score Kamu</p>
+
+              <div class="score-meter" aria-hidden="true">
+                <div class="score-meter-bar" :style="{ width: `${scorePercent}%` }"></div>
+              </div>
+
+              <div v-if="isHighScore" class="high-score-badge">
+                <i class="bi bi-trophy-fill" aria-hidden="true"></i>
+                <span>High Score Baru!</span>
+              </div>
             </div>
-            <p class="score-label">Score Kamu</p>
 
-            <div class="score-meter" aria-hidden="true">
-              <div class="score-meter-bar" :style="{ width: `${scorePercent}%` }"></div>
+            <div class="score-footer">
+              <button class="btn btn-ghost" @click="closeScoreModal">Tutup</button>
+              <button class="btn btn-primary" @click="replaySong">
+                <i class="bi bi-arrow-repeat me-2" aria-hidden="true"></i>
+                Main Lagi
+              </button>
             </div>
-
-            <div v-if="isHighScore" class="high-score-badge">
-              <i class="bi bi-trophy-fill" aria-hidden="true"></i>
-              <span>High Score Baru!</span>
-            </div>
-          </div>
-
-          <div class="score-footer">
-            <button class="btn btn-ghost" @click="closeScoreModal">Tutup</button>
-            <button class="btn btn-primary" @click="replaySong">
-              <i class="bi bi-arrow-repeat me-2" aria-hidden="true"></i>
-              Main Lagi
-            </button>
           </div>
         </div>
-      </div>
+      </transition>
     </main>
 
     <!-- Mobile Navigation -->
@@ -527,7 +524,7 @@ const onVideoError = () => {
     nextTick(() => {
       if (!videoRef.value) return
       // Try to continue playback seamlessly (best effort)
-      videoRef.value.play().catch(() => {})
+      videoRef.value.play().catch(() => { })
     })
   }
 }
@@ -698,7 +695,7 @@ const startScoreFireworks = () => {
   fireworksResizeCleanup = () => window.removeEventListener('resize', onResize)
 
   const palette = isHighScore.value
-    ? ['#22c55e', '#06b6d4', '#3b82f6', '#fbbf24', '#a7f3d0', '#67e8f9']
+    ? ['#22c55e', '#06b6d4', '#3b82f6', '#a7f3d0', '#67e8f9']
     : ['#22c55e', '#06b6d4', '#3b82f6', '#a7f3d0', '#67e8f9']
 
   const burstCount = isHighScore.value ? 8 : 5
@@ -1241,12 +1238,10 @@ onUnmounted(() => {
   --border-color-light: rgba(94, 234, 212, 0.28);
 
   --gradient-primary: linear-gradient(135deg, #22c55e 0%, #06b6d4 55%, #3b82f6 100%);
-  --gradient-glow: linear-gradient(
-    135deg,
-    rgba(34, 197, 94, 0.32) 0%,
-    rgba(6, 182, 212, 0.34) 55%,
-    rgba(59, 130, 246, 0.26) 100%
-  );
+  --gradient-glow: linear-gradient(135deg,
+      rgba(34, 197, 94, 0.32) 0%,
+      rgba(6, 182, 212, 0.34) 55%,
+      rgba(59, 130, 246, 0.26) 100%);
   --shadow-glow: 0 0 36px rgba(6, 182, 212, 0.35);
   --kp-shell-max: 1200px;
   --kp-shell-gutter: 1rem;
@@ -1318,10 +1313,12 @@ onUnmounted(() => {
 }
 
 @keyframes orbFloat {
+
   0%,
   100% {
     transform: translate3d(0, 0, 0) scale(1);
   }
+
   50% {
     transform: translate3d(18px, -14px, 0) scale(1.06);
   }
@@ -1426,7 +1423,7 @@ onUnmounted(() => {
   transition: opacity var(--transition-normal), transform var(--transition-normal);
 }
 
-.nav-item > * {
+.nav-item>* {
   position: relative;
   z-index: 1;
 }
@@ -1445,12 +1442,10 @@ onUnmounted(() => {
 
 .nav-item.active {
   color: white;
-  background: linear-gradient(
-    135deg,
-    rgba(34, 197, 94, 0.18) 0%,
-    rgba(6, 182, 212, 0.12) 55%,
-    rgba(59, 130, 246, 0.16) 100%
-  );
+  background: linear-gradient(135deg,
+      rgba(34, 197, 94, 0.18) 0%,
+      rgba(6, 182, 212, 0.12) 55%,
+      rgba(59, 130, 246, 0.16) 100%);
   border-color: rgba(94, 234, 212, 0.28);
 }
 
@@ -1700,24 +1695,26 @@ onUnmounted(() => {
   animation: none;
 }
 
-.placeholder-content > * {
+.placeholder-content>* {
   position: relative;
   z-index: 1;
 }
 
 @keyframes kpLiquidSheen {
+
   0%,
   100% {
     transform: translate3d(-12%, -10%, 0) rotate(18deg);
     opacity: 0.56;
   }
+
   50% {
     transform: translate3d(10%, 12%, 0) rotate(8deg);
     opacity: 0.78;
   }
 }
 
-.placeholder-content > i {
+.placeholder-content>i {
   font-size: clamp(3.2rem, 9vw, 5rem);
   background: var(--gradient-primary);
   background-clip: text;
@@ -1748,12 +1745,10 @@ onUnmounted(() => {
 }
 
 .placeholder-content .btn-primary {
-  background: linear-gradient(
-    135deg,
-    rgba(34, 197, 94, 0.82) 0%,
-    rgba(6, 182, 212, 0.74) 55%,
-    rgba(59, 130, 246, 0.74) 100%
-  );
+  background: linear-gradient(135deg,
+      rgba(34, 197, 94, 0.82) 0%,
+      rgba(6, 182, 212, 0.74) 55%,
+      rgba(59, 130, 246, 0.74) 100%);
   border: 1px solid rgba(94, 234, 212, 0.18);
   backdrop-filter: blur(10px) saturate(160%);
   -webkit-backdrop-filter: blur(10px) saturate(160%);
@@ -1835,12 +1830,10 @@ onUnmounted(() => {
   top: 1rem;
   left: 1rem;
   background: transparent;
-  border: 1px solid rgba(94, 234, 212, 0.16);
+  /* border: 1px solid rgba(94, 234, 212, 0.16); */
   padding: 0.75rem 0.9rem;
-  border-radius: var(--radius-md);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  box-shadow: 0 16px 60px rgba(0, 0, 0, 0.55);
+  /* border-radius: var(--radius-md); */
+  /* box-shadow: 0 16px 60px rgba(0, 0, 0, 0.55); */
   max-width: min(520px, calc(100% - 2rem));
 }
 
@@ -1879,6 +1872,14 @@ onUnmounted(() => {
   align-items: center;
   gap: 0.5rem;
   flex: 0 0 auto;
+}
+
+.song-info-badges--corner {
+  position: absolute;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 5;
+  pointer-events: none;
 }
 
 .song-pill {
@@ -2278,7 +2279,7 @@ onUnmounted(() => {
   z-index: 0;
 }
 
-.overlay-content > * {
+.overlay-content>* {
   position: relative;
   z-index: 2;
 }
@@ -2288,6 +2289,7 @@ onUnmounted(() => {
     opacity: 0;
     transform: translate3d(0, 10px, 0) scale(0.99);
   }
+
   to {
     opacity: 1;
     transform: translate3d(0, 0, 0) scale(1);
@@ -2507,7 +2509,7 @@ onUnmounted(() => {
   transition: opacity var(--transition-normal);
 }
 
-.overlay-song-item > * {
+.overlay-song-item>* {
   position: relative;
   z-index: 1;
 }
@@ -2685,18 +2687,46 @@ onUnmounted(() => {
 }
 
 /* Score Modal */
+.kp-score-modal-enter-active,
+.kp-score-modal-leave-active {
+  transition: opacity 220ms ease;
+}
+
+.kp-score-modal-enter-from,
+.kp-score-modal-leave-to {
+  opacity: 0;
+}
+
+.kp-score-modal-enter-active .score-content,
+.kp-score-modal-leave-active .score-content {
+  transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1), opacity 260ms ease;
+}
+
+.kp-score-modal-enter-from .score-content {
+  transform: translate3d(0, 14px, 0) scale(0.98);
+  opacity: 0;
+}
+
+.kp-score-modal-leave-to .score-content {
+  transform: translate3d(0, 10px, 0) scale(0.985);
+  opacity: 0;
+}
+
 .score-modal {
   position: fixed;
   inset: 0;
   padding: calc(1rem + env(safe-area-inset-top)) 1rem calc(1rem + env(safe-area-inset-bottom));
-  background: rgba(0, 0, 0, 0.72);
+  background:
+    radial-gradient(980px 680px at 14% 20%, rgba(34, 197, 94, 0.16) 0%, transparent 62%),
+    radial-gradient(920px 640px at 88% 18%, rgba(6, 182, 212, 0.18) 0%, transparent 60%),
+    radial-gradient(920px 640px at 65% 92%, rgba(59, 130, 246, 0.12) 0%, transparent 65%),
+    rgba(0, 0, 0, 0.78);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   z-index: 4100;
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: kpScoreBackdropIn 0.22s ease-out;
   isolation: isolate;
 }
 
@@ -2706,25 +2736,32 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
   pointer-events: none;
-  opacity: 0.95;
+  opacity: 0.9;
+  filter: blur(0.25px);
   mix-blend-mode: screen;
   z-index: 0;
 }
 
 .score-content {
-  background: rgba(4, 12, 16, 0.82);
   border-radius: var(--radius-xl);
-  border: 1px solid rgba(94, 234, 212, 0.16);
+  border: 1px solid transparent;
+  background:
+    linear-gradient(180deg, rgba(10, 22, 28, 0.92) 0%, rgba(4, 12, 16, 0.84) 55%, rgba(4, 12, 16, 0.8) 100%) padding-box,
+    var(--gradient-glow) border-box;
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
   padding: 2rem;
   text-align: center;
   min-width: 300px;
   max-width: min(520px, calc(100% - 2rem));
   position: relative;
   overflow: hidden;
-  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.7);
+  box-shadow:
+    0 30px 110px rgba(0, 0, 0, 0.74),
+    0 0 0 1px rgba(94, 234, 212, 0.08) inset;
   max-height: calc(100vh - 2rem);
   isolation: isolate;
-  animation: kpScorePop 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: translateZ(0);
 }
 
 .score-content::before {
@@ -2735,8 +2772,8 @@ onUnmounted(() => {
   top: 0;
   height: 1px;
   border-radius: 999px;
-  background: var(--gradient-glow);
-  opacity: 0.75;
+  background: var(--gradient-primary);
+  opacity: 0.82;
   pointer-events: none;
   z-index: 1;
 }
@@ -2757,16 +2794,19 @@ onUnmounted(() => {
   animation: kpLiquidSheen 3.8s ease-in-out infinite;
 }
 
-.score-content > * {
+.score-content>* {
   position: relative;
   z-index: 2;
 }
 
 .score-content.is-high-score {
-  border-color: rgba(94, 234, 212, 0.28);
+  background:
+    linear-gradient(180deg, rgba(10, 22, 28, 0.94) 0%, rgba(4, 12, 16, 0.86) 55%, rgba(4, 12, 16, 0.82) 100%) padding-box,
+    var(--gradient-primary) border-box;
   box-shadow:
-    0 30px 110px rgba(0, 0, 0, 0.75),
-    0 0 0 1px rgba(94, 234, 212, 0.08) inset;
+    0 34px 128px rgba(0, 0, 0, 0.78),
+    0 0 0 1px rgba(94, 234, 212, 0.14) inset,
+    0 0 0 12px rgba(6, 182, 212, 0.08);
 }
 
 .score-header-top {
@@ -2783,6 +2823,7 @@ onUnmounted(() => {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   filter: drop-shadow(0 12px 36px rgba(0, 0, 0, 0.7));
+  animation: kpScoreTwinkle 1.9s ease-in-out infinite;
 }
 
 .score-header h2 {
@@ -2811,6 +2852,7 @@ onUnmounted(() => {
   display: grid;
   place-items: center;
   position: relative;
+  isolation: isolate;
   background:
     radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.38) 0%, rgba(255, 255, 255, 0.12) 28%, transparent 60%),
     var(--gradient-primary);
@@ -2821,6 +2863,22 @@ onUnmounted(() => {
   animation: kpScoreIconPop 0.52s ease-out both;
 }
 
+.score-mood-ring::before {
+  content: '';
+  position: absolute;
+  inset: -14px;
+  border-radius: inherit;
+  background: conic-gradient(from 180deg,
+      rgba(34, 197, 94, 0.58),
+      rgba(6, 182, 212, 0.52),
+      rgba(59, 130, 246, 0.52),
+      rgba(34, 197, 94, 0.58));
+  filter: blur(14px);
+  opacity: 0.62;
+  z-index: 0;
+  animation: kpScoreRingSpin 7s linear infinite;
+}
+
 .score-mood-ring::after {
   content: '';
   position: absolute;
@@ -2829,11 +2887,12 @@ onUnmounted(() => {
   background: rgba(4, 12, 16, 0.18);
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12) inset;
   opacity: 0.9;
+  z-index: 1;
 }
 
 .score-mood-ring i {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   font-size: 3.1rem;
   color: rgba(255, 255, 255, 0.96);
   filter: drop-shadow(0 18px 32px rgba(0, 0, 0, 0.7));
@@ -2855,19 +2914,19 @@ onUnmounted(() => {
 }
 
 .score-mood--low .score-mood-ring {
-  background:
-    radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.34) 0%, rgba(255, 255, 255, 0.1) 28%, transparent 60%),
-    linear-gradient(135deg, rgba(239, 68, 68, 0.78) 0%, rgba(6, 182, 212, 0.9) 100%);
+  filter: saturate(0.88) brightness(0.92);
+  box-shadow:
+    0 0 0 10px rgba(6, 182, 212, 0.09),
+    0 22px 80px rgba(0, 0, 0, 0.58);
 }
 
 .score-mood--legend .score-mood-ring {
-  background:
-    radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.44) 0%, rgba(255, 255, 255, 0.14) 28%, transparent 60%),
-    linear-gradient(135deg, rgba(34, 197, 94, 0.95) 0%, rgba(6, 182, 212, 0.9) 55%, rgba(251, 191, 36, 0.95) 100%);
+  filter: saturate(1.12) brightness(1.06);
+  border-color: rgba(94, 234, 212, 0.34);
   box-shadow:
-    0 0 0 12px rgba(251, 191, 36, 0.14),
-    0 0 0 10px rgba(6, 182, 212, 0.08),
-    0 26px 110px rgba(0, 0, 0, 0.65);
+    0 0 0 12px rgba(34, 197, 94, 0.14),
+    0 0 0 10px rgba(6, 182, 212, 0.1),
+    0 26px 120px rgba(0, 0, 0, 0.65);
 }
 
 .score-value-line {
@@ -2918,17 +2977,29 @@ onUnmounted(() => {
   width: 0%;
   border-radius: 999px;
   background: var(--gradient-primary);
+  position: relative;
+  overflow: hidden;
   box-shadow: 0 0 0 10px rgba(6, 182, 212, 0.12);
   will-change: width;
+}
+
+.score-meter-bar::after {
+  content: '';
+  position: absolute;
+  inset: -40% -20%;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.42) 50%, transparent 100%);
+  transform: translateX(-120%) rotate(10deg);
+  opacity: 0.65;
+  animation: kpScoreBarSheen 1.8s ease-in-out infinite;
 }
 
 .high-score-badge {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.22) 0%, rgba(6, 182, 212, 0.22) 45%, rgba(251, 191, 36, 0.26) 100%);
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.22) 0%, rgba(6, 182, 212, 0.24) 55%, rgba(59, 130, 246, 0.22) 100%);
   color: rgba(255, 255, 255, 0.95);
-  border: 1px solid rgba(251, 191, 36, 0.28);
+  border: 1px solid rgba(94, 234, 212, 0.26);
   padding: 0.5rem 1rem;
   border-radius: var(--radius-full);
   margin-top: 1rem;
@@ -2939,7 +3010,7 @@ onUnmounted(() => {
 }
 
 .high-score-badge i {
-  color: rgba(251, 191, 36, 0.95);
+  color: rgba(94, 234, 212, 0.95);
 }
 
 .score-footer {
@@ -2949,23 +3020,35 @@ onUnmounted(() => {
   justify-content: center;
 }
 
-@keyframes kpScoreBackdropIn {
-  from {
-    opacity: 0;
+@keyframes kpScoreTwinkle {
+
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.85;
+    filter: drop-shadow(0 12px 36px rgba(0, 0, 0, 0.7));
   }
-  to {
+
+  50% {
+    transform: translate3d(0, -1px, 0) scale(1.02);
     opacity: 1;
+    filter: drop-shadow(0 14px 46px rgba(0, 0, 0, 0.75));
   }
 }
 
-@keyframes kpScorePop {
+@keyframes kpScoreRingSpin {
   from {
-    opacity: 0;
-    transform: translate3d(0, 12px, 0) scale(0.985);
+    transform: rotate(0deg);
   }
+
   to {
-    opacity: 1;
-    transform: translate3d(0, 0, 0) scale(1);
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes kpScoreBarSheen {
+  to {
+    transform: translateX(120%) rotate(10deg);
   }
 }
 
@@ -2974,10 +3057,12 @@ onUnmounted(() => {
     transform: translate3d(0, 8px, 0) scale(0.92);
     filter: saturate(0.9);
   }
+
   55% {
     transform: translate3d(0, -2px, 0) scale(1.05);
     filter: saturate(1.12);
   }
+
   100% {
     transform: translate3d(0, 0, 0) scale(1);
     filter: saturate(1);
@@ -2989,6 +3074,7 @@ onUnmounted(() => {
     transform: translate3d(0, 6px, 0) scale(0.98);
     opacity: 0.2;
   }
+
   to {
     transform: translate3d(0, 0, 0) scale(1);
     opacity: 1;
@@ -3000,6 +3086,7 @@ onUnmounted(() => {
     opacity: 0;
     transform: translate3d(0, 10px, 0) scale(0.96);
   }
+
   to {
     opacity: 1;
     transform: translate3d(0, 0, 0) scale(1);
@@ -3007,10 +3094,12 @@ onUnmounted(() => {
 }
 
 @keyframes kpScoreBadgePulse {
+
   0%,
   100% {
     transform: scale(1);
   }
+
   50% {
     transform: scale(1.03);
   }
@@ -3188,6 +3277,11 @@ onUnmounted(() => {
 
   .song-info-badges {
     gap: 0.35rem;
+  }
+
+  .song-info-badges--corner {
+    right: 0.65rem;
+    bottom: 0.65rem;
   }
 
   .song-pill {
@@ -3637,6 +3731,14 @@ onUnmounted(() => {
 }
 
 @media (prefers-reduced-motion: reduce) {
+
+  .kp-score-modal-enter-active,
+  .kp-score-modal-leave-active,
+  .kp-score-modal-enter-active .score-content,
+  .kp-score-modal-leave-active .score-content {
+    transition: none !important;
+  }
+
   .bg-orb {
     animation: none !important;
   }
@@ -3659,6 +3761,7 @@ onUnmounted(() => {
   .score-modal,
   .score-content,
   .score-mood-ring,
+  .score-mood-ring::before,
   .score-value,
   .high-score-badge,
   .mobile-control-popup {
@@ -3666,6 +3769,11 @@ onUnmounted(() => {
   }
 
   .score-content::after {
+    animation: none !important;
+  }
+
+  .score-meter-bar::after,
+  .score-header-top i {
     animation: none !important;
   }
 

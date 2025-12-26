@@ -13,8 +13,9 @@
 const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
-const { SONGS_DIRECTORY } = require('../config/paths');
+const { SONGS_DIRECTORY, VIDEOS_PATH } = require('../config/paths');
 
+const { Op } = require('sequelize');
 const { Song, sequelize } = require('../models');
 const { parseSongFilename } = require('./helpers');
 const { ensureSongThumbnail } = require('./songThumbnail');
@@ -23,6 +24,15 @@ const { ensureSongThumbnail } = require('./songThumbnail');
 const SUPPORTED_EXTENSIONS = ['.mp4', '.mpg'];
 const SKIP_DIR_NAMES = new Set(['low']);
 const SONG_FILENAME_REGEX = /^([^#]*[^#\s][^#]*)#([^#]*[^#\s][^#]*)#([^#]*[^#\s][^#]*)\.(mp4|mpg)$/i;
+
+const toPosixPath = (value) => String(value || '').split(path.sep).join('/');
+
+const computeVideoUrl = (fullPath) => {
+  const rel = path.relative(VIDEOS_PATH, fullPath);
+  // Not within VIDEOS_PATH => cannot be served from /videos
+  if (!rel || rel.startsWith('..') || path.isAbsolute(rel)) return null;
+  return `/videos/${toPosixPath(rel)}`;
+};
 
 /**
  * Scan direktori untuk file lagu
@@ -53,13 +63,15 @@ const scanDirectory = (directory) => {
       
       if (SUPPORTED_EXTENSIONS.includes(ext)) {
         const stats = fs.statSync(fullPath);
+        const videoUrl = computeVideoUrl(fullPath);
         files.push({
           filename: item.name,
           fullPath,
           relativePath: path.relative(process.cwd(), fullPath),
           size: stats.size,
           extension: ext,
-          isValidFormat: SONG_FILENAME_REGEX.test(item.name)
+          isValidFormat: SONG_FILENAME_REGEX.test(item.name),
+          videoUrl
         });
       }
     }
@@ -88,6 +100,12 @@ const addSongsToDatabase = async (files, options = {}) => {
   
   for (const file of files) {
     try {
+      if (!file?.videoUrl) {
+        console.log(`⏭️  Abaikan (di luar folder videos): ${file.filename}`);
+        results.ignored++;
+        continue;
+      }
+
       const isValidFormat = file?.isValidFormat ?? SONG_FILENAME_REGEX.test(file.filename);
       if (!isValidFormat) {
         console.log(`⏭️  Abaikan (format tidak valid): ${file.filename}`);
@@ -100,11 +118,35 @@ const addSongsToDatabase = async (files, options = {}) => {
       
       // Cek apakah sudah ada di database
       if (skipExisting) {
+        const filePathCandidates = Array.from(new Set([file.relativePath, file.fullPath].filter(Boolean)));
+
         const existing = await Song.findOne({
-          where: { video_url_full: `/videos/${file.filename}` }
+          where: {
+            [Op.or]: [
+              { video_url_full: file.videoUrl },
+              filePathCandidates.length ? { file_path: { [Op.in]: filePathCandidates } } : null
+            ].filter(Boolean)
+          }
         });
         
         if (existing) {
+          // Auto-fix URL jika file cocok tapi URL masih legacy (tanpa subfolder)
+          const matchesFilePath = filePathCandidates.includes(existing.file_path);
+          const shouldUpdateUrl =
+            matchesFilePath &&
+            typeof existing.video_url_full === 'string' &&
+            existing.video_url_full.startsWith('/videos/') &&
+            existing.video_url_full !== file.videoUrl;
+          if (!dryRun && shouldUpdateUrl) {
+            await existing.update({
+              video_url_full: file.videoUrl,
+              video_url_instrumental: file.videoUrl
+            });
+            console.log(`♻️  Update URL: ${metadata.title} - ${metadata.artist}`);
+            results.skipped++;
+            continue;
+          }
+
           console.log(`⏭️  Skip (sudah ada): ${metadata.title} - ${metadata.artist}`);
           results.skipped++;
           continue;
@@ -126,8 +168,8 @@ const addSongsToDatabase = async (files, options = {}) => {
         genre: metadata.genre,
         language: metadata.language,
         file_path: file.relativePath,
-        video_url_full: `/videos/${file.filename}`,
-        video_url_instrumental: `/videos/${file.filename}`, // Sama untuk saat ini
+        video_url_full: file.videoUrl,
+        video_url_instrumental: file.videoUrl, // Sama untuk saat ini
         status: 'active',
         play_count: 0
       });

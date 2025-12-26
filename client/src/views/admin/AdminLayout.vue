@@ -1,11 +1,38 @@
 <template>
-  <div class="admin-layout">
+  <div class="admin-layout" :class="{ 'is-sidebar-open': sidebarOpen }">
+    <!-- Background (decorative) -->
+    <div class="admin-bg" aria-hidden="true">
+      <div class="bg-mesh"></div>
+      <div class="bg-particles"></div>
+      <div class="bg-orb orb-1"></div>
+      <div class="bg-orb orb-2"></div>
+      <div class="bg-orb orb-3"></div>
+    </div>
+
+    <!-- Mobile Topbar -->
+    <header class="admin-topbar">
+      <button class="icon-btn" type="button" @click="toggleSidebar" :aria-label="sidebarOpen ? 'Tutup menu admin' : 'Buka menu admin'">
+        <i class="bi" :class="sidebarOpen ? 'bi-x-lg' : 'bi-list'" aria-hidden="true"></i>
+      </button>
+
+      <router-link to="/admin" class="brand brand--compact">
+        <i class="bi bi-shield-lock-fill" aria-hidden="true"></i>
+        <span>Admin<span class="text-gradient">Panel</span></span>
+      </router-link>
+
+      <router-link to="/dashboard" class="icon-btn" aria-label="Kembali ke app">
+        <i class="bi bi-arrow-left" aria-hidden="true"></i>
+      </router-link>
+    </header>
+
+    <div v-if="sidebarOpen" class="sidebar-overlay" aria-hidden="true" @click="closeSidebar"></div>
+
     <!-- Admin Sidebar -->
-    <aside class="admin-sidebar">
+    <aside class="admin-sidebar" :class="{ open: sidebarOpen }">
       <div class="sidebar-header">
         <router-link to="/admin" class="brand">
-          <i class="bi bi-shield-lock-fill"></i>
-          <span>Admin Panel</span>
+          <i class="bi bi-shield-lock-fill" aria-hidden="true"></i>
+          <span>Admin<span class="text-gradient">Panel</span></span>
         </router-link>
       </div>
 
@@ -76,12 +103,16 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { adminAPI } from '@/services/api'
 
 const authStore = useAuthStore()
+const route = useRoute()
+
 const pendingUploads = ref(0)
+const sidebarOpen = ref(false)
 
 const fetchPendingCount = async () => {
   try {
@@ -92,19 +123,143 @@ const fetchPendingCount = async () => {
   }
 }
 
-onMounted(fetchPendingCount)
+const toggleSidebar = () => {
+  sidebarOpen.value = !sidebarOpen.value
+}
+
+const closeSidebar = () => {
+  sidebarOpen.value = false
+}
+
+const onKeydown = (event) => {
+  if (event.key !== 'Escape') return
+  closeSidebar()
+}
+
+watch(
+  () => route.fullPath,
+  () => {
+    closeSidebar()
+  }
+)
+
+onMounted(() => {
+  fetchPendingCount()
+  window.addEventListener('keydown', onKeydown)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onKeydown)
+})
 </script>
 
 <style scoped>
 .admin-layout {
-  display: flex;
+  /* Local theme override (green–blue gradient) */
+  --ad-green: #22c55e;
+  --ad-cyan: #06b6d4;
+  --ad-blue: #3b82f6;
+
+  --primary: var(--ad-cyan);
+  --primary-light: #22d3ee;
+  --primary-dark: #0891b2;
+  --secondary: var(--ad-green);
+  --accent: var(--ad-blue);
+
+  --bg-dark: #061319;
+  --bg-darker: #040c10;
+  --bg-card: rgba(10, 22, 28, 0.72);
+  --bg-card-hover: rgba(14, 30, 37, 0.82);
+  --border-color: rgba(94, 234, 212, 0.14);
+  --border-color-light: rgba(94, 234, 212, 0.28);
+
+  --gradient-primary: linear-gradient(135deg, #22c55e 0%, #06b6d4 55%, #3b82f6 100%);
+  --gradient-glow: linear-gradient(
+    135deg,
+    rgba(34, 197, 94, 0.28) 0%,
+    rgba(6, 182, 212, 0.32) 55%,
+    rgba(59, 130, 246, 0.22) 100%
+  );
+  --shadow-glow: 0 0 36px rgba(6, 182, 212, 0.35);
+
   min-height: 100vh;
+  min-height: 100dvh;
   background: var(--bg-dark);
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* Background */
+.admin-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.bg-mesh {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(900px 600px at 8% 10%, rgba(34, 197, 94, 0.2) 0%, transparent 55%),
+    radial-gradient(820px 560px at 92% 16%, rgba(6, 182, 212, 0.18) 0%, transparent 55%),
+    radial-gradient(980px 680px at 70% 92%, rgba(59, 130, 246, 0.14) 0%, transparent 60%),
+    linear-gradient(180deg, rgba(2, 6, 23, 0.12) 0%, rgba(2, 6, 23, 0.92) 70%),
+    var(--bg-dark);
+}
+
+.bg-particles {
+  position: absolute;
+  inset: 0;
+  opacity: 0.85;
+  background-image: url("data:image/svg+xml,%3Csvg width='64' height='64' viewBox='0 0 64 64' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%2306b6d4' fill-opacity='0.06'%3E%3Ccircle cx='10' cy='14' r='1.6'/%3E%3Ccircle cx='38' cy='30' r='1.4'/%3E%3Ccircle cx='54' cy='50' r='1.8'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+}
+
+.bg-orb {
+  position: absolute;
+  width: 420px;
+  height: 420px;
+  border-radius: 50%;
+  filter: blur(72px);
+  opacity: 0.32;
+  animation: orbFloat 16s ease-in-out infinite;
+}
+
+.orb-1 {
+  background: rgba(34, 197, 94, 0.32);
+  top: -180px;
+  left: -180px;
+}
+
+.orb-2 {
+  background: rgba(6, 182, 212, 0.34);
+  bottom: -220px;
+  right: -200px;
+  animation-delay: -5s;
+}
+
+.orb-3 {
+  width: 300px;
+  height: 300px;
+  background: rgba(59, 130, 246, 0.2);
+  top: 38%;
+  right: 20%;
+  animation-delay: -10s;
+}
+
+@keyframes orbFloat {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(18px, -14px, 0) scale(1.06);
+  }
 }
 
 .admin-sidebar {
   width: 260px;
-  background: linear-gradient(180deg, #1e1e3f 0%, #0f0f1a 100%);
+  background: var(--bg-card);
   border-right: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
@@ -113,11 +268,28 @@ onMounted(fetchPendingCount)
   left: 0;
   height: 100vh;
   z-index: 100;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.6);
+  transition: transform var(--transition-normal);
 }
 
 .sidebar-header {
   padding: 1.5rem;
   border-bottom: 1px solid var(--border-color);
+  position: relative;
+}
+
+.sidebar-header::after {
+  content: '';
+  position: absolute;
+  left: 1.25rem;
+  right: 1.25rem;
+  bottom: -1px;
+  height: 1px;
+  background: var(--gradient-glow);
+  opacity: 0.7;
+  pointer-events: none;
 }
 
 .brand {
@@ -126,11 +298,20 @@ onMounted(fetchPendingCount)
   gap: 0.75rem;
   font-size: 1.125rem;
   font-weight: 700;
-  color: var(--warning);
+  color: var(--text-primary);
+  text-decoration: none;
+  transition: transform var(--transition-normal), opacity var(--transition-normal);
 }
 
 .brand i {
   font-size: 1.5rem;
+  color: var(--primary-light);
+  filter: drop-shadow(0 0 16px rgba(34, 197, 94, 0.18));
+}
+
+.brand:hover {
+  transform: translateY(-1px);
+  opacity: 0.95;
 }
 
 .sidebar-nav {
@@ -148,27 +329,67 @@ onMounted(fetchPendingCount)
   border-radius: var(--radius-md);
   margin-bottom: 0.25rem;
   transition: all var(--transition-fast);
+  border: 1px solid transparent;
+  position: relative;
+  overflow: hidden;
+  text-decoration: none;
+}
+
+.nav-item::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--gradient-glow);
+  opacity: 0;
+  transform: translateX(-10%);
+  transition: opacity var(--transition-normal), transform var(--transition-normal);
+}
+
+.nav-item > * {
+  position: relative;
+  z-index: 1;
 }
 
 .nav-item:hover {
   color: var(--text-primary);
   background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(94, 234, 212, 0.18);
 }
 
 .nav-item.active {
-  color: var(--bg-dark);
-  background: var(--warning);
+  color: white;
+  background: linear-gradient(
+    135deg,
+    rgba(34, 197, 94, 0.18) 0%,
+    rgba(6, 182, 212, 0.12) 55%,
+    rgba(59, 130, 246, 0.16) 100%
+  );
+  border-color: rgba(94, 234, 212, 0.28);
+}
+
+.nav-item.active::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 4px;
+  height: 22px;
+  transform: translateY(-50%);
+  border-radius: var(--radius-full);
+  background: var(--gradient-primary);
+  box-shadow: 0 0 18px rgba(6, 182, 212, 0.45);
 }
 
 .nav-item i {
   font-size: 1.125rem;
   width: 24px;
   text-align: center;
+  color: rgba(165, 243, 252, 0.95);
 }
 
 .nav-item .badge {
   margin-left: auto;
-  background: var(--danger);
+  background: rgba(239, 68, 68, 0.92);
   color: white;
   font-size: 0.7rem;
   padding: 0.25rem 0.5rem;
@@ -177,7 +398,7 @@ onMounted(fetchPendingCount)
 
 .nav-divider {
   height: 1px;
-  background: var(--border-color);
+  background: rgba(94, 234, 212, 0.14);
   margin: 1rem 0;
 }
 
@@ -196,11 +417,156 @@ onMounted(fetchPendingCount)
 
 .user-info i {
   font-size: 1.25rem;
+  color: rgba(165, 243, 252, 0.95);
 }
 
 .admin-main {
-  flex: 1;
   margin-left: 260px;
   padding: 2rem;
+  position: relative;
+  z-index: 1;
+}
+
+/* Mobile topbar */
+.admin-topbar {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
+  padding: 0.9rem 1rem;
+  margin: 0.75rem 1rem 1rem;
+  border: 1px solid rgba(94, 234, 212, 0.16);
+  border-radius: var(--radius-xl);
+  background: rgba(4, 12, 16, 0.55);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  position: sticky;
+  top: 0.75rem;
+  z-index: 150;
+}
+
+.brand--compact {
+  font-size: 1.05rem;
+}
+
+.icon-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  border: 1px solid rgba(94, 234, 212, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
+  text-decoration: none;
+}
+
+.icon-btn:hover {
+  transform: translateY(-1px);
+  border-color: rgba(94, 234, 212, 0.28);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 140;
+}
+
+/* Responsive */
+@media (max-width: 992px) {
+  .admin-sidebar {
+    width: 70px;
+  }
+
+  .sidebar-header .brand span,
+  .nav-item span {
+    display: none;
+  }
+
+  .nav-item {
+    justify-content: center;
+    padding: 0.75rem;
+  }
+
+  .nav-item .badge {
+    position: absolute;
+    top: 0.55rem;
+    right: 0.55rem;
+    margin-left: 0;
+  }
+
+  .admin-main {
+    margin-left: 70px;
+    padding: 1.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .admin-topbar {
+    display: flex;
+  }
+
+  .sidebar-overlay {
+    display: block;
+  }
+
+  .admin-sidebar {
+    width: 280px;
+    transform: translateX(-110%);
+  }
+
+  .admin-sidebar.open {
+    transform: translateX(0);
+  }
+
+  .sidebar-header .brand span,
+  .nav-item span {
+    display: inline;
+  }
+
+  .nav-item {
+    justify-content: flex-start;
+    padding: 0.75rem 1rem;
+  }
+
+  .nav-item .badge {
+    position: static;
+    margin-left: auto;
+  }
+
+  .admin-main {
+    margin-left: 0;
+    padding: 0 1rem 1.5rem;
+  }
+
+  .sidebar-overlay {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--transition-normal);
+  }
+
+  .admin-layout.is-sidebar-open .sidebar-overlay {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bg-orb {
+    animation: none;
+  }
+
+  .admin-sidebar,
+  .nav-item,
+  .icon-btn,
+  .brand {
+    transition: none !important;
+  }
 }
 </style>

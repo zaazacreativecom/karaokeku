@@ -1,428 +1,2132 @@
 <template>
-    <div class="admin-donations">
-        <div class="page-header">
-            <h1>Kelola Donasi</h1>
-            <div class="header-stats">
-                <span class="stat pending">{{ stats.pending }} Pending</span>
-                <span class="stat verified">{{ stats.verified }} Terverifikasi</span>
-                <span class="stat total">Rp {{ formatCurrency(stats.totalAmount) }}</span>
-            </div>
+  <div class="admin-donations">
+    <header class="page-header reveal" style="--d: 0ms">
+      <div class="page-header__copy">
+        <div class="page-badge">
+          <i class="bi bi-heart-fill" aria-hidden="true"></i>
+          <span>Donasi</span>
         </div>
-
-        <!-- Filters -->
-        <div class="filters-bar">
-            <select v-model="filterStatus" @change="fetchDonations" class="form-select">
-                <option value="">Semua Status</option>
-                <option value="pending">Pending</option>
-                <option value="verified">Terverifikasi</option>
-                <option value="rejected">Ditolak</option>
-            </select>
+        <h1>Kelola Donasi</h1>
+        <p class="text-muted">
+          Verifikasi donasi, cek bukti transfer, dan kelola catatan admin dengan cepat.
+        </p>
+        <div class="page-meta text-muted">
+          <i class="bi bi-clock" aria-hidden="true"></i>
+          <span>Terakhir update: {{ lastUpdatedLabel }}</span>
         </div>
+      </div>
 
-        <!-- Donations Table -->
-        <div class="table-card">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Tanggal</th>
-                        <th>User</th>
-                        <th>Jumlah</th>
-                        <th>Metode</th>
-                        <th>Status</th>
-                        <th>Aksi</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="donation in donations" :key="donation.id">
-                        <td>{{ formatDate(donation.created_at) }}</td>
-                        <td>
-                            <div>{{ donation.donor?.name || donation.donor_name || 'Anonim' }}</div>
-                            <small class="text-muted">{{ donation.donor?.email || '-' }}</small>
-                        </td>
-                        <td>
-                            <strong>Rp {{ formatCurrency(donation.amount) }}</strong>
-                        </td>
-                        <td>
-                            <span class="method-badge" :class="donation.method">{{ methodLabel(donation.method)
-                                }}</span>
-                        </td>
-                        <td>
-                            <span class="status-badge" :class="donation.status">{{ statusLabel(donation.status)
-                                }}</span>
-                        </td>
-                        <td>
-                            <button v-if="donation.status === 'pending'" class="btn btn-sm btn-success"
-                                @click="verifyDonation(donation, 'verified')" title="Verifikasi">
-                                <i class="bi bi-check-lg"></i>
-                            </button>
-                            <button v-if="donation.status === 'pending'" class="btn btn-sm btn-danger"
-                                @click="verifyDonation(donation, 'rejected')" title="Tolak">
-                                <i class="bi bi-x-lg"></i>
-                            </button>
-                            <button class="btn btn-sm btn-ghost" @click="viewDetail(donation)" title="Detail">
-                                <i class="bi bi-eye"></i>
-                            </button>
-                            <button class="btn btn-sm btn-ghost text-danger" @click="confirmDelete(donation)"
-                                title="Hapus">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+      <div class="page-header__actions">
+        <button class="btn btn-ghost" type="button" @click="refreshAll" :disabled="loadingAny">
+          <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>
+          {{ loadingAny ? 'Memuat…' : 'Refresh' }}
+        </button>
+        <router-link to="/admin/payment-methods" class="btn btn-primary">
+          <i class="bi bi-credit-card-2-front-fill" aria-hidden="true"></i>
+          Metode Pembayaran
+        </router-link>
+      </div>
+    </header>
 
-            <div v-if="loading" class="loading-state">
-                <div class="spinner-border text-primary"></div>
-            </div>
-            <div v-if="!loading && donations.length === 0" class="empty-state">Tidak ada donasi</div>
-        </div>
-
-        <!-- Detail Modal -->
-        <div v-if="showDetailModal" class="modal-overlay" @click.self="showDetailModal = false">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>Detail Donasi</h3>
-                    <button @click="showDetailModal = false"><i class="bi bi-x-lg"></i></button>
-                </div>
-                <div class="modal-body">
-                    <div class="detail-item">
-                        <label>Donatur:</label>
-                        <span>{{ selectedDonation?.donor?.name || selectedDonation?.donor_name || 'Anonim' }}</span>
-                    </div>
-                    <div class="detail-item">
-                        <label>Jumlah:</label>
-                        <span class="amount">Rp {{ formatCurrency(selectedDonation?.amount) }}</span>
-                    </div>
-                    <div class="detail-item">
-                        <label>Metode:</label>
-                        <span>{{ methodLabel(selectedDonation?.method) }}</span>
-                    </div>
-                    <div class="detail-item" v-if="selectedDonation?.message">
-                        <label>Pesan:</label>
-                        <p>{{ selectedDonation.message }}</p>
-                    </div>
-                    <div class="detail-item" v-if="selectedDonation?.proof_url">
-                        <label>Bukti Transfer:</label>
-                        <a :href="selectedDonation.proof_url" target="_blank" class="btn btn-sm btn-outline-primary">
-                            <i class="bi bi-image"></i> Lihat Bukti
-                        </a>
-                    </div>
-                    <div class="detail-item">
-                        <label>Admin Notes:</label>
-                        <textarea v-model="adminNotes" class="form-control" rows="2"></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-ghost" @click="showDetailModal = false">Tutup</button>
-                    <button v-if="selectedDonation?.status === 'pending'" class="btn btn-danger"
-                        @click="verifyDonation(selectedDonation, 'rejected')">Tolak</button>
-                    <button v-if="selectedDonation?.status === 'pending'" class="btn btn-success"
-                        @click="verifyDonation(selectedDonation, 'verified')">Verifikasi</button>
-                </div>
-            </div>
-        </div>
+    <div v-if="errorMessage && !loadingAny" class="alert-card alert-card--danger reveal" style="--d: 60ms" role="status">
+      <div class="alert-icon" aria-hidden="true">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+      </div>
+      <div class="alert-body">
+        <div class="alert-title">Gagal memuat donasi</div>
+        <div class="alert-text text-muted">{{ errorMessage }}</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" type="button" @click="refreshAll">
+        <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>
+        Coba lagi
+      </button>
     </div>
+
+    <!-- Stats -->
+    <section class="stats-grid reveal" style="--d: 90ms" aria-label="Ringkasan donasi">
+      <template v-if="loadingStats">
+        <div v-for="n in 5" :key="n" class="stat-card stat-card--skeleton">
+          <div class="stat-icon loading-skeleton" aria-hidden="true"></div>
+          <div class="stat-body">
+            <div class="skeleton-line loading-skeleton"></div>
+            <div class="skeleton-line skeleton-line--lg loading-skeleton"></div>
+          </div>
+        </div>
+      </template>
+
+      <template v-else>
+        <div v-for="card in statCards" :key="card.key" class="stat-card" :class="card.tone">
+          <div class="stat-icon" aria-hidden="true">
+            <i :class="card.icon"></i>
+          </div>
+          <div class="stat-body">
+            <div class="stat-label">{{ card.label }}</div>
+            <div class="stat-value">{{ card.format === 'currency' ? `Rp ${formatCurrency(card.value)}` : formatNumber(card.value) }}</div>
+            <div v-if="card.hint" class="stat-hint text-muted">{{ card.hint }}</div>
+          </div>
+          <button
+            v-if="card.statusFilter !== undefined"
+            class="stat-link"
+            type="button"
+            @click="applyStatusFilter(card.statusFilter)"
+          >
+            <span>{{ card.linkLabel }}</span>
+            <i class="bi bi-arrow-right" aria-hidden="true"></i>
+          </button>
+        </div>
+      </template>
+    </section>
+
+    <!-- Filters -->
+    <section class="panel filters-panel reveal" style="--d: 120ms" aria-label="Filter donasi">
+      <div class="panel-header panel-header--compact">
+        <div class="panel-title">
+          <div class="panel-icon panel-icon--soft" aria-hidden="true">
+            <i class="bi bi-funnel-fill"></i>
+          </div>
+          <div class="panel-title__copy">
+            <h2>Filter</h2>
+            <p class="text-muted">Cari cepat dan fokus ke status yang kamu butuhkan.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-body">
+        <div class="filters-row">
+          <div class="field">
+            <label class="field-label" for="donation-status">Status</label>
+            <select id="donation-status" v-model="filterStatus" class="form-select" :disabled="loadingDonations">
+              <option value="">Semua</option>
+              <option value="pending">Pending</option>
+              <option value="verified">Terverifikasi</option>
+              <option value="rejected">Ditolak</option>
+            </select>
+          </div>
+
+          <div class="field field--grow">
+            <label class="field-label" for="donation-search">Cari</label>
+            <div class="search-control">
+              <i class="bi bi-search" aria-hidden="true"></i>
+              <input
+                id="donation-search"
+                v-model="searchQuery"
+                type="text"
+                class="form-control"
+                placeholder="Cari nama, email, metode, nominal…"
+              />
+              <button v-if="searchQuery" class="icon-clear" type="button" @click="searchQuery = ''" aria-label="Hapus pencarian">
+                <i class="bi bi-x-circle-fill" aria-hidden="true"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="field-label" for="donation-limit">Per halaman</label>
+            <select id="donation-limit" v-model.number="limit" class="form-select" :disabled="loadingDonations">
+              <option :value="10">10</option>
+              <option :value="20">20</option>
+              <option :value="50">50</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="chips-row" aria-label="Shortcut filter">
+          <button class="chip" type="button" :class="{ on: filterStatus === '' }" @click="applyStatusFilter('')">
+            <span>Semua</span>
+            <span class="chip-count">{{ formatNumber(stats.total || 0) }}</span>
+          </button>
+          <button class="chip" type="button" :class="{ on: filterStatus === 'pending' }" @click="applyStatusFilter('pending')">
+            <span>Pending</span>
+            <span class="chip-count">{{ formatNumber(stats.pending || 0) }}</span>
+          </button>
+          <button class="chip" type="button" :class="{ on: filterStatus === 'verified' }" @click="applyStatusFilter('verified')">
+            <span>Terverifikasi</span>
+            <span class="chip-count">{{ formatNumber(stats.verified || 0) }}</span>
+          </button>
+          <button class="chip" type="button" :class="{ on: filterStatus === 'rejected' }" @click="applyStatusFilter('rejected')">
+            <span>Ditolak</span>
+            <span class="chip-count">{{ formatNumber(stats.rejected || 0) }}</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- List -->
+    <section class="panel donations-panel reveal" style="--d: 150ms" aria-label="Daftar donasi">
+      <div class="panel-header">
+        <div class="panel-title">
+          <div class="panel-icon" aria-hidden="true">
+            <i class="bi bi-receipt-cutoff"></i>
+          </div>
+          <div class="panel-title__copy">
+            <h2>Daftar Donasi</h2>
+            <p class="text-muted">
+              Menampilkan <strong>{{ formatNumber(displayedDonations.length) }}</strong> dari <strong>{{ formatNumber(meta.total) }}</strong> data.
+            </p>
+          </div>
+        </div>
+
+        <div class="panel-actions">
+          <button class="btn btn-ghost btn-sm" type="button" @click="refreshAll" :disabled="loadingAny">
+            <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>
+            Refresh
+          </button>
+        </div>
+      </div>
+
+      <div class="panel-body">
+        <!-- Desktop table -->
+        <div class="table-wrap" aria-label="Tabel donasi">
+          <table class="donations-table">
+            <thead>
+              <tr>
+                <th>Tanggal</th>
+                <th>Donatur</th>
+                <th>Jumlah</th>
+                <th>Metode</th>
+                <th>Status</th>
+                <th class="th-actions">Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template v-if="loadingDonations">
+                <tr v-for="n in 6" :key="n" class="tr-skeleton">
+                  <td><div class="skeleton-cell loading-skeleton"></div></td>
+                  <td><div class="skeleton-cell loading-skeleton"></div></td>
+                  <td><div class="skeleton-cell loading-skeleton"></div></td>
+                  <td><div class="skeleton-cell loading-skeleton"></div></td>
+                  <td><div class="skeleton-cell loading-skeleton"></div></td>
+                  <td><div class="skeleton-cell loading-skeleton"></div></td>
+                </tr>
+              </template>
+
+              <template v-else>
+                <tr v-for="donation in displayedDonations" :key="donation.id">
+                  <td class="td-date">{{ formatDate(donation.created_at) }}</td>
+                  <td>
+                    <div class="donor-name" :title="donorName(donation)">{{ donorName(donation) }}</div>
+                    <div class="donor-email text-muted" :title="donorEmail(donation)">{{ donorEmail(donation) }}</div>
+                  </td>
+                  <td class="td-amount">
+                    <div class="amount-value">Rp {{ formatCurrency(donation.amount) }}</div>
+                    <div v-if="donation.message" class="amount-note text-muted" :title="donation.message">Ada pesan</div>
+                  </td>
+                  <td>
+                    <span class="pill" :class="methodInfo(donation.method).tone">
+                      <i :class="methodInfo(donation.method).icon" aria-hidden="true"></i>
+                      {{ methodInfo(donation.method).label }}
+                    </span>
+                  </td>
+                  <td>
+                    <span class="pill" :class="statusTone(donation.status)">
+                      <i :class="statusIcon(donation.status)" aria-hidden="true"></i>
+                      {{ statusLabel(donation.status) }}
+                    </span>
+                  </td>
+                  <td class="td-actions">
+                    <div class="row-actions">
+                      <button class="btn btn-ghost btn-sm btn-icon" type="button" @click="openDetail(donation)" aria-label="Detail">
+                        <i class="bi bi-eye" aria-hidden="true"></i>
+                      </button>
+
+                      <button
+                        v-if="donation.status === 'pending'"
+                        class="btn btn-success btn-sm btn-icon"
+                        type="button"
+                        @click="openConfirmVerify(donation, 'verified', false)"
+                        aria-label="Verifikasi"
+                      >
+                        <i class="bi bi-check-lg" aria-hidden="true"></i>
+                      </button>
+                      <button
+                        v-if="donation.status === 'pending'"
+                        class="btn btn-danger btn-sm btn-icon"
+                        type="button"
+                        @click="openConfirmVerify(donation, 'rejected', false)"
+                        aria-label="Tolak"
+                      >
+                        <i class="bi bi-x-lg" aria-hidden="true"></i>
+                      </button>
+
+                      <button class="btn btn-ghost btn-sm btn-icon btn-icon--danger" type="button" @click="openConfirmDelete(donation)" aria-label="Hapus">
+                        <i class="bi bi-trash" aria-hidden="true"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+
+                <tr v-if="!displayedDonations.length" class="tr-empty">
+                  <td colspan="6">
+                    <div class="empty-state">
+                      <div class="empty-icon" aria-hidden="true"><i class="bi bi-inbox"></i></div>
+                      <h3>Tidak ada donasi</h3>
+                      <p class="text-muted">Coba ubah filter status atau kata kunci pencarian.</p>
+                    </div>
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Mobile cards -->
+        <div class="donation-cards" aria-label="Daftar donasi (mobile)">
+          <template v-if="loadingDonations">
+            <div v-for="n in 6" :key="n" class="donation-card donation-card--skeleton">
+              <div class="skeleton-line loading-skeleton"></div>
+              <div class="skeleton-line skeleton-line--sm loading-skeleton"></div>
+              <div class="skeleton-chip-row">
+                <div class="skeleton-chip loading-skeleton"></div>
+                <div class="skeleton-chip loading-skeleton"></div>
+                <div class="skeleton-chip loading-skeleton"></div>
+              </div>
+              <div class="skeleton-btn-row">
+                <div class="skeleton-btn loading-skeleton"></div>
+                <div class="skeleton-btn loading-skeleton"></div>
+              </div>
+            </div>
+          </template>
+
+          <template v-else>
+            <div v-for="donation in displayedDonations" :key="donation.id" class="donation-card">
+              <div class="donation-card__top">
+                <div class="donation-card__who">
+                  <div class="donor-name" :title="donorName(donation)">{{ donorName(donation) }}</div>
+                  <div class="donor-email text-muted" :title="donorEmail(donation)">{{ donorEmail(donation) }}</div>
+                </div>
+                <div class="donation-card__amount">Rp {{ formatCurrency(donation.amount) }}</div>
+              </div>
+
+              <div class="donation-card__meta">
+                <span class="pill" :class="statusTone(donation.status)">
+                  <i :class="statusIcon(donation.status)" aria-hidden="true"></i>
+                  {{ statusLabel(donation.status) }}
+                </span>
+                <span class="pill" :class="methodInfo(donation.method).tone">
+                  <i :class="methodInfo(donation.method).icon" aria-hidden="true"></i>
+                  {{ methodInfo(donation.method).label }}
+                </span>
+                <span class="pill pill--soft">
+                  <i class="bi bi-calendar2" aria-hidden="true"></i>
+                  {{ formatDate(donation.created_at) }}
+                </span>
+              </div>
+
+              <div v-if="donation.message" class="donation-card__message">
+                <div class="message-label text-muted">Pesan</div>
+                <div class="message-text">{{ donation.message }}</div>
+              </div>
+
+              <div class="donation-card__actions">
+                <button class="btn btn-ghost btn-sm" type="button" @click="openDetail(donation)">
+                  <i class="bi bi-eye" aria-hidden="true"></i>
+                  Detail
+                </button>
+                <button class="btn btn-ghost btn-sm btn-icon btn-icon--danger" type="button" @click="openConfirmDelete(donation)" aria-label="Hapus">
+                  <i class="bi bi-trash" aria-hidden="true"></i>
+                </button>
+
+                <button
+                  v-if="donation.status === 'pending'"
+                  class="btn btn-success btn-sm"
+                  type="button"
+                  @click="openConfirmVerify(donation, 'verified', false)"
+                >
+                  <i class="bi bi-check-lg" aria-hidden="true"></i>
+                  Verifikasi
+                </button>
+                <button
+                  v-if="donation.status === 'pending'"
+                  class="btn btn-danger btn-sm"
+                  type="button"
+                  @click="openConfirmVerify(donation, 'rejected', false)"
+                >
+                  <i class="bi bi-x-lg" aria-hidden="true"></i>
+                  Tolak
+                </button>
+              </div>
+            </div>
+
+            <div v-if="!displayedDonations.length" class="empty-state">
+              <div class="empty-icon" aria-hidden="true"><i class="bi bi-inbox"></i></div>
+              <h3>Tidak ada donasi</h3>
+              <p class="text-muted">Coba ubah filter status atau kata kunci pencarian.</p>
+            </div>
+          </template>
+        </div>
+
+        <!-- Pagination -->
+        <div v-if="meta.totalPages > 1" class="pagination-row">
+          <button class="btn btn-ghost btn-sm" type="button" @click="goToPage(meta.page - 1)" :disabled="loadingDonations || meta.page <= 1">
+            <i class="bi bi-chevron-left" aria-hidden="true"></i>
+            Sebelumnya
+          </button>
+          <div class="page-indicator text-muted">
+            Halaman <strong>{{ meta.page }}</strong> / {{ meta.totalPages }}
+          </div>
+          <button class="btn btn-ghost btn-sm" type="button" @click="goToPage(meta.page + 1)" :disabled="loadingDonations || meta.page >= meta.totalPages">
+            Berikutnya
+            <i class="bi bi-chevron-right" aria-hidden="true"></i>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Detail Modal -->
+    <transition name="ad-modal">
+      <div v-if="showDetailModal" class="modal-overlay" role="dialog" aria-modal="true" aria-label="Detail donasi" @click.self="closeDetail">
+        <div class="modal-content">
+          <div class="modal-header">
+            <div class="modal-title">
+              <div class="modal-icon" aria-hidden="true"><i class="bi bi-receipt"></i></div>
+              <div class="modal-title__copy">
+                <h3>Detail Donasi</h3>
+                <p class="text-muted">Periksa informasi dan bukti transfer sebelum verifikasi.</p>
+              </div>
+            </div>
+            <button class="icon-close" type="button" @click="closeDetail" aria-label="Tutup modal">
+              <i class="bi bi-x-lg" aria-hidden="true"></i>
+            </button>
+          </div>
+
+          <div class="modal-body">
+            <div class="detail-grid">
+              <div class="detail-card">
+                <div class="detail-label">Donatur</div>
+                <div class="detail-value">{{ donorName(selectedDonation) }}</div>
+                <div class="detail-sub text-muted">{{ donorEmail(selectedDonation) }}</div>
+              </div>
+
+              <div class="detail-card detail-card--amount">
+                <div class="detail-label">Jumlah</div>
+                <div class="detail-value detail-value--amount">Rp {{ formatCurrency(selectedDonation?.amount) }}</div>
+                <div class="detail-sub text-muted">{{ methodInfo(selectedDonation?.method).label }}</div>
+              </div>
+
+              <div class="detail-card">
+                <div class="detail-label">Status</div>
+                <div class="detail-value">
+                  <span class="pill" :class="statusTone(selectedDonation?.status)">
+                    <i :class="statusIcon(selectedDonation?.status)" aria-hidden="true"></i>
+                    {{ statusLabel(selectedDonation?.status) }}
+                  </span>
+                </div>
+                <div class="detail-sub text-muted">{{ formatDate(selectedDonation?.created_at) }}</div>
+              </div>
+            </div>
+
+            <div v-if="selectedDonation?.message" class="detail-section">
+              <div class="section-title">Pesan Donatur</div>
+              <div class="message-box">{{ selectedDonation.message }}</div>
+            </div>
+
+            <div v-if="selectedDonation?.proof_url" class="detail-section">
+              <div class="section-title">Bukti Transfer</div>
+              <div class="proof-box">
+                <a :href="resolveMediaUrl(selectedDonation.proof_url)" target="_blank" rel="noreferrer" class="btn btn-ghost btn-sm">
+                  <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i>
+                  Buka bukti
+                </a>
+                <div class="proof-preview">
+                  <img :src="resolveMediaUrl(selectedDonation.proof_url)" alt="Bukti transfer" loading="lazy" />
+                </div>
+              </div>
+            </div>
+
+            <div class="detail-section">
+              <div class="section-title">Catatan Admin</div>
+              <textarea v-model="adminNotes" class="form-control" rows="3" placeholder="Tambahkan catatan (opsional)…"></textarea>
+              <div class="text-muted hint">Catatan akan tersimpan saat kamu verifikasi / tolak donasi.</div>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button class="btn btn-ghost" type="button" @click="closeDetail">Tutup</button>
+            <button class="btn btn-ghost btn-icon btn-icon--danger" type="button" @click="openConfirmDelete(selectedDonation)" aria-label="Hapus donasi">
+              <i class="bi bi-trash" aria-hidden="true"></i>
+            </button>
+
+            <button
+              v-if="selectedDonation?.status === 'pending'"
+              class="btn btn-danger"
+              type="button"
+              @click="openConfirmVerify(selectedDonation, 'rejected', true)"
+            >
+              <i class="bi bi-x-lg" aria-hidden="true"></i>
+              Tolak
+            </button>
+            <button
+              v-if="selectedDonation?.status === 'pending'"
+              class="btn btn-success"
+              type="button"
+              @click="openConfirmVerify(selectedDonation, 'verified', true)"
+            >
+              <i class="bi bi-check-lg" aria-hidden="true"></i>
+              Verifikasi
+            </button>
+          </div>
+        </div>
+      </div>
+    </transition>
+
+    <!-- Confirm Modal -->
+    <transition name="ad-modal">
+      <div
+        v-if="confirmState.open"
+        class="modal-overlay"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Konfirmasi aksi"
+        @click.self="closeConfirm"
+      >
+        <div class="modal-content modal-content--confirm">
+          <div class="modal-header">
+            <div class="modal-title">
+              <div class="modal-icon" aria-hidden="true">
+                <i :class="confirmState.icon"></i>
+              </div>
+              <div class="modal-title__copy">
+                <h3>{{ confirmState.title }}</h3>
+                <p class="text-muted">{{ confirmState.message }}</p>
+              </div>
+            </div>
+            <button class="icon-close" type="button" @click="closeConfirm" aria-label="Tutup konfirmasi">
+              <i class="bi bi-x-lg" aria-hidden="true"></i>
+            </button>
+          </div>
+
+          <div class="modal-body">
+            <div class="confirm-summary">
+              <div class="confirm-item">
+                <div class="confirm-label text-muted">Donatur</div>
+                <div class="confirm-value">{{ donorName(confirmState.donation) }}</div>
+              </div>
+              <div class="confirm-item">
+                <div class="confirm-label text-muted">Jumlah</div>
+                <div class="confirm-value">Rp {{ formatCurrency(confirmState.donation?.amount) }}</div>
+              </div>
+              <div class="confirm-item">
+                <div class="confirm-label text-muted">Metode</div>
+                <div class="confirm-value">{{ methodInfo(confirmState.donation?.method).label }}</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button class="btn btn-ghost" type="button" @click="closeConfirm" :disabled="confirmLoading">Batal</button>
+            <button
+              class="btn"
+              :class="confirmState.variant"
+              type="button"
+              @click="runConfirmAction"
+              :disabled="confirmLoading"
+            >
+              <span v-if="confirmLoading" class="spinner" aria-hidden="true"></span>
+              <i v-else :class="confirmState.icon" aria-hidden="true"></i>
+              {{ confirmLoading ? 'Memproses…' : confirmState.confirmLabel }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </transition>
+
+    <!-- Toast -->
+    <transition name="ad-toast">
+      <div v-if="showToast" class="toast" :class="`toast--${toastTone}`" role="status" aria-live="polite">
+        <i :class="toastTone === 'success' ? 'bi bi-check-circle-fill' : toastTone === 'danger' ? 'bi bi-x-circle-fill' : 'bi bi-info-circle-fill'" aria-hidden="true"></i>
+        <span>{{ toastMessage }}</span>
+      </div>
+    </transition>
+  </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import axios from 'axios'
 
+const API_URL = import.meta.env.VITE_API_URL || '/api'
+
 const donations = ref([])
-const stats = ref({ pending: 0, verified: 0, totalAmount: 0 })
-const loading = ref(false)
+const meta = ref({ total: 0, page: 1, limit: 20, totalPages: 1 })
+const stats = ref({ total: 0, pending: 0, verified: 0, rejected: 0, totalAmount: 0 })
+
+const loadingDonations = ref(true)
+const loadingStats = ref(true)
+const errorMessage = ref('')
+const lastUpdatedAt = ref(Date.now())
+
 const filterStatus = ref('')
+const searchQuery = ref('')
+
 const showDetailModal = ref(false)
 const selectedDonation = ref(null)
 const adminNotes = ref('')
 
-const API_URL = import.meta.env.VITE_API_URL || '/api'
-
-const getAuthHeader = () => ({
-    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+const confirmLoading = ref(false)
+const confirmState = ref({
+  open: false,
+  action: '',
+  status: '',
+  donation: null,
+  title: '',
+  message: '',
+  confirmLabel: '',
+  icon: 'bi bi-exclamation-triangle-fill',
+  variant: 'btn-primary',
+  useNotes: false
 })
 
-const fetchDonations = async () => {
-    loading.value = true
-    try {
-        const params = filterStatus.value ? `?status=${filterStatus.value}` : ''
-        const response = await axios.get(`${API_URL}/donations${params}`, getAuthHeader())
-        donations.value = response.data.data || []
-    } catch (error) {
-        console.error('Error fetching donations:', error)
-    } finally {
-        loading.value = false
-    }
+const showToast = ref(false)
+const toastMessage = ref('')
+const toastTone = ref('success')
+let toastTimeout = null
+
+const limit = computed({
+  get: () => meta.value.limit || 20,
+  set: (value) => {
+    meta.value.page = 1
+    meta.value.limit = Number(value) || 20
+  }
+})
+
+const loadingAny = computed(() => loadingDonations.value || loadingStats.value)
+
+const formatNumber = (value) => {
+  const n = Number(value) || 0
+  return new Intl.NumberFormat('id-ID').format(n)
 }
 
-const fetchStats = async () => {
-    try {
-        const response = await axios.get(`${API_URL}/donations/stats`, getAuthHeader())
-        stats.value = response.data.data || {}
-    } catch (error) {
-        console.error('Error fetching stats:', error)
-    }
-}
+const formatCurrency = (amount) => new Intl.NumberFormat('id-ID').format(Number(amount) || 0)
 
-const verifyDonation = async (donation, status) => {
-    try {
-        await axios.put(`${API_URL}/donations/${donation.id}/verify`, {
-            status,
-            admin_notes: adminNotes.value
-        }, getAuthHeader())
-
-        showDetailModal.value = false
-        fetchDonations()
-        fetchStats()
-    } catch (error) {
-        console.error('Error verifying:', error)
-    }
-}
-
-const viewDetail = (donation) => {
-    selectedDonation.value = donation
-    adminNotes.value = donation.admin_notes || ''
-    showDetailModal.value = true
-}
-
-const confirmDelete = async (donation) => {
-    if (!confirm('Hapus donasi ini?')) return
-
-    try {
-        await axios.delete(`${API_URL}/donations/${donation.id}`, getAuthHeader())
-        fetchDonations()
-        fetchStats()
-    } catch (error) {
-        console.error('Error deleting:', error)
-    }
-}
+const lastUpdatedLabel = computed(() => {
+  const date = new Date(lastUpdatedAt.value || Date.now())
+  return new Intl.DateTimeFormat('id-ID', { hour: '2-digit', minute: '2-digit' }).format(date)
+})
 
 const formatDate = (date) => {
-    return new Date(date).toLocaleDateString('id-ID', {
-        day: '2-digit', month: 'short', year: 'numeric'
-    })
-}
-
-const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('id-ID').format(amount || 0)
+  if (!date) return '-'
+  return new Date(date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
 const statusLabel = (status) => {
-    const labels = { pending: 'Pending', verified: 'Terverifikasi', rejected: 'Ditolak' }
-    return labels[status] || status
+  const labels = { pending: 'Pending', verified: 'Terverifikasi', rejected: 'Ditolak' }
+  return labels[status] || status || '-'
 }
 
-const methodLabel = (method) => {
-    const labels = {
-        qris: 'QRIS', gopay: 'GoPay', ovo: 'OVO', dana: 'DANA',
-        shopeepay: 'ShopeePay', bca: 'BCA', bni: 'BNI', mandiri: 'Mandiri', other: 'Lainnya'
+const statusTone = (status) => {
+  if (status === 'verified') return 'pill--success'
+  if (status === 'rejected') return 'pill--danger'
+  return 'pill--warning'
+}
+
+const statusIcon = (status) => {
+  if (status === 'verified') return 'bi bi-check-circle-fill'
+  if (status === 'rejected') return 'bi bi-x-circle-fill'
+  return 'bi bi-hourglass-split'
+}
+
+const methodInfo = (method) => {
+  const m = String(method || '').toLowerCase()
+  const map = {
+    qris: { label: 'QRIS', icon: 'bi bi-qr-code-scan', tone: 'pill--cyan' },
+    gopay: { label: 'GoPay', icon: 'bi bi-wallet2', tone: 'pill--green' },
+    ovo: { label: 'OVO', icon: 'bi bi-wallet2', tone: 'pill--blue' },
+    dana: { label: 'DANA', icon: 'bi bi-wallet2', tone: 'pill--cyan' },
+    shopeepay: { label: 'ShopeePay', icon: 'bi bi-wallet2', tone: 'pill--blue' },
+    bca: { label: 'BCA', icon: 'bi bi-bank2', tone: 'pill--blue' },
+    bni: { label: 'BNI', icon: 'bi bi-bank2', tone: 'pill--green' },
+    mandiri: { label: 'Mandiri', icon: 'bi bi-bank2', tone: 'pill--cyan' },
+    other: { label: 'Lainnya', icon: 'bi bi-credit-card-2-front-fill', tone: 'pill--soft' }
+  }
+  return map[m] || { label: method || '-', icon: 'bi bi-credit-card-2-front-fill', tone: 'pill--soft' }
+}
+
+const donorName = (donation) => donation?.donor?.name || donation?.donor_name || 'Anonim'
+const donorEmail = (donation) => donation?.donor?.email || '-'
+
+const statCards = computed(() => [
+  {
+    key: 'total',
+    label: 'Total Donasi',
+    value: stats.value.total || 0,
+    icon: 'bi bi-collection',
+    tone: 'tone-cyan',
+    statusFilter: '',
+    linkLabel: 'Lihat'
+  },
+  {
+    key: 'pending',
+    label: 'Pending',
+    value: stats.value.pending || 0,
+    icon: 'bi bi-hourglass-split',
+    tone: 'tone-blue',
+    statusFilter: 'pending',
+    linkLabel: 'Review'
+  },
+  {
+    key: 'verified',
+    label: 'Terverifikasi',
+    value: stats.value.verified || 0,
+    icon: 'bi bi-check-circle-fill',
+    tone: 'tone-green',
+    statusFilter: 'verified',
+    linkLabel: 'Lihat'
+  },
+  {
+    key: 'rejected',
+    label: 'Ditolak',
+    value: stats.value.rejected || 0,
+    icon: 'bi bi-x-circle-fill',
+    tone: 'tone-blue',
+    statusFilter: 'rejected',
+    linkLabel: 'Lihat'
+  },
+  {
+    key: 'totalAmount',
+    label: 'Terkumpul',
+    value: stats.value.totalAmount || 0,
+    icon: 'bi bi-cash-coin',
+    tone: 'tone-green',
+    format: 'currency',
+    hint: 'Hanya donasi terverifikasi'
+  }
+])
+
+const displayedDonations = computed(() => {
+  const list = Array.isArray(donations.value) ? donations.value : []
+  const q = String(searchQuery.value || '').trim().toLowerCase()
+  if (!q) return list
+
+  return list.filter((d) => {
+    const hay = [
+      donorName(d),
+      donorEmail(d),
+      d?.method,
+      statusLabel(d?.status),
+      String(d?.amount ?? ''),
+      d?.message,
+      d?.admin_notes
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase()
+
+    return hay.includes(q)
+  })
+})
+
+const getAuthHeader = () => ({
+  headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+})
+
+const fetchDonations = async () => {
+  loadingDonations.value = true
+  errorMessage.value = ''
+
+  try {
+    const params = {
+      status: filterStatus.value || undefined,
+      page: meta.value.page || 1,
+      limit: meta.value.limit || 20
     }
-    return labels[method] || method
+    const response = await axios.get(`${API_URL}/donations`, { ...getAuthHeader(), params })
+    donations.value = response.data.data || []
+
+    const responseMeta = response.data.meta || {}
+    meta.value = {
+      total: Number(responseMeta.total) || 0,
+      page: Number(responseMeta.page) || 1,
+      limit: Number(responseMeta.limit) || (meta.value.limit || 20),
+      totalPages: Number(responseMeta.totalPages) || 1
+    }
+
+    lastUpdatedAt.value = Date.now()
+  } catch (error) {
+    console.error('Error fetching donations:', error)
+    errorMessage.value = error.response?.data?.message || 'Gagal memuat daftar donasi'
+    donations.value = []
+  } finally {
+    loadingDonations.value = false
+  }
+}
+
+const fetchStats = async () => {
+  loadingStats.value = true
+  errorMessage.value = ''
+
+  try {
+    const response = await axios.get(`${API_URL}/donations/stats`, getAuthHeader())
+    stats.value = response.data.data || { total: 0, pending: 0, verified: 0, rejected: 0, totalAmount: 0 }
+    lastUpdatedAt.value = Date.now()
+  } catch (error) {
+    console.error('Error fetching stats:', error)
+    errorMessage.value = error.response?.data?.message || 'Gagal memuat statistik donasi'
+  } finally {
+    loadingStats.value = false
+  }
+}
+
+const refreshAll = async () => {
+  await Promise.all([fetchStats(), fetchDonations()])
+}
+
+const applyStatusFilter = (value) => {
+  filterStatus.value = value
+}
+
+watch(filterStatus, () => {
+  meta.value.page = 1
+  fetchDonations()
+})
+
+watch(
+  () => meta.value.limit,
+  () => {
+    meta.value.page = 1
+    fetchDonations()
+  }
+)
+
+const goToPage = (page) => {
+  const next = Math.max(1, Math.min(Number(page) || 1, meta.value.totalPages || 1))
+  if (next === meta.value.page) return
+  meta.value.page = next
+  fetchDonations()
+}
+
+const resolveMediaUrl = (url) => {
+  if (!url) return ''
+
+  let cleaned = String(url).trim()
+  if (cleaned.includes('localhost')) cleaned = cleaned.replace(/^http(s)?:\/\/localhost(:\d+)?/, '')
+  if (cleaned.startsWith('http')) return cleaned
+
+  const baseUrl = API_URL.endsWith('/api') ? API_URL.replace('/api', '') : API_URL
+  if (baseUrl.includes('localhost')) return cleaned.startsWith('/') ? cleaned : `/${cleaned}`
+
+  return `${baseUrl}${cleaned.startsWith('/') ? '' : '/'}${cleaned}`
+}
+
+const triggerToast = (message, tone = 'success') => {
+  toastMessage.value = message
+  toastTone.value = tone
+  showToast.value = true
+  if (toastTimeout) clearTimeout(toastTimeout)
+  toastTimeout = setTimeout(() => {
+    showToast.value = false
+  }, 2500)
+}
+
+const openDetail = (donation) => {
+  selectedDonation.value = donation
+  adminNotes.value = donation?.admin_notes || ''
+  showDetailModal.value = true
+}
+
+const closeDetail = () => {
+  showDetailModal.value = false
+}
+
+const verifyDonation = async (donation, status, notes) => {
+  if (!donation?.id) return
+
+  try {
+    await axios.put(
+      `${API_URL}/donations/${donation.id}/verify`,
+      { status, admin_notes: notes || '' },
+      getAuthHeader()
+    )
+
+    triggerToast(status === 'verified' ? 'Donasi berhasil diverifikasi' : 'Donasi ditolak', 'success')
+    showDetailModal.value = false
+    await refreshAll()
+  } catch (error) {
+    console.error('Error verifying:', error)
+    triggerToast(error.response?.data?.message || 'Gagal memproses donasi', 'danger')
+  }
+}
+
+const deleteDonation = async (donation) => {
+  if (!donation?.id) return
+
+  try {
+    await axios.delete(`${API_URL}/donations/${donation.id}`, getAuthHeader())
+    triggerToast('Donasi berhasil dihapus', 'success')
+    if (selectedDonation.value?.id === donation.id) {
+      showDetailModal.value = false
+    }
+    await refreshAll()
+  } catch (error) {
+    console.error('Error deleting:', error)
+    triggerToast(error.response?.data?.message || 'Gagal menghapus donasi', 'danger')
+  }
+}
+
+const openConfirmDelete = (donation) => {
+  if (!donation) return
+
+  confirmState.value = {
+    open: true,
+    action: 'delete',
+    status: '',
+    donation,
+    title: 'Hapus donasi ini?',
+    message: 'Tindakan ini tidak bisa dibatalkan.',
+    confirmLabel: 'Hapus',
+    icon: 'bi bi-trash',
+    variant: 'btn-danger',
+    useNotes: false
+  }
+}
+
+const openConfirmVerify = (donation, status, useNotes) => {
+  if (!donation) return
+
+  const isVerify = status === 'verified'
+  confirmState.value = {
+    open: true,
+    action: 'verify',
+    status,
+    donation,
+    title: isVerify ? 'Verifikasi donasi?' : 'Tolak donasi?',
+    message: isVerify
+      ? 'Pastikan bukti transfer valid sebelum menandai sebagai terverifikasi.'
+      : 'Donasi akan ditandai sebagai ditolak.',
+    confirmLabel: isVerify ? 'Verifikasi' : 'Tolak',
+    icon: isVerify ? 'bi bi-check-lg' : 'bi bi-x-lg',
+    variant: isVerify ? 'btn-success' : 'btn-danger',
+    useNotes: Boolean(useNotes)
+  }
+}
+
+const closeConfirm = () => {
+  if (confirmLoading.value) return
+  confirmState.value.open = false
+}
+
+const runConfirmAction = async () => {
+  if (!confirmState.value.open || confirmLoading.value) return
+
+  confirmLoading.value = true
+  try {
+    if (confirmState.value.action === 'delete') {
+      await deleteDonation(confirmState.value.donation)
+    } else if (confirmState.value.action === 'verify') {
+      const notes = confirmState.value.useNotes ? adminNotes.value : ''
+      await verifyDonation(confirmState.value.donation, confirmState.value.status, notes)
+    }
+  } finally {
+    confirmLoading.value = false
+    confirmState.value.open = false
+  }
+}
+
+const onKeydown = (event) => {
+  if (event.key !== 'Escape') return
+  if (confirmState.value.open) return closeConfirm()
+  if (showDetailModal.value) return closeDetail()
 }
 
 onMounted(() => {
-    fetchDonations()
-    fetchStats()
+  refreshAll()
+  window.addEventListener('keydown', onKeydown)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onKeydown)
+  if (toastTimeout) clearTimeout(toastTimeout)
 })
 </script>
 
 <style scoped>
 .admin-donations {
-    max-width: 1200px;
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
+/* Header (same tone as admin dashboard) */
 .page-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 2rem;
-    flex-wrap: wrap;
-    gap: 1rem;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.25rem;
+  padding: 1.25rem 1.25rem 1.15rem;
+  border-radius: var(--radius-xl);
+  border: 1px solid rgba(94, 234, 212, 0.16);
+  background: linear-gradient(180deg, rgba(10, 22, 28, 0.72) 0%, rgba(4, 12, 16, 0.68) 100%);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow: 0 18px 80px rgba(0, 0, 0, 0.45);
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 1.25rem;
+}
+
+.page-header::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  background:
+    radial-gradient(540px 240px at 18% 10%, rgba(34, 197, 94, 0.16) 0%, transparent 62%),
+    radial-gradient(540px 240px at 85% 42%, rgba(6, 182, 212, 0.14) 0%, transparent 62%),
+    radial-gradient(560px 260px at 60% 120%, rgba(59, 130, 246, 0.12) 0%, transparent 64%);
+  pointer-events: none;
+}
+
+.page-header__copy,
+.page-header__actions {
+  position: relative;
+  z-index: 1;
+}
+
+.page-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.4rem 0.8rem;
+  border-radius: 999px;
+  border: 1px solid rgba(94, 234, 212, 0.22);
+  background: rgba(255, 255, 255, 0.05);
+  font-size: 0.85rem;
+  margin-bottom: 0.85rem;
+}
+
+.page-badge i {
+  color: rgba(187, 247, 208, 0.98);
 }
 
 .page-header h1 {
-    margin: 0;
+  margin: 0 0 0.35rem 0;
+  font-size: 1.85rem;
+  letter-spacing: -0.02em;
 }
 
-.header-stats {
-    display: flex;
-    gap: 1rem;
+.page-header p {
+  margin: 0;
+  max-width: 72ch;
 }
 
-.stat {
-    padding: 0.5rem 1rem;
-    border-radius: var(--radius-md);
-    font-size: 0.875rem;
-    font-weight: 500;
+.page-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.7rem;
+  font-size: 0.9rem;
 }
 
-.stat.pending {
-    background: rgba(245, 158, 11, 0.2);
-    color: var(--warning);
+.page-header__actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
-.stat.verified {
-    background: rgba(34, 197, 94, 0.2);
-    color: var(--success);
+/* Alert */
+.alert-card {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 1rem;
+  border-radius: var(--radius-xl);
+  border: 1px solid rgba(94, 234, 212, 0.16);
+  background: rgba(10, 22, 28, 0.62);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow: 0 16px 60px rgba(0, 0, 0, 0.4);
+  margin-bottom: 1.25rem;
 }
 
-.stat.total {
-    background: rgba(139, 92, 246, 0.2);
-    color: var(--primary-light);
+.alert-card--danger {
+  border-color: rgba(239, 68, 68, 0.22);
+  background: rgba(239, 68, 68, 0.08);
 }
 
-.filters-bar {
-    margin-bottom: 1.5rem;
+.alert-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 16px;
+  border: 1px solid rgba(239, 68, 68, 0.22);
+  background: rgba(239, 68, 68, 0.12);
+  display: grid;
+  place-items: center;
+  color: rgba(254, 202, 202, 0.98);
+  flex: 0 0 auto;
 }
 
-.filters-bar select {
-    max-width: 200px;
+.alert-title {
+  font-weight: 850;
 }
 
-.table-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-lg);
-    overflow: hidden;
+.alert-body {
+  min-width: 0;
+  flex: 1;
 }
 
-.table {
-    width: 100%;
-    margin: 0;
-    color: var(--text-primary);
+.alert-text {
+  font-size: 0.92rem;
 }
 
-.table th,
-.table td {
-    padding: 0.75rem 1rem;
-    border-bottom: 1px solid var(--border-color);
+/* Stats */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.25rem;
 }
 
-.table th {
-    background: var(--bg-darker);
-    font-weight: 500;
-    font-size: 0.875rem;
-    color: var(--text-muted);
-    text-align: left;
+.stat-card {
+  border-radius: 22px;
+  border: 1px solid rgba(94, 234, 212, 0.14);
+  background: rgba(0, 0, 0, 0.2);
+  padding: 1rem;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.85rem;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 14px 55px rgba(0, 0, 0, 0.4);
+  transition: transform var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
 }
 
-.table tbody tr:hover {
-    background: rgba(255, 255, 255, 0.02);
+.stat-card::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  background: var(--gradient-glow);
+  opacity: 0;
+  transform: translateX(-8%);
+  transition: opacity var(--transition-normal), transform var(--transition-normal);
 }
 
-.status-badge {
-    padding: 0.25rem 0.5rem;
-    border-radius: var(--radius-sm);
-    font-size: 0.75rem;
+.stat-card:hover {
+  transform: translateY(-1px);
+  border-color: rgba(94, 234, 212, 0.24);
+  background: rgba(0, 0, 0, 0.26);
 }
 
-.status-badge.pending {
-    background: rgba(245, 158, 11, 0.2);
-    color: var(--warning);
+.stat-card:hover::before {
+  opacity: 0.14;
+  transform: translateX(0);
 }
 
-.status-badge.verified {
-    background: rgba(34, 197, 94, 0.2);
-    color: var(--success);
+.stat-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 16px;
+  border: 1px solid rgba(94, 234, 212, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+  display: grid;
+  place-items: center;
+  position: relative;
+  z-index: 1;
 }
 
-.status-badge.rejected {
-    background: rgba(239, 68, 68, 0.2);
-    color: var(--danger);
+.stat-icon i {
+  font-size: 1.2rem;
+  color: rgba(255, 255, 255, 0.95);
 }
 
-.method-badge {
-    padding: 0.25rem 0.5rem;
-    border-radius: var(--radius-sm);
-    font-size: 0.75rem;
-    background: rgba(59, 130, 246, 0.2);
-    color: var(--info);
+.stat-body {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
 }
 
-.loading-state,
+.stat-label {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.stat-value {
+  font-size: 1.45rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  margin-top: 0.12rem;
+}
+
+.stat-hint {
+  font-size: 0.85rem;
+  margin-top: 0.12rem;
+}
+
+.stat-link {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 0.35rem;
+  padding: 0.85rem;
+  color: rgba(165, 243, 252, 0.95);
+  font-size: 0.85rem;
+  font-weight: 750;
+  z-index: 2;
+  opacity: 0.85;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.stat-card.tone-green .stat-icon {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.26), rgba(6, 182, 212, 0.12));
+  border-color: rgba(34, 197, 94, 0.22);
+}
+
+.stat-card.tone-cyan .stat-icon {
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.24), rgba(59, 130, 246, 0.12));
+  border-color: rgba(94, 234, 212, 0.22);
+}
+
+.stat-card.tone-blue .stat-icon {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.22), rgba(6, 182, 212, 0.12));
+  border-color: rgba(59, 130, 246, 0.22);
+}
+
+.stat-card--skeleton {
+  pointer-events: none;
+}
+
+.skeleton-line {
+  height: 0.95rem;
+  width: 100%;
+  border-radius: 10px;
+}
+
+.skeleton-line--lg {
+  height: 1.25rem;
+  width: 65%;
+  margin-top: 0.45rem;
+}
+
+/* Panels */
+.panel {
+  background: rgba(10, 22, 28, 0.72);
+  border: 1px solid rgba(94, 234, 212, 0.14);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  box-shadow: 0 14px 60px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.05rem 1.1rem 1rem;
+  border-bottom: 1px solid rgba(94, 234, 212, 0.14);
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.22) 0%, rgba(0, 0, 0, 0) 100%);
+}
+
+.panel-header--compact {
+  align-items: center;
+}
+
+.panel-title {
+  display: flex;
+  gap: 0.85rem;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.panel-title__copy {
+  min-width: 0;
+}
+
+.panel-title h2 {
+  margin: 0;
+  font-weight: 850;
+  letter-spacing: -0.01em;
+  font-size: 1.12rem;
+}
+
+.panel-title p {
+  margin: 0.25rem 0 0;
+  font-size: 0.9rem;
+}
+
+.panel-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 16px;
+  border: 1px solid rgba(94, 234, 212, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+  display: grid;
+  place-items: center;
+  color: rgba(165, 243, 252, 0.98);
+  flex: 0 0 auto;
+}
+
+.panel-icon--soft {
+  background: rgba(6, 182, 212, 0.08);
+}
+
+.panel-body {
+  padding: 0.95rem 1.1rem 1.1rem;
+}
+
+.panel-actions {
+  display: inline-flex;
+  gap: 0.6rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* Filters */
+.filters-panel {
+  margin-bottom: 1.25rem;
+}
+
+.filters-row {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr) 170px;
+  gap: 0.9rem;
+  align-items: end;
+}
+
+.field-label {
+  display: inline-flex;
+  margin-bottom: 0.45rem;
+  color: var(--text-secondary);
+  font-weight: 650;
+}
+
+.field--grow {
+  min-width: 0;
+}
+
+.search-control {
+  position: relative;
+}
+
+.search-control i.bi-search {
+  position: absolute;
+  left: 0.85rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(165, 243, 252, 0.85);
+}
+
+.search-control .form-control {
+  padding-left: 2.65rem;
+  padding-right: 2.8rem;
+}
+
+.icon-clear {
+  position: absolute;
+  right: 0.6rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 38px;
+  height: 38px;
+  border-radius: 14px;
+  border: 1px solid rgba(94, 234, 212, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(165, 243, 252, 0.95);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: transform var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.icon-clear:hover {
+  transform: translateY(-50%) scale(1.02);
+  border-color: rgba(94, 234, 212, 0.28);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.chips-row {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-top: 0.95rem;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.4rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid rgba(94, 234, 212, 0.14);
+  background: rgba(0, 0, 0, 0.18);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: transform var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.chip:hover {
+  transform: translateY(-1px);
+  border-color: rgba(94, 234, 212, 0.24);
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.chip.on {
+  border-color: rgba(94, 234, 212, 0.28);
+  background: linear-gradient(
+    135deg,
+    rgba(34, 197, 94, 0.18) 0%,
+    rgba(6, 182, 212, 0.12) 55%,
+    rgba(59, 130, 246, 0.16) 100%
+  );
+}
+
+.chip-count {
+  padding: 0.18rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid rgba(94, 234, 212, 0.14);
+  background: rgba(0, 0, 0, 0.16);
+  color: rgba(203, 213, 225, 0.92);
+  font-size: 0.78rem;
+}
+
+/* Donations */
+.donations-panel {
+  margin-bottom: 1.25rem;
+}
+
+.table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 20px;
+  border: 1px solid rgba(94, 234, 212, 0.12);
+  background: rgba(0, 0, 0, 0.14);
+}
+
+.donations-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: 860px;
+}
+
+.donations-table th,
+.donations-table td {
+  padding: 0.85rem 0.95rem;
+  border-bottom: 1px solid rgba(94, 234, 212, 0.12);
+  vertical-align: middle;
+}
+
+.donations-table th {
+  position: sticky;
+  top: 0;
+  background: rgba(4, 12, 16, 0.78);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  font-weight: 750;
+  text-align: left;
+}
+
+.donations-table tbody tr:hover td {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.th-actions {
+  text-align: right;
+}
+
+.td-actions {
+  text-align: right;
+}
+
+.td-date {
+  white-space: nowrap;
+  color: var(--text-secondary);
+}
+
+.td-amount {
+  white-space: nowrap;
+}
+
+.amount-value {
+  font-weight: 900;
+  letter-spacing: -0.01em;
+}
+
+.amount-note {
+  margin-top: 0.15rem;
+  font-size: 0.85rem;
+}
+
+.donor-name {
+  font-weight: 900;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 42ch;
+}
+
+.donor-email {
+  font-size: 0.85rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 42ch;
+}
+
+.row-actions {
+  display: inline-flex;
+  gap: 0.45rem;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.btn-icon {
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+}
+
+.btn-icon--danger {
+  color: rgba(254, 202, 202, 0.95);
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.28rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid rgba(94, 234, 212, 0.14);
+  background: rgba(0, 0, 0, 0.18);
+  color: rgba(203, 213, 225, 0.92);
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.pill--soft {
+  background: rgba(6, 182, 212, 0.08);
+}
+
+.pill--warning {
+  border-color: rgba(245, 158, 11, 0.24);
+  background: rgba(245, 158, 11, 0.1);
+  color: rgba(254, 215, 170, 0.98);
+}
+
+.pill--success {
+  border-color: rgba(34, 197, 94, 0.22);
+  background: rgba(34, 197, 94, 0.1);
+  color: rgba(187, 247, 208, 0.98);
+}
+
+.pill--danger {
+  border-color: rgba(239, 68, 68, 0.26);
+  background: rgba(239, 68, 68, 0.1);
+  color: rgba(254, 202, 202, 0.98);
+}
+
+.pill--cyan {
+  border-color: rgba(94, 234, 212, 0.22);
+  background: rgba(6, 182, 212, 0.1);
+  color: rgba(165, 243, 252, 0.98);
+}
+
+.pill--green {
+  border-color: rgba(34, 197, 94, 0.22);
+  background: rgba(34, 197, 94, 0.1);
+  color: rgba(187, 247, 208, 0.98);
+}
+
+.pill--blue {
+  border-color: rgba(59, 130, 246, 0.22);
+  background: rgba(59, 130, 246, 0.1);
+  color: rgba(191, 219, 254, 0.98);
+}
+
+.tr-skeleton td {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.skeleton-cell {
+  height: 18px;
+  border-radius: 999px;
+  width: 100%;
+}
+
+.tr-empty td {
+  background: transparent;
+  border-bottom: none;
+}
+
 .empty-state {
-    text-align: center;
-    padding: 2rem;
-    color: var(--text-muted);
+  text-align: center;
+  padding: 1.75rem 0.75rem 1.25rem;
 }
 
+.empty-icon {
+  width: 62px;
+  height: 62px;
+  border-radius: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(94, 234, 212, 0.16);
+  background: rgba(0, 0, 0, 0.22);
+  box-shadow: 0 16px 60px rgba(0, 0, 0, 0.45);
+  margin-bottom: 0.75rem;
+}
+
+.empty-icon i {
+  font-size: 1.8rem;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.empty-state h3 {
+  font-weight: 900;
+  margin: 0 0 0.25rem;
+}
+
+.empty-state p {
+  margin: 0;
+}
+
+/* Mobile cards */
+.donation-cards {
+  display: none;
+  margin-top: 0.85rem;
+  gap: 0.85rem;
+}
+
+.donation-card {
+  border-radius: 22px;
+  border: 1px solid rgba(94, 234, 212, 0.14);
+  background: rgba(0, 0, 0, 0.16);
+  padding: 0.9rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.donation-card__top {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.9rem;
+  align-items: flex-start;
+}
+
+.donation-card__who {
+  min-width: 0;
+}
+
+.donation-card__amount {
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.donation-card__meta {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.donation-card__message {
+  padding: 0.75rem;
+  border-radius: 18px;
+  border: 1px solid rgba(94, 234, 212, 0.12);
+  background: rgba(0, 0, 0, 0.14);
+}
+
+.message-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.message-text {
+  margin-top: 0.35rem;
+  line-height: 1.5;
+}
+
+.donation-card__actions {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.donation-card--skeleton {
+  pointer-events: none;
+}
+
+.skeleton-chip-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.skeleton-chip {
+  width: 88px;
+  height: 20px;
+  border-radius: 999px;
+}
+
+.skeleton-btn-row {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.skeleton-btn {
+  width: 110px;
+  height: 38px;
+  border-radius: 14px;
+}
+
+/* Pagination */
+.pagination-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: center;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(94, 234, 212, 0.12);
+}
+
+.page-indicator {
+  font-size: 0.95rem;
+}
+
+/* Modal */
 .modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.8);
-    z-index: 200;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.76);
+  z-index: 3000;
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
 }
 
 .modal-content {
-    background: var(--bg-card);
-    border-radius: var(--radius-lg);
-    width: 90%;
-    max-width: 500px;
+  width: min(860px, 100%);
+  border-radius: 26px;
+  border: 1px solid rgba(94, 234, 212, 0.18);
+  background: rgba(10, 22, 28, 0.82);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow: 0 22px 110px rgba(0, 0, 0, 0.65);
+  overflow: hidden;
+}
+
+.modal-content--confirm {
+  width: min(640px, 100%);
 }
 
 .modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem 1.5rem;
-    border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.1rem 1.2rem 1rem;
+  border-bottom: 1px solid rgba(94, 234, 212, 0.14);
 }
 
-.modal-header h3 {
-    margin: 0;
+.modal-title {
+  display: flex;
+  gap: 0.9rem;
+  align-items: flex-start;
+  min-width: 0;
 }
 
-.modal-header button {
-    background: none;
-    border: none;
-    color: var(--text-muted);
-    cursor: pointer;
+.modal-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 18px;
+  border: 1px solid rgba(94, 234, 212, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+  display: grid;
+  place-items: center;
+  color: rgba(165, 243, 252, 0.98);
+  flex: 0 0 auto;
+}
+
+.modal-title__copy {
+  min-width: 0;
+}
+
+.modal-title h3 {
+  margin: 0;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+}
+
+.modal-title p {
+  margin: 0.2rem 0 0;
+  font-size: 0.92rem;
+}
+
+.icon-close {
+  width: 44px;
+  height: 44px;
+  border-radius: 16px;
+  border: 1px solid rgba(94, 234, 212, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: transform var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.icon-close:hover {
+  transform: translateY(-1px);
+  border-color: rgba(94, 234, 212, 0.28);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .modal-body {
-    padding: 1.5rem;
+  padding: 1.05rem 1.2rem 1.2rem;
+  display: grid;
+  gap: 1rem;
 }
 
 .modal-footer {
-    padding: 1rem 1.5rem;
-    border-top: 1px solid var(--border-color);
-    display: flex;
-    justify-content: flex-end;
-    gap: 0.5rem;
+  padding: 1rem 1.2rem;
+  border-top: 1px solid rgba(94, 234, 212, 0.14);
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  align-items: center;
 }
 
-.detail-item {
-    margin-bottom: 1rem;
+/* Detail content */
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
 }
 
-.detail-item label {
-    display: block;
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    margin-bottom: 0.25rem;
+.detail-card {
+  border-radius: 22px;
+  border: 1px solid rgba(94, 234, 212, 0.14);
+  background: rgba(0, 0, 0, 0.16);
+  padding: 0.9rem;
 }
 
-.detail-item span,
-.detail-item p {
-    margin: 0;
+.detail-card--amount {
+  background: linear-gradient(
+    135deg,
+    rgba(34, 197, 94, 0.12) 0%,
+    rgba(6, 182, 212, 0.1) 55%,
+    rgba(59, 130, 246, 0.12) 100%
+  );
 }
 
-.detail-item .amount {
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: var(--success);
+.detail-label {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
 }
 
+.detail-value {
+  font-weight: 900;
+  margin-top: 0.35rem;
+}
+
+.detail-value--amount {
+  font-size: 1.35rem;
+}
+
+.detail-sub {
+  margin-top: 0.25rem;
+  font-size: 0.9rem;
+}
+
+.detail-section {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.section-title {
+  font-weight: 900;
+  letter-spacing: -0.01em;
+}
+
+.message-box {
+  padding: 0.85rem 0.9rem;
+  border-radius: 20px;
+  border: 1px solid rgba(94, 234, 212, 0.14);
+  background: rgba(0, 0, 0, 0.16);
+  line-height: 1.55;
+}
+
+.proof-box {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.proof-preview {
+  border-radius: 20px;
+  border: 1px solid rgba(94, 234, 212, 0.16);
+  background: rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+.proof-preview img {
+  display: block;
+  width: 100%;
+  max-height: 420px;
+  object-fit: contain;
+}
+
+.hint {
+  font-size: 0.88rem;
+}
+
+/* Confirm summary */
+.confirm-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.confirm-item {
+  border-radius: 18px;
+  border: 1px solid rgba(94, 234, 212, 0.14);
+  background: rgba(0, 0, 0, 0.16);
+  padding: 0.85rem 0.9rem;
+}
+
+.confirm-value {
+  margin-top: 0.3rem;
+  font-weight: 900;
+}
+
+/* Button variants */
 .btn-success {
-    background: var(--success);
-    border: none;
-    color: white;
+  background: rgba(34, 197, 94, 0.92);
+  border: none;
+  color: white;
+  box-shadow: 0 0 26px rgba(34, 197, 94, 0.18);
 }
 
 .btn-success:hover {
-    background: #1da34a;
+  transform: translateY(-2px);
+  box-shadow: 0 0 38px rgba(34, 197, 94, 0.26);
+  color: white;
+}
+
+.btn-danger {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.92), rgba(245, 158, 11, 0.9));
+  border: none;
+  color: white;
+  box-shadow: 0 0 26px rgba(239, 68, 68, 0.18);
+}
+
+.btn-danger:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 38px rgba(239, 68, 68, 0.26);
+  color: white;
+}
+
+.spinner {
+  width: 0.95rem;
+  height: 0.95rem;
+  border-radius: 999px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: rgba(255, 255, 255, 0.95);
+  animation: spin 800ms linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Toast */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 1.6rem;
+  transform: translateX(-50%);
+  z-index: 3200;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.85rem 1rem;
+  border-radius: 18px;
+  color: white;
+  box-shadow: 0 18px 70px rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.toast--success {
+  background: rgba(34, 197, 94, 0.95);
+}
+
+.toast--danger {
+  background: rgba(239, 68, 68, 0.92);
+}
+
+.toast--info {
+  background: rgba(6, 182, 212, 0.92);
+}
+
+.ad-toast-enter-active,
+.ad-toast-leave-active {
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.ad-toast-enter-from,
+.ad-toast-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(8px);
+}
+
+.ad-modal-enter-active,
+.ad-modal-leave-active {
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.ad-modal-enter-from,
+.ad-modal-leave-to {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+/* Entrance animation */
+.reveal {
+  animation: reveal 700ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation-delay: var(--d, 0ms);
+  will-change: transform, opacity;
+}
+
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    animation: none;
+  }
+
+  .stat-card,
+  .chip,
+  .btn,
+  .btn-success,
+  .btn-danger,
+  .icon-close,
+  .list-item,
+  .icon-clear {
+    transition: none !important;
+  }
+
+  .ad-modal-enter-active,
+  .ad-modal-leave-active,
+  .ad-toast-enter-active,
+  .ad-toast-leave-active {
+    transition: none !important;
+  }
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 992px) {
+  .stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .filters-row {
+    grid-template-columns: 220px minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .page-header__actions {
+    justify-content: stretch;
+  }
+
+  .page-header__actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .filters-row {
+    grid-template-columns: 1fr;
+  }
+
+  .table-wrap {
+    display: none;
+  }
+
+  .donation-cards {
+    display: grid;
+  }
+
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .confirm-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-overlay {
+    padding: 0.85rem;
+    align-items: end;
+  }
+
+  .modal-content {
+    border-radius: 26px 26px 16px 16px;
+  }
+
+  .pagination-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .pagination-row .btn {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 425px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .modal-footer .btn {
+    width: 100%;
+    justify-content: center;
+  }
 }
 </style>

@@ -376,18 +376,21 @@ const deleteUser = async (req, res, next) => {
 const getAllUploads = async (req, res, next) => {
   try {
     const { status, page, limit } = req.query;
+
+    const pageNumber = parseInt(page) || 1;
+    const limitNumber = parseInt(limit) || 20;
     
     const result = await uploadService.getAllUploads({
       status,
-      page: parseInt(page) || 1,
-      limit: parseInt(limit) || 20
+      page: pageNumber,
+      limit: limitNumber
     });
     
     res.json(formatResponse(
       true,
       'Berhasil mendapatkan daftar upload.',
       result.uploads,
-      formatPagination(result.page, 20, result.total)
+      formatPagination(result.page, limitNumber, result.total)
     ));
   } catch (error) {
     next(error);

@@ -49,10 +49,24 @@ const uploadsUrlToFilePath = (urlPath) => {
  */
 const videosUrlToFilePath = (urlPath) => {
   if (!urlPath || typeof urlPath !== 'string') return null;
-  if (!urlPath.startsWith('/videos/')) return null;
+  const cleanPath = urlPath.split('?')[0].split('#')[0];
+  if (!cleanPath.startsWith('/videos/')) return null;
 
-  const filename = path.basename(urlPath);
-  return safeJoin(VIDEOS_PATH, filename);
+  const rel = cleanPath.slice('/videos/'.length);
+  if (!rel) return null;
+
+  const segments = rel
+    .split('/')
+    .filter(Boolean)
+    .map((seg) => {
+      try {
+        return decodeURIComponent(seg);
+      } catch (_) {
+        return seg;
+      }
+    });
+
+  return safeJoin(VIDEOS_PATH, ...segments);
 };
 
 module.exports = {

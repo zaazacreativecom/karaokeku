@@ -6,6 +6,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { authAPI } from '@/services/api'
+import { firebaseSignOut } from '@/services/firebase'
 
 export const useAuthStore = defineStore('auth', () => {
   // State
@@ -95,6 +96,32 @@ export const useAuthStore = defineStore('auth', () => {
       loading.value = false
     }
   }
+
+  /**
+   * Login/Register via Google Sign-In
+   */
+  const loginWithGoogle = async (idToken) => {
+    loading.value = true
+    error.value = null
+
+    try {
+      const response = await authAPI.googleLogin(idToken)
+      const { user: userData, token: newToken } = response.data.data
+
+      user.value = userData
+      token.value = newToken
+
+      localStorage.setItem('token', newToken)
+      localStorage.setItem('user', JSON.stringify(userData))
+
+      return { success: true }
+    } catch (err) {
+      error.value = err.response?.data?.message || 'Login dengan Google gagal'
+      return { success: false, error: error.value }
+    } finally {
+      loading.value = false
+    }
+  }
   
   /**
    * Logout user
@@ -105,6 +132,8 @@ export const useAuthStore = defineStore('auth', () => {
     
     localStorage.removeItem('token')
     localStorage.removeItem('user')
+
+    firebaseSignOut().catch(() => {})
   }
   
   /**
@@ -142,6 +171,7 @@ export const useAuthStore = defineStore('auth', () => {
     checkAuth,
     register,
     login,
+    loginWithGoogle,
     logout,
     updateProfile
   }

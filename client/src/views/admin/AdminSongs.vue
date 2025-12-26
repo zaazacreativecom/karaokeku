@@ -1427,15 +1427,16 @@ onBeforeUnmount(() => {
 }
 
 .songs-table th {
-  position: sticky;
-  top: 0;
+  /* NOTE: sticky header + backdrop-filter bisa membuat layer transparan yang nge-block klik pada tbody di beberapa browser */
+  position: static;
   background: rgba(4, 12, 16, 0.78);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   font-size: 0.82rem;
   color: var(--text-muted);
   font-weight: 750;
   text-align: left;
+  pointer-events: none;
 }
 
 .songs-table tbody tr:hover td {
@@ -1445,6 +1446,12 @@ onBeforeUnmount(() => {
 .th-actions,
 .td-actions {
   text-align: right;
+}
+
+.td-actions,
+.row-actions {
+  position: relative;
+  z-index: 1;
 }
 
 .td-play {

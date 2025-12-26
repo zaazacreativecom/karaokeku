@@ -309,6 +309,44 @@
                   <span v-if="authLoading" class="spinner-border spinner-border-sm me-2"></span>
                   {{ authLoading ? 'Memproses...' : 'Masuk' }}
                 </button>
+
+                <div class="auth-divider" aria-hidden="true">
+                  <span>atau</span>
+                </div>
+
+                <div class="google-auth">
+                  <template v-if="googleEnabled">
+                    <button
+                      type="button"
+                      class="btn btn-ghost w-100 google-btn"
+                      @click="handleGoogleLogin"
+                      :disabled="authLoading"
+                    >
+                      <i class="bi bi-google me-2" aria-hidden="true"></i>
+                      {{ authLoading ? 'Memproses...' : 'Login dengan Google' }}
+                    </button>
+
+                    <p v-if="googleError" class="google-error text-muted">
+                      <i class="bi bi-exclamation-triangle-fill me-2" aria-hidden="true"></i>
+                      {{ googleError }}
+                    </p>
+
+                    <p v-else class="google-note text-muted">
+                      Di perangkat mobile, login akan menggunakan redirect agar lebih stabil.
+                    </p>
+                  </template>
+
+                  <template v-else>
+                    <button type="button" class="btn btn-ghost w-100 google-disabled" disabled>
+                      <i class="bi bi-google me-2" aria-hidden="true"></i>
+                      Login dengan Google (belum aktif)
+                    </button>
+                    <p class="google-note text-muted">
+                      Untuk mengaktifkan, set env Firebase (<code>VITE_FIREBASE_API_KEY</code>, <code>VITE_FIREBASE_AUTH_DOMAIN</code>,
+                      <code>VITE_FIREBASE_PROJECT_ID</code>, <code>VITE_FIREBASE_APP_ID</code>).
+                    </p>
+                  </template>
+                </div>
               </form>
             </div>
 
@@ -432,10 +470,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, onMounted, nextTick, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { songsAPI, playbackAPI, favoritesAPI } from '@/services/api'
+import { createGoogleProvider, getFirebaseAuth, isFirebaseConfigured } from '@/services/firebase'
+import { getRedirectResult, signInWithPopup, signInWithRedirect } from 'firebase/auth'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -472,6 +512,10 @@ const registerForm = ref({
   password: '',
   confirmPassword: ''
 })
+
+// Google Login
+const googleEnabled = computed(() => isFirebaseConfigured)
+const googleError = ref('')
 
 // Methods
 const setTab = (tab) => {
@@ -524,6 +568,109 @@ const handleLogin = async () => {
   authLoading.value = false
 }
 
+const formatFirebaseAuthError = (err) => {
+  const code = String(err?.code || '')
+
+  if (code === 'auth/popup-closed-by-user') return 'Login dibatalkan.'
+  if (code === 'auth/popup-blocked') return 'Popup diblokir browser. Coba izinkan popup atau gunakan mode redirect.'
+  if (code === 'auth/unauthorized-domain')
+    return 'Domain belum diizinkan di Firebase (Authorized domains).'
+  if (code === 'auth/operation-not-allowed') return 'Google provider belum diaktifkan di Firebase Auth.'
+  if (code === 'auth/network-request-failed') return 'Koneksi bermasalah. Coba lagi.'
+
+  return 'Login dengan Google gagal. Coba lagi.'
+}
+
+const shouldUseGoogleRedirect = () => {
+  const ua = navigator.userAgent || ''
+  const isIOS = /iPad|iPhone|iPod/i.test(ua) || (ua.includes('Mac') && 'ontouchend' in document)
+  const isAndroid = /Android/i.test(ua)
+  const isSmallScreen = window.matchMedia?.('(max-width: 768px)')?.matches
+  return Boolean(isIOS || isAndroid || isSmallScreen)
+}
+
+const loginWithFirebaseGoogleUser = async (firebaseUser) => {
+  const idToken = await firebaseUser.getIdToken()
+  const result = await authStore.loginWithGoogle(idToken)
+
+  if (result.success) {
+    router.push('/dashboard')
+    return
+  }
+
+  authError.value = result.error
+}
+
+const handleGoogleLogin = async () => {
+  if (!googleEnabled.value) {
+    googleError.value = 'Google login belum aktif.'
+    return
+  }
+
+  if (authLoading.value) return
+
+  authError.value = ''
+  googleError.value = ''
+  authLoading.value = true
+
+  try {
+    const auth = getFirebaseAuth()
+    if (!auth) {
+      googleError.value = 'Firebase belum dikonfigurasi.'
+      return
+    }
+
+    const provider = createGoogleProvider()
+
+    if (shouldUseGoogleRedirect()) {
+      await signInWithRedirect(auth, provider)
+      return
+    }
+
+    let result
+    try {
+      result = await signInWithPopup(auth, provider)
+    } catch (err) {
+      const code = String(err?.code || '')
+      if (code === 'auth/popup-blocked' || code === 'auth/cancelled-popup-request') {
+        await signInWithRedirect(auth, provider)
+        return
+      }
+      throw err
+    }
+
+    await loginWithFirebaseGoogleUser(result.user)
+  } catch (err) {
+    console.error('Firebase Google login error:', err)
+    googleError.value = formatFirebaseAuthError(err)
+  } finally {
+    authLoading.value = false
+  }
+}
+
+const handleGoogleRedirectResult = async () => {
+  if (!googleEnabled.value) return
+
+  const auth = getFirebaseAuth()
+  if (!auth) return
+
+  try {
+    const result = await getRedirectResult(auth)
+    if (!result?.user) return
+
+    authError.value = ''
+    googleError.value = ''
+    authLoading.value = true
+
+    await loginWithFirebaseGoogleUser(result.user)
+  } catch (err) {
+    console.error('Firebase redirect result error:', err)
+    googleError.value = formatFirebaseAuthError(err)
+  } finally {
+    authLoading.value = false
+  }
+}
+
 const handleRegister = async () => {
   authError.value = ''
 
@@ -572,8 +719,10 @@ const fetchData = async () => {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
   fetchData()
+  await nextTick()
+  await handleGoogleRedirectResult()
 })
 </script>
 
@@ -1352,6 +1501,67 @@ onMounted(() => {
 
 .auth-form {
   min-height: 320px;
+}
+
+.auth-divider {
+  position: relative;
+  margin: 1rem 0;
+  text-align: center;
+}
+
+.auth-divider::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: rgba(94, 234, 212, 0.18);
+}
+
+.auth-divider span {
+  position: relative;
+  display: inline-block;
+  padding: 0 0.85rem;
+  font-size: 0.85rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(235, 255, 252, 0.75);
+  background: rgba(10, 22, 28, 0.88);
+  border: 1px solid rgba(94, 234, 212, 0.12);
+  border-radius: 999px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.google-auth {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.google-btn,
+.google-placeholder {
+  border: 1px solid rgba(94, 234, 212, 0.18);
+}
+
+.google-disabled {
+  opacity: 0.85;
+  cursor: not-allowed;
+}
+
+.google-note,
+.google-error {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.google-note code {
+  padding: 0.15rem 0.4rem;
+  border-radius: 10px;
+  border: 1px solid rgba(94, 234, 212, 0.14);
+  background: rgba(0, 0, 0, 0.25);
+  color: rgba(235, 255, 252, 0.92);
 }
 
 .password-input {

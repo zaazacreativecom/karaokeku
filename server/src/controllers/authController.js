@@ -69,6 +69,26 @@ const login = async (req, res, next) => {
 };
 
 /**
+ * POST /api/auth/google
+ * Login / register user via Google Firebase
+ */
+const loginWithGoogle = async (req, res, next) => {
+  try {
+    const { idToken } = req.body;
+
+    if (!idToken) {
+      return res.status(400).json(formatResponse(false, 'Firebase ID token wajib diisi.'));
+    }
+
+    const result = await authService.loginWithGoogle({ idToken });
+
+    res.json(formatResponse(true, 'Login Google berhasil!', result));
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * GET /api/auth/me
  * Get current user profile
  */
@@ -141,6 +161,7 @@ const changePassword = async (req, res, next) => {
 module.exports = {
   register,
   login,
+  loginWithGoogle,
   getMe,
   updateProfile,
   changePassword

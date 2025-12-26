@@ -417,6 +417,9 @@ onUnmounted(() => {
 }
 
 .chat-popup {
+  position: absolute;
+  right: 0;
+  bottom: calc(var(--chat-trigger-size) + 0.85rem);
   width: 390px;
   height: 560px;
   max-height: calc(100vh - var(--chat-dock-bottom) - var(--chat-trigger-size) - 3.5rem);
@@ -434,7 +437,6 @@ onUnmounted(() => {
   opacity: 0;
   pointer-events: none;
   transition: transform var(--transition-normal), opacity var(--transition-normal);
-  position: relative;
   isolation: isolate;
 }
 
@@ -1027,6 +1029,7 @@ onUnmounted(() => {
   }
 
   .chat-popup {
+    position: relative;
     width: 100%;
     height: 100%;
     max-height: none;

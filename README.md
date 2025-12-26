@@ -110,6 +110,19 @@ npm run dev
 
 Frontend berjalan di: `http://localhost:5173`
 
+### 4. (Optional) Setup Login Google (Firebase)
+
+1. Buat project di **Firebase Console**.
+2. Aktifkan **Authentication → Sign-in method → Google**.
+3. Tambahkan **Authorized domains** (Firebase Auth):
+   - `localhost` (development)
+   - domain production Anda (mis. `karaoke.zaaza.id`)
+4. Buat **Service Account** untuk **Firebase Admin SDK** dan download JSON.
+5. Isi env:
+   - `client/.env` (buat dari `client/.env.example`) → `VITE_FIREBASE_*` (Web App config)
+   - `server/.env` → `FIREBASE_SERVICE_ACCOUNT_PATH=...` (atau `FIREBASE_PROJECT_ID/FIREBASE_CLIENT_EMAIL/FIREBASE_PRIVATE_KEY`)
+6. Restart server dan client.
+
 ## 🔐 Default Login
 
 | Role | Username | Password |
@@ -126,6 +139,7 @@ Frontend berjalan di: `http://localhost:5173`
 |--------|----------|-------------|
 | POST | `/api/auth/register` | Register user baru |
 | POST | `/api/auth/login` | Login user |
+| POST | `/api/auth/google` | Login/Register via Google |
 | GET | `/api/auth/me` | Get current user |
 | PUT | `/api/auth/profile` | Update profile |
 | PUT | `/api/auth/password` | Change password |

@@ -11,6 +11,7 @@ const { requireAuth } = require('../middlewares/auth');
 // Public routes
 router.post('/register', authController.register);
 router.post('/login', authController.login);
+router.post('/google', authController.loginWithGoogle);
 
 // Protected routes
 router.get('/me', requireAuth, authController.getMe);

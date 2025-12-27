@@ -332,7 +332,7 @@
                     </p>
 
                     <p v-else class="google-note text-muted">
-                      Di perangkat mobile, login akan menggunakan redirect agar lebih stabil.
+                      Di iOS/Safari, login akan menggunakan redirect. Jika popup diblokir, otomatis pakai redirect.
                     </p>
                   </template>
 
@@ -475,7 +475,14 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { songsAPI, playbackAPI, favoritesAPI } from '@/services/api'
 import { createGoogleProvider, getFirebaseAuth, isFirebaseConfigured } from '@/services/firebase'
-import { getRedirectResult, signInWithPopup, signInWithRedirect } from 'firebase/auth'
+import {
+  browserLocalPersistence,
+  getRedirectResult,
+  onAuthStateChanged,
+  setPersistence,
+  signInWithPopup,
+  signInWithRedirect
+} from 'firebase/auth'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -570,13 +577,29 @@ const handleLogin = async () => {
 
 const formatFirebaseAuthError = (err) => {
   const code = String(err?.code || '')
+  const hostname = typeof window !== 'undefined' ? window.location.hostname : ''
+  const protocol = typeof window !== 'undefined' ? window.location.protocol : ''
 
   if (code === 'auth/popup-closed-by-user') return 'Login dibatalkan.'
+  if (code === 'auth/cancelled-popup-request') return 'Request popup dibatalkan. Coba lagi.'
   if (code === 'auth/popup-blocked') return 'Popup diblokir browser. Coba izinkan popup atau gunakan mode redirect.'
-  if (code === 'auth/unauthorized-domain')
-    return 'Domain belum diizinkan di Firebase (Authorized domains).'
+  if (code === 'auth/redirect-cancelled-by-user') return 'Login dibatalkan.'
+  if (code === 'auth/unauthorized-domain') {
+    return hostname
+      ? `Domain "${hostname}" belum diizinkan di Firebase (Authentication → Settings → Authorized domains).`
+      : 'Domain belum diizinkan di Firebase (Authentication → Settings → Authorized domains).'
+  }
+  if (code === 'auth/invalid-continue-uri') {
+    return 'Redirect URL tidak valid. Pastikan domain origin sudah ada di Authorized domains Firebase.'
+  }
   if (code === 'auth/operation-not-allowed') return 'Google provider belum diaktifkan di Firebase Auth.'
+  if (code === 'auth/web-storage-unsupported')
+    return 'Browser memblokir penyimpanan (cookies/storage). Nonaktifkan mode private / blokir cookies lalu coba lagi.'
   if (code === 'auth/network-request-failed') return 'Koneksi bermasalah. Coba lagi.'
+
+  if (protocol === 'http:' && hostname && hostname !== 'localhost' && hostname !== '127.0.0.1') {
+    return 'Login Google biasanya butuh HTTPS untuk domain non-localhost. Coba akses lewat HTTPS atau gunakan domain localhost.'
+  }
 
   return 'Login dengan Google gagal. Coba lagi.'
 }
@@ -584,13 +607,57 @@ const formatFirebaseAuthError = (err) => {
 const shouldUseGoogleRedirect = () => {
   const ua = navigator.userAgent || ''
   const isIOS = /iPad|iPhone|iPod/i.test(ua) || (ua.includes('Mac') && 'ontouchend' in document)
-  const isAndroid = /Android/i.test(ua)
-  const isSmallScreen = window.matchMedia?.('(max-width: 768px)')?.matches
-  return Boolean(isIOS || isAndroid || isSmallScreen)
+  const isStandalone =
+    window.matchMedia?.('(display-mode: standalone)')?.matches ||
+    window.navigator?.standalone === true
+
+  // iOS PWA/standalone sering bermasalah dengan popup → redirect lebih aman.
+  if (isIOS && isStandalone) return true
+
+  // Android Chrome umumnya aman pakai popup (lebih mulus untuk PWA). Redirect tetap jadi fallback bila popup diblokir.
+  return false
+}
+
+const GOOGLE_REDIRECT_PENDING_KEY = 'karaoke_google_redirect_pending'
+
+const ensureFirebaseAuthPersistence = async (auth) => {
+  try {
+    await setPersistence(auth, browserLocalPersistence)
+  } catch (_) {
+    // ignore (some environments block web storage)
+  }
+}
+
+const waitForFirebaseUser = (auth, timeoutMs = 2500) => {
+  return new Promise((resolve) => {
+    let done = false
+
+    const finish = (user) => {
+      if (done) return
+      done = true
+      resolve(user || auth.currentUser || null)
+    }
+
+    const timer = window.setTimeout(() => finish(null), timeoutMs)
+
+    const unsubscribe = onAuthStateChanged(
+      auth,
+      (user) => {
+        window.clearTimeout(timer)
+        unsubscribe()
+        finish(user)
+      },
+      () => {
+        window.clearTimeout(timer)
+        unsubscribe()
+        finish(null)
+      }
+    )
+  })
 }
 
 const loginWithFirebaseGoogleUser = async (firebaseUser) => {
-  const idToken = await firebaseUser.getIdToken()
+  const idToken = await firebaseUser.getIdToken(true)
   const result = await authStore.loginWithGoogle(idToken)
 
   if (result.success) {
@@ -599,6 +666,7 @@ const loginWithFirebaseGoogleUser = async (firebaseUser) => {
   }
 
   authError.value = result.error
+  await focusAuth('login')
 }
 
 const handleGoogleLogin = async () => {
@@ -611,18 +679,20 @@ const handleGoogleLogin = async () => {
 
   authError.value = ''
   googleError.value = ''
-  authLoading.value = true
+      authLoading.value = true
 
-  try {
-    const auth = getFirebaseAuth()
-    if (!auth) {
-      googleError.value = 'Firebase belum dikonfigurasi.'
-      return
-    }
+      try {
+        const auth = getFirebaseAuth()
+        if (!auth) {
+          googleError.value = 'Firebase belum dikonfigurasi.'
+          return
+        }
 
-    const provider = createGoogleProvider()
+        await ensureFirebaseAuthPersistence(auth)
+        const provider = createGoogleProvider()
 
     if (shouldUseGoogleRedirect()) {
+      localStorage.setItem(GOOGLE_REDIRECT_PENDING_KEY, '1')
       await signInWithRedirect(auth, provider)
       return
     }
@@ -632,7 +702,12 @@ const handleGoogleLogin = async () => {
       result = await signInWithPopup(auth, provider)
     } catch (err) {
       const code = String(err?.code || '')
-      if (code === 'auth/popup-blocked' || code === 'auth/cancelled-popup-request') {
+      if (
+        code === 'auth/popup-blocked' ||
+        code === 'auth/cancelled-popup-request' ||
+        code === 'auth/operation-not-supported-in-this-environment'
+      ) {
+        localStorage.setItem(GOOGLE_REDIRECT_PENDING_KEY, '1')
         await signInWithRedirect(auth, provider)
         return
       }
@@ -643,6 +718,7 @@ const handleGoogleLogin = async () => {
   } catch (err) {
     console.error('Firebase Google login error:', err)
     googleError.value = formatFirebaseAuthError(err)
+    localStorage.removeItem(GOOGLE_REDIRECT_PENDING_KEY)
   } finally {
     authLoading.value = false
   }
@@ -654,18 +730,45 @@ const handleGoogleRedirectResult = async () => {
   const auth = getFirebaseAuth()
   if (!auth) return
 
+  await ensureFirebaseAuthPersistence(auth)
+
+  const hasPendingRedirect = localStorage.getItem(GOOGLE_REDIRECT_PENDING_KEY) === '1'
+  const hasAppToken = Boolean(localStorage.getItem('token'))
+
+  // Jika sudah ada token app, biarkan checkAuth/router guard yang handle redirect user.
+  if (hasAppToken) {
+    localStorage.removeItem(GOOGLE_REDIRECT_PENDING_KEY)
+    return
+  }
+
+  if (hasPendingRedirect) {
+    authLoading.value = true
+  }
+
   try {
     const result = await getRedirectResult(auth)
-    if (!result?.user) return
+    let user = result?.user || auth.currentUser
+
+    if (!user && hasPendingRedirect) {
+      user = await waitForFirebaseUser(auth)
+    }
+
+    localStorage.removeItem(GOOGLE_REDIRECT_PENDING_KEY)
+    if (!user) {
+      if (hasPendingRedirect) {
+        googleError.value = 'Login Google belum selesai. Coba klik "Login dengan Google" lagi.'
+        await focusAuth('login')
+      }
+      return
+    }
 
     authError.value = ''
     googleError.value = ''
-    authLoading.value = true
-
-    await loginWithFirebaseGoogleUser(result.user)
+    await loginWithFirebaseGoogleUser(user)
   } catch (err) {
     console.error('Firebase redirect result error:', err)
     googleError.value = formatFirebaseAuthError(err)
+    localStorage.removeItem(GOOGLE_REDIRECT_PENDING_KEY)
   } finally {
     authLoading.value = false
   }
@@ -720,9 +823,8 @@ const fetchData = async () => {
 }
 
 onMounted(async () => {
-  fetchData()
-  await nextTick()
   await handleGoogleRedirectResult()
+  fetchData()
 })
 </script>
 

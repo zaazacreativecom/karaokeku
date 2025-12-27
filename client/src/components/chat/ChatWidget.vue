@@ -957,11 +957,13 @@ onUnmounted(() => {
 /* Make ChatWindow + bubbles match the new theme without editing those files */
 :deep(.chat-window) {
   background: transparent;
+  min-height: 0;
 }
 
 :deep(.chat-header) {
   background: var(--chat-gradient);
   color: rgba(4, 12, 16, 0.92);
+  flex: 0 0 auto;
 }
 
 :deep(.chat-header .avatar) {
@@ -974,11 +976,14 @@ onUnmounted(() => {
 
 :deep(.chat-messages) {
   background: rgba(4, 12, 16, 0.35);
+  min-height: 0;
+  overscroll-behavior: contain;
 }
 
 :deep(.chat-input) {
   background: rgba(4, 12, 16, 0.6);
   border-top: 1px solid rgba(94, 234, 212, 0.14);
+  flex: 0 0 auto;
 }
 
 :deep(.chat-input input) {
@@ -1013,13 +1018,16 @@ onUnmounted(() => {
   }
 
   .chat-widget-container {
-    inset: 0;
-    width: 100%;
-    height: 100vh;
-    height: 100dvh;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: auto;
+    height: calc(100vh - 80px - env(safe-area-inset-bottom));
+    height: calc(100svh - 80px - env(safe-area-inset-bottom));
+    height: calc(100dvh - 80px - env(safe-area-inset-bottom));
     align-items: stretch;
     justify-content: flex-end;
-    z-index: 3600;
+    z-index: 2900;
     padding-bottom: 0;
     pointer-events: none;
   }
@@ -1028,8 +1036,14 @@ onUnmounted(() => {
     pointer-events: auto;
   }
 
+  .chat-backdrop {
+    position: absolute;
+    inset: 0;
+  }
+
   .chat-popup {
-    position: relative;
+    position: absolute;
+    inset: 0;
     width: 100%;
     height: 100%;
     max-height: none;
@@ -1048,16 +1062,17 @@ onUnmounted(() => {
   }
 
   .chat-list {
-    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+    padding-bottom: 1rem;
   }
 
   :deep(.chat-input) {
-    padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
+    padding-bottom: 0.75rem;
   }
 
   :deep(.chat-header) {
     border-top-left-radius: 0;
     border-top-right-radius: 0;
+    padding-top: calc(0.75rem + env(safe-area-inset-top));
   }
 }
 

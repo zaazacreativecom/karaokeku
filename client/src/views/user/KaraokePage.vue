@@ -189,7 +189,8 @@
         <div class="controls-main">
           <!-- Left Controls -->
           <div class="controls-left">
-            <button class="btn-control" @click="playerStore.toggleOverlay()" title="Pilih Lagu">
+            <button class="btn-control" type="button" @click="playerStore.toggleOverlay()" title="Pilih Lagu">
+              <span v-if="playerStore.queue.length > 0" class="icon-badge">{{ playerStore.queue.length }}</span>
               <i class="bi bi-music-note-list"></i>
             </button>
           </div>
@@ -284,6 +285,9 @@
                 <span class="overlay-count">{{ songs.length }} lagu</span>
                 <span v-if="filterGenre" class="overlay-chip"><i class="bi bi-tag"></i>{{ filterGenre }}</span>
                 <span v-if="filterLanguage" class="overlay-chip"><i class="bi bi-globe2"></i>{{ filterLanguage }}</span>
+                <span v-if="playerStore.queue.length > 0" class="overlay-chip">
+                  <i class="bi bi-list-ul"></i>{{ playerStore.queue.length }} antrian
+                </span>
               </div>
             </div>
 
@@ -419,6 +423,13 @@
       </transition>
     </main>
 
+    <transition name="kp-toast">
+      <div v-if="showToast" class="kp-toast-notification" role="status" aria-live="polite">
+        <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
+        <span>{{ toastMessage }}</span>
+      </div>
+    </transition>
+
     <!-- Mobile Navigation -->
     <MobileNav />
   </div>
@@ -547,6 +558,27 @@ const previousVolume = ref(0.8)
 const tempo = ref(1.0) // Tempo control (0.5x - 2.0x)
 const audioInitialized = ref(false)
 const activeMobileControl = ref(null)
+
+const showToast = ref(false)
+const toastMessage = ref('')
+let toastTimeout = null
+let autoNextTimeout = null
+
+const showToastMessage = (message) => {
+  toastMessage.value = message
+  showToast.value = true
+
+  if (toastTimeout) clearTimeout(toastTimeout)
+  toastTimeout = setTimeout(() => {
+    showToast.value = false
+  }, 1700)
+}
+
+const clearAutoNextTimeout = () => {
+  if (!autoNextTimeout) return
+  clearTimeout(autoNextTimeout)
+  autoNextTimeout = null
+}
 
 // Computed
 const volumeIcon = computed(() => {
@@ -894,11 +926,7 @@ const onTimeUpdate = (e) => {
 
   // Auto-end song at 90% to skip outro
   if (duration > 0 && time >= duration * 0.9 && !showScoreModal.value && !playerStore.loading) {
-    // Prevent multiple triggers
-    if (!isEnding.value) {
-      isEnding.value = true;
-      onVideoEnded();
-    }
+    onVideoEnded()
   }
 }
 const isEnding = ref(false);
@@ -919,6 +947,13 @@ const onPause = () => {
 }
 
 const onVideoEnded = async () => {
+  if (isEnding.value) return
+  isEnding.value = true
+
+  if (videoRef.value) {
+    videoRef.value.pause()
+  }
+
   const result = await playerStore.endCurrentSession()
 
   if (result) {
@@ -929,8 +964,9 @@ const onVideoEnded = async () => {
 
   // Play next in queue
   if (playerStore.queue.length > 0) {
-    setTimeout(() => {
-      playerStore.playNext()
+    clearAutoNextTimeout()
+    autoNextTimeout = setTimeout(() => {
+      playNextFromQueue().catch((error) => console.error('Error playing next song:', error))
     }, 2000)
   }
 }
@@ -961,9 +997,18 @@ const skipPrev = () => {
   playerStore.updateTime(0)
 }
 
-const skipNext = () => {
+const playNextFromQueue = async () => {
+  if (playerStore.queue.length === 0) return
+  const nextSong = playerStore.queue.shift()
+  if (!nextSong) return
+
+  showScoreModal.value = false
+  await playSong(nextSong)
+}
+
+const skipNext = async () => {
   if (playerStore.queue.length > 0) {
-    playerStore.playNext()
+    await playNextFromQueue()
   }
 }
 
@@ -1147,6 +1192,10 @@ const fetchFilters = async () => {
 }
 
 const playSong = async (song) => {
+  clearAutoNextTimeout()
+  isEnding.value = false
+  showScoreModal.value = false
+
   await playerStore.playSong(song)
 
   // Wait for video to be ready
@@ -1157,7 +1206,7 @@ const playSong = async (song) => {
         initAudioContext()
       }
 
-      videoRef.value.play()
+      videoRef.value.play().catch(() => {})
 
       // Apply current pitch + transpose settings
       applyTempo()
@@ -1167,6 +1216,7 @@ const playSong = async (song) => {
 
 const addToQueue = (song) => {
   playerStore.addToQueue(song)
+  showToastMessage(`Ditambahkan ke antrian: ${song.title}`)
 }
 
 const closeScoreModal = () => {
@@ -1174,14 +1224,8 @@ const closeScoreModal = () => {
 }
 
 const replaySong = async () => {
-  showScoreModal.value = false
   if (playerStore.currentSong) {
-    await playerStore.playSong(playerStore.currentSong)
-    setTimeout(() => {
-      if (videoRef.value) {
-        videoRef.value.play()
-      }
-    }, 100)
+    await playSong(playerStore.currentSong)
   }
 }
 
@@ -1209,6 +1253,8 @@ onUnmounted(() => {
   if (videoRef.value) {
     videoRef.value.pause()
   }
+  clearAutoNextTimeout()
+  if (toastTimeout) clearTimeout(toastTimeout)
   stopScoreEffects()
   // Cleanup audio context
   if (audioContext) {
@@ -2025,6 +2071,7 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+  position: relative;
 }
 
 .btn-control:hover {
@@ -2684,6 +2731,35 @@ onUnmounted(() => {
 
 .loading-songs .spinner-border {
   color: var(--primary-light);
+}
+
+/* Toast */
+.kp-toast-notification {
+  position: fixed;
+  left: 50%;
+  bottom: 1.6rem;
+  transform: translateX(-50%);
+  z-index: 4000;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.85rem 1rem;
+  border-radius: 18px;
+  background: rgba(34, 197, 94, 0.95);
+  color: white;
+  box-shadow: 0 18px 70px rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(187, 247, 208, 0.35);
+}
+
+.kp-toast-enter-active,
+.kp-toast-leave-active {
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.kp-toast-enter-from,
+.kp-toast-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(8px);
 }
 
 /* Score Modal */

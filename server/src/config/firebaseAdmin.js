@@ -11,8 +11,28 @@ let initialized = false;
 
 const resolveServiceAccountPath = (p) => {
   if (!p) return null;
-  if (path.isAbsolute(p)) return p;
-  return path.join(process.cwd(), p);
+
+  const candidates = [];
+
+  if (path.isAbsolute(p)) {
+    candidates.push(p);
+  } else {
+    // 1) Resolve relative to current working directory (common for local dev).
+    candidates.push(path.resolve(process.cwd(), p));
+    // 2) Resolve relative to server root (more robust for process managers / different cwd).
+    const serverRoot = path.resolve(__dirname, '../..');
+    candidates.push(path.resolve(serverRoot, p));
+  }
+
+  for (const candidate of candidates) {
+    try {
+      if (fs.existsSync(candidate)) return candidate;
+    } catch (_) {
+      // ignore
+    }
+  }
+
+  return candidates[0] || null;
 };
 
 const initFirebaseAdmin = () => {
@@ -34,7 +54,7 @@ const initFirebaseAdmin = () => {
       return;
     } catch (err) {
       const error = new Error(
-        `Gagal memuat Firebase service account JSON dari path: ${serviceAccountPath}`
+        `Gagal memuat Firebase service account JSON dari path: ${serviceAccountPath}. ${err?.message || ''}`.trim()
       );
       error.statusCode = 500;
       throw error;

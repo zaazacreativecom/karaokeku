@@ -1160,7 +1160,7 @@ onMounted(fetchPlaylists)
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.8);
-  z-index: 200;
+  z-index: 3600;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1524,6 +1524,8 @@ onMounted(fetchPlaylists)
   .modal-overlay {
     align-items: flex-end;
     padding: 0;
+    inset: 0 0 80px 0;
+    inset: 0 0 calc(80px + env(safe-area-inset-bottom)) 0;
   }
 
   .modal-content {

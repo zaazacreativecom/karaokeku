@@ -33,8 +33,12 @@
           <button type="button" class="btn btn-ghost btn-sm d-none d-sm-inline-flex" @click="focusAuth('login')">
             Masuk
           </button>
+          <button type="button" class="topbar-icon-btn d-sm-none" @click="focusAuth('login')" aria-label="Masuk">
+            <i class="bi bi-box-arrow-in-right" aria-hidden="true"></i>
+          </button>
           <button type="button" class="btn btn-primary btn-sm" @click="focusAuth('register')">
-            Mulai Gratis
+            <span class="d-none d-sm-inline">Mulai Gratis</span>
+            <span class="d-sm-none">Daftar</span>
           </button>
         </div>
       </div>
@@ -44,87 +48,138 @@
     <main class="landing-content">
       <!-- Left -->
       <section class="landing-left" aria-label="Konten utama">
-        <div class="hero card-glass card-border">
-          <div class="hero__copy">
-            <div class="logo-wrapper">
-              <span class="logo-badge" aria-hidden="true">
-                <i class="bi bi-music-note-beamed"></i>
-              </span>
-              <div class="brand-section">
-                <h1 class="hero-title">
-                  Karaoke<span class="text-gradient">Ku</span>
-                </h1>
-                <p class="hero-subtitle">Nyanyi dimana saja, kapan saja.</p>
+        <section class="hero-spotlight" aria-label="Perkenalan">
+          <div class="hero-spotlight__grid">
+            <div class="hero__copy">
+              <div class="logo-wrapper">
+                <span class="logo-badge" aria-hidden="true">
+                  <i class="bi bi-music-note-beamed"></i>
+                </span>
+                <div class="brand-section">
+                  <div class="hero-kicker" aria-label="Highlight">
+                    <span class="kicker-pill">
+                      <i class="bi bi-broadcast" aria-hidden="true"></i>
+                      Real-time
+                    </span>
+                    <span class="kicker-pill">
+                      <i class="bi bi-mic-fill" aria-hidden="true"></i>
+                      Vocal/Karaoke
+                    </span>
+                    <span class="kicker-pill">
+                      <i class="bi bi-trophy-fill" aria-hidden="true"></i>
+                      Score
+                    </span>
+                  </div>
+                  <h1 class="hero-title">
+                    Karaoke<span class="text-gradient">Ku</span>
+                  </h1>
+                  <p class="hero-subtitle">Karaoke online yang ringan, seru, dan siap di semua perangkat.</p>
+                </div>
+              </div>
+
+              <p class="hero-desc">
+                Pilih lagu favorit, nyanyi dengan mode Vocal/Karaoke, pantau lirik, kumpulkan skor, dan ngobrol bareng
+                teman secara real-time.
+              </p>
+
+              <div class="hero-actions">
+                <button type="button" class="btn btn-primary btn-lg" @click="focusAuth('register')">
+                  Mulai Gratis <i class="bi bi-arrow-right"></i>
+                </button>
+                <button type="button" class="btn btn-outline-primary btn-lg" @click="focusAuth('login')">
+                  Saya Sudah Punya Akun
+                </button>
+              </div>
+
+              <div class="hero-features" aria-label="Fitur unggulan">
+                <div class="feature-pill">
+                  <i class="bi bi-music-note-list"></i>
+                  Koleksi Lagu
+                </div>
+                <div class="feature-pill">
+                  <i class="bi bi-heart-pulse"></i>
+                  Favorit & Playlist
+                </div>
+                <div class="feature-pill">
+                  <i class="bi bi-chat-dots"></i>
+                  Request Lagu
+                </div>
+                <div class="feature-pill">
+                  <i class="bi bi-upload"></i>
+                  Upload Mandiri
+                </div>
               </div>
             </div>
 
-            <p class="hero-desc">
-              Karaoke modern dengan koleksi lagu favorit, playlist, request, dan leaderboard untuk bikin sesi nyanyi makin seru.
-            </p>
+            <div class="hero__visual d-none d-lg-block" aria-hidden="true">
+              <div class="visual-card card-border">
+                <div class="visual-top">
+                  <span class="dot dot--g"></span>
+                  <span class="dot dot--b"></span>
+                  <span class="dot dot--c"></span>
+                </div>
 
-            <div class="hero-actions">
-              <button type="button" class="btn btn-primary btn-lg" @click="focusAuth('register')">
-                Mulai Sekarang <i class="bi bi-arrow-right"></i>
-              </button>
-              <button type="button" class="btn btn-outline-primary btn-lg" @click="focusAuth('login')">
-                Saya Sudah Punya Akun
-              </button>
-            </div>
+                <div class="visual-title">
+                  <span class="visual-title__pill"></span>
+                  <span class="visual-title__pill pill--short"></span>
+                </div>
 
-            <div class="hero-features" aria-label="Fitur unggulan">
-              <div class="feature-pill">
-                <i class="bi bi-music-note-list"></i>
-                Koleksi Lagu
-              </div>
-              <div class="feature-pill">
-                <i class="bi bi-heart-pulse"></i>
-                Favorit & Playlist
-              </div>
-              <div class="feature-pill">
-                <i class="bi bi-chat-dots"></i>
-                Request Lagu
-              </div>
-              <div class="feature-pill">
-                <i class="bi bi-upload"></i>
-                Upload Mandiri
+                <div class="equalizer">
+                  <span v-for="i in 12" :key="i" class="bar" :style="{ animationDelay: `${i * 80}ms` }"></span>
+                </div>
+
+                <div class="visual-micro">
+                  <span class="micro-chip"><i class="bi bi-mic-fill"></i> Karaoke</span>
+                  <span class="micro-chip"><i class="bi bi-stars"></i> Score</span>
+                  <span class="micro-chip"><i class="bi bi-people-fill"></i> Party</span>
+                </div>
               </div>
             </div>
           </div>
+        </section>
 
-          <div class="hero__visual d-none d-lg-block" aria-hidden="true">
-            <div class="visual-card card-glass card-border">
-              <div class="visual-top">
-                <span class="dot dot--g"></span>
-                <span class="dot dot--b"></span>
-                <span class="dot dot--c"></span>
+        <section class="howto lp-panel card-glass card-border" aria-label="Cara mulai">
+          <div class="howto-head">
+            <h3 class="howto-title">
+              <i class="bi bi-lightning-charge-fill" aria-hidden="true"></i>
+              Mulai dalam 3 langkah
+            </h3>
+            <p class="howto-sub">Cepat, simpel, dan langsung bisa karaoke.</p>
+          </div>
+
+          <div class="howto-grid">
+            <div class="howto-card">
+              <div class="howto-icon" aria-hidden="true"><i class="bi bi-person-check-fill"></i></div>
+              <div class="howto-body">
+                <div class="howto-step">Langkah 1</div>
+                <div class="howto-label">Masuk / Daftar</div>
+                <div class="howto-desc">Gunakan email/username atau Google (jika sudah diaktifkan).</div>
               </div>
+            </div>
 
-              <div class="visual-title">
-                <span class="visual-title__pill"></span>
-                <span class="visual-title__pill pill--short"></span>
+            <div class="howto-card">
+              <div class="howto-icon howto-icon--alt" aria-hidden="true"><i class="bi bi-music-note-list"></i></div>
+              <div class="howto-body">
+                <div class="howto-step">Langkah 2</div>
+                <div class="howto-label">Pilih Lagu</div>
+                <div class="howto-desc">Cari lagu favorit, lihat yang populer, atau pakai playlist.</div>
               </div>
+            </div>
 
-              <div class="equalizer">
-                <span
-                  v-for="i in 12"
-                  :key="i"
-                  class="bar"
-                  :style="{ animationDelay: `${i * 80}ms` }"
-                ></span>
-              </div>
-
-              <div class="visual-micro">
-                <span class="micro-chip"><i class="bi bi-mic-fill"></i> Karaoke</span>
-                <span class="micro-chip"><i class="bi bi-stars"></i> Score</span>
-                <span class="micro-chip"><i class="bi bi-people-fill"></i> Party</span>
+            <div class="howto-card">
+              <div class="howto-icon howto-icon--blue" aria-hidden="true"><i class="bi bi-mic-fill"></i></div>
+              <div class="howto-body">
+                <div class="howto-step">Langkah 3</div>
+                <div class="howto-label">Nyanyi & Dapat Score</div>
+                <div class="howto-desc">Simpan riwayat dan kejar posisi di leaderboard.</div>
               </div>
             </div>
           </div>
-        </div>
+        </section>
 
         <section class="showcase" aria-label="Preview lagu dan leaderboard">
           <div class="showcase-grid">
-            <div class="showcase-card card card-glass card-border" ref="favoritesSection">
+            <div class="showcase-card lp-panel card card-glass card-border" ref="favoritesSection">
               <div class="card-head">
                 <h3 class="card-title">
                   <i class="bi bi-heart-fill"></i>
@@ -134,12 +189,8 @@
               </div>
 
               <div class="top-songs-list" v-if="!loadingSongs">
-                <div
-                  v-for="(song, index) in topSongs"
-                  :key="song.id"
-                  class="top-song-item animate-item"
-                  :style="{ animationDelay: `${index * 70}ms` }"
-                >
+                <div v-for="(song, index) in topSongs" :key="song.id" class="top-song-item animate-item"
+                  :style="{ animationDelay: `${index * 70}ms` }">
                   <span class="song-rank" :class="{ 'is-top': index === 0 }">{{ index + 1 }}</span>
                   <div class="song-info">
                     <h4 class="song-title">{{ song.title }}</h4>
@@ -157,7 +208,7 @@
               </div>
             </div>
 
-            <div class="showcase-card card card-glass card-border" ref="popularSection">
+            <div class="showcase-card lp-panel card card-glass card-border" ref="popularSection">
               <div class="card-head">
                 <h3 class="card-title">
                   <i class="bi bi-graph-up-arrow"></i>
@@ -167,12 +218,8 @@
               </div>
 
               <div class="top-songs-list" v-if="!loadingSongs">
-                <div
-                  v-for="(song, index) in popularSongs"
-                  :key="song.id"
-                  class="top-song-item animate-item"
-                  :style="{ animationDelay: `${index * 70}ms` }"
-                >
+                <div v-for="(song, index) in popularSongs" :key="song.id" class="top-song-item animate-item"
+                  :style="{ animationDelay: `${index * 70}ms` }">
                   <span class="song-rank" :class="{ 'is-top': index === 0 }">{{ index + 1 }}</span>
                   <div class="song-info">
                     <h4 class="song-title">{{ song.title }}</h4>
@@ -191,11 +238,8 @@
             </div>
           </div>
 
-          <div
-            class="leaderboard-card card card-glass card-border"
-            v-if="leaderboard.length > 0"
-            ref="leaderboardSection"
-          >
+          <div class="leaderboard-card lp-panel card card-glass card-border" v-if="leaderboard.length > 0"
+            ref="leaderboardSection">
             <div class="card-head">
               <h3 class="card-title">
                 <i class="bi bi-trophy-fill"></i>
@@ -205,12 +249,8 @@
             </div>
 
             <div class="leaderboard-list">
-              <div
-                v-for="(user, index) in leaderboard.slice(0, 3)"
-                :key="user.id"
-                class="leaderboard-item animate-item"
-                :style="{ animationDelay: `${index * 90}ms` }"
-              >
+              <div v-for="(user, index) in leaderboard.slice(0, 3)" :key="user.id" class="leaderboard-item animate-item"
+                :style="{ animationDelay: `${index * 90}ms` }">
                 <span class="rank-badge" :class="`rank-${index + 1}`">
                   {{ index + 1 }}
                 </span>
@@ -224,37 +264,26 @@
 
       <!-- Right -->
       <aside class="landing-right" ref="authSection" aria-label="Autentikasi">
-        <div class="auth-card card card-glass card-border" :class="{ 'is-register': activeTab === 'register' }">
+        <div class="auth-card lp-panel card card-glass card-border" :class="{ 'is-register': activeTab === 'register' }">
           <div class="auth-head">
             <p class="auth-eyebrow">Selamat datang</p>
             <h2 class="auth-title">
               {{ activeTab === 'login' ? 'Masuk ke KaraokeKu' : 'Daftar Akun Baru' }}
             </h2>
             <p class="auth-subtitle">
-              {{ activeTab === 'login' ? 'Lanjutkan sesi dan mulai bernyanyi.' : 'Daftar cepat, lalu langsung karaoke.' }}
+              {{ activeTab === 'login' ? 'Lanjutkan sesi dan mulai bernyanyi.' : 'Daftar cepat, lalu langsung karaoke.'
+              }}
             </p>
           </div>
 
           <div class="auth-tabs" role="tablist" aria-label="Pilih mode autentikasi">
             <span class="tab-indicator" aria-hidden="true"></span>
-            <button
-              type="button"
-              class="auth-tab"
-              :class="{ active: activeTab === 'login' }"
-              role="tab"
-              :aria-selected="activeTab === 'login'"
-              @click="setTab('login')"
-            >
+            <button type="button" class="auth-tab" :class="{ active: activeTab === 'login' }" role="tab"
+              :aria-selected="activeTab === 'login'" @click="setTab('login')">
               Masuk
             </button>
-            <button
-              type="button"
-              class="auth-tab"
-              :class="{ active: activeTab === 'register' }"
-              role="tab"
-              :aria-selected="activeTab === 'register'"
-              @click="setTab('register')"
-            >
+            <button type="button" class="auth-tab" :class="{ active: activeTab === 'register' }" role="tab"
+              :aria-selected="activeTab === 'register'" @click="setTab('register')">
               Daftar
             </button>
           </div>
@@ -266,14 +295,8 @@
                   <label class="form-label">Email atau Username</label>
                   <div class="input-with-icon">
                     <i class="bi bi-person-badge" aria-hidden="true"></i>
-                    <input
-                      ref="loginIdentityInput"
-                      type="text"
-                      class="form-control"
-                      v-model="loginForm.emailOrUsername"
-                      placeholder="Masukkan email atau username"
-                      required
-                    >
+                    <input ref="loginIdentityInput" type="text" class="form-control" v-model="loginForm.emailOrUsername"
+                      placeholder="Masukkan email atau username" required>
                   </div>
                 </div>
 
@@ -281,20 +304,10 @@
                   <label class="form-label">Password</label>
                   <div class="input-with-icon password-input">
                     <i class="bi bi-lock" aria-hidden="true"></i>
-                    <input
-                      ref="loginPasswordInput"
-                      :type="showPassword ? 'text' : 'password'"
-                      class="form-control"
-                      v-model="loginForm.password"
-                      placeholder="Masukkan password"
-                      required
-                    >
-                    <button
-                      type="button"
-                      class="toggle-password"
-                      @click="showPassword = !showPassword"
-                      :aria-label="showPassword ? 'Sembunyikan password' : 'Tampilkan password'"
-                    >
+                    <input ref="loginPasswordInput" :type="showPassword ? 'text' : 'password'" class="form-control"
+                      v-model="loginForm.password" placeholder="Masukkan password" required>
+                    <button type="button" class="toggle-password" @click="showPassword = !showPassword"
+                      :aria-label="showPassword ? 'Sembunyikan password' : 'Tampilkan password'">
                       <i :class="showPassword ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
                     </button>
                   </div>
@@ -316,22 +329,18 @@
 
                 <div class="google-auth">
                   <template v-if="googleEnabled">
-                    <button
-                      type="button"
-                      class="btn btn-ghost w-100 google-btn"
-                      @click="handleGoogleLogin"
-                      :disabled="authLoading"
-                    >
+                    <button type="button" class="btn btn-ghost w-100 google-btn" @click="handleGoogleLogin"
+                      :disabled="authLoading">
                       <i class="bi bi-google me-2" aria-hidden="true"></i>
                       {{ authLoading ? 'Memproses...' : 'Login dengan Google' }}
                     </button>
 
-                    <p v-if="googleError" class="google-error text-muted">
+                    <p v-if="googleError" class="google-error">
                       <i class="bi bi-exclamation-triangle-fill me-2" aria-hidden="true"></i>
                       {{ googleError }}
                     </p>
 
-                    <p v-else class="google-note text-muted">
+                    <p v-else class="google-note">
                       Di iOS/Safari, login akan menggunakan redirect. Jika popup diblokir, otomatis pakai redirect.
                     </p>
                   </template>
@@ -341,8 +350,9 @@
                       <i class="bi bi-google me-2" aria-hidden="true"></i>
                       Login dengan Google (belum aktif)
                     </button>
-                    <p class="google-note text-muted">
-                      Untuk mengaktifkan, set env Firebase (<code>VITE_FIREBASE_API_KEY</code>, <code>VITE_FIREBASE_AUTH_DOMAIN</code>,
+                    <p class="google-note">
+                      Untuk mengaktifkan, set env Firebase (<code>VITE_FIREBASE_API_KEY</code>,
+                      <code>VITE_FIREBASE_AUTH_DOMAIN</code>,
                       <code>VITE_FIREBASE_PROJECT_ID</code>, <code>VITE_FIREBASE_APP_ID</code>).
                     </p>
                   </template>
@@ -356,14 +366,8 @@
                   <label class="form-label">Nama Lengkap</label>
                   <div class="input-with-icon">
                     <i class="bi bi-person-fill" aria-hidden="true"></i>
-                    <input
-                      ref="registerNameInput"
-                      type="text"
-                      class="form-control"
-                      v-model="registerForm.name"
-                      placeholder="Masukkan nama lengkap"
-                      required
-                    >
+                    <input ref="registerNameInput" type="text" class="form-control" v-model="registerForm.name"
+                      placeholder="Masukkan nama lengkap" required>
                   </div>
                 </div>
 
@@ -371,13 +375,8 @@
                   <label class="form-label">Email</label>
                   <div class="input-with-icon">
                     <i class="bi bi-envelope-fill" aria-hidden="true"></i>
-                    <input
-                      type="email"
-                      class="form-control"
-                      v-model="registerForm.email"
-                      placeholder="Masukkan email"
-                      required
-                    >
+                    <input type="email" class="form-control" v-model="registerForm.email" placeholder="Masukkan email"
+                      required>
                   </div>
                 </div>
 
@@ -385,13 +384,8 @@
                   <label class="form-label">Username</label>
                   <div class="input-with-icon">
                     <i class="bi bi-at" aria-hidden="true"></i>
-                    <input
-                      type="text"
-                      class="form-control"
-                      v-model="registerForm.username"
-                      placeholder="Pilih username"
-                      required
-                    >
+                    <input type="text" class="form-control" v-model="registerForm.username" placeholder="Pilih username"
+                      required>
                   </div>
                 </div>
 
@@ -399,13 +393,8 @@
                   <label class="form-label">Password</label>
                   <div class="input-with-icon">
                     <i class="bi bi-key-fill" aria-hidden="true"></i>
-                    <input
-                      type="password"
-                      class="form-control"
-                      v-model="registerForm.password"
-                      placeholder="Minimal 6 karakter"
-                      required
-                    >
+                    <input type="password" class="form-control" v-model="registerForm.password"
+                      placeholder="Minimal 6 karakter" required>
                   </div>
                 </div>
 
@@ -413,13 +402,8 @@
                   <label class="form-label">Konfirmasi Password</label>
                   <div class="input-with-icon">
                     <i class="bi bi-check2-circle" aria-hidden="true"></i>
-                    <input
-                      type="password"
-                      class="form-control"
-                      v-model="registerForm.confirmPassword"
-                      placeholder="Ulangi password"
-                      required
-                    >
+                    <input type="password" class="form-control" v-model="registerForm.confirmPassword"
+                      placeholder="Ulangi password" required>
                   </div>
                 </div>
 
@@ -442,7 +426,7 @@
           </p>
         </div>
 
-        <div class="mini-trust card card-glass card-border d-none d-lg-block">
+        <div class="mini-trust lp-panel card card-glass card-border d-none d-lg-block">
           <div class="mini-trust__row">
             <i class="bi bi-shield-check"></i>
             <span>Login aman &amp; cepat</span>
@@ -679,17 +663,17 @@ const handleGoogleLogin = async () => {
 
   authError.value = ''
   googleError.value = ''
-      authLoading.value = true
+  authLoading.value = true
 
-      try {
-        const auth = getFirebaseAuth()
-        if (!auth) {
-          googleError.value = 'Firebase belum dikonfigurasi.'
-          return
-        }
+  try {
+    const auth = getFirebaseAuth()
+    if (!auth) {
+      googleError.value = 'Firebase belum dikonfigurasi.'
+      return
+    }
 
-        await ensureFirebaseAuthPersistence(auth)
-        const provider = createGoogleProvider()
+    await ensureFirebaseAuthPersistence(auth)
+    const provider = createGoogleProvider()
 
     if (shouldUseGoogleRedirect()) {
       localStorage.setItem(GOOGLE_REDIRECT_PENDING_KEY, '1')
@@ -840,6 +824,11 @@ onMounted(async () => {
   --primary-dark: #16a34a;
   --accent: var(--lp-cyan);
 
+  /* Brighter text palette for this page */
+  --text-primary: rgba(255, 255, 255, 0.96);
+  --text-secondary: rgba(235, 255, 252, 0.86);
+  --text-muted: rgba(235, 255, 252, 0.74);
+
   --bg-dark: #061319;
   --bg-darker: #040c10;
   --bg-card: rgba(10, 22, 28, 0.72);
@@ -848,14 +837,13 @@ onMounted(async () => {
   --border-color-light: rgba(94, 234, 212, 0.28);
 
   --gradient-primary: linear-gradient(135deg, #22c55e 0%, #06b6d4 55%, #3b82f6 100%);
-  --gradient-glow: linear-gradient(
-    135deg,
-    rgba(34, 197, 94, 0.35) 0%,
-    rgba(6, 182, 212, 0.35) 55%,
-    rgba(59, 130, 246, 0.25) 100%
-  );
+  --gradient-glow: linear-gradient(135deg,
+      rgba(34, 197, 94, 0.35) 0%,
+      rgba(6, 182, 212, 0.35) 55%,
+      rgba(59, 130, 246, 0.25) 100%);
   --shadow-glow: 0 0 36px rgba(6, 182, 212, 0.35);
 
+  color: var(--text-primary);
   min-height: 100vh;
   min-height: 100dvh;
   width: 100%;
@@ -923,10 +911,12 @@ onMounted(async () => {
 }
 
 @keyframes orbFloat {
+
   0%,
   100% {
     transform: translate3d(0, 0, 0) scale(1);
   }
+
   50% {
     transform: translate3d(20px, -14px, 0) scale(1.05);
   }
@@ -1022,6 +1012,32 @@ onMounted(async () => {
   align-items: center;
 }
 
+.topbar-icon-btn {
+  width: 38px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  border: 1px solid rgba(94, 234, 212, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.topbar-icon-btn:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(94, 234, 212, 0.28);
+}
+
+.topbar-icon-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.22);
+}
+
 .btn-ghost {
   background: rgba(255, 255, 255, 0.07);
 }
@@ -1062,7 +1078,40 @@ onMounted(async () => {
 .logo-wrapper {
   display: flex;
   align-items: flex-start;
-  gap: 1.1rem;
+  gap: 1rem;
+}
+
+.brand-section {
+  min-width: 0;
+}
+
+.brand-section .text-gradient {
+  filter: drop-shadow(0 10px 22px rgba(6, 182, 212, 0.18));
+}
+
+.hero-kicker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin: 0 0 0.4rem;
+}
+
+.kicker-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.6rem;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(94, 234, 212, 0.16);
+  color: rgba(235, 255, 252, 0.82);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.kicker-pill i {
+  color: rgba(94, 234, 212, 0.95);
 }
 
 .logo-badge {
@@ -1085,12 +1134,42 @@ onMounted(async () => {
   background-clip: text;
 }
 
-.hero {
+.hero-spotlight {
+  position: relative;
   border-radius: var(--radius-xl);
+  overflow: hidden;
+  border: 1px solid rgba(94, 234, 212, 0.18);
+  background:
+    radial-gradient(900px 520px at 10% 0%, rgba(34, 197, 94, 0.22) 0%, transparent 60%),
+    radial-gradient(820px 520px at 92% 8%, rgba(6, 182, 212, 0.18) 0%, transparent 60%),
+    radial-gradient(920px 620px at 60% 100%, rgba(59, 130, 246, 0.14) 0%, transparent 65%),
+    rgba(10, 22, 28, 0.46);
+  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.62), 0 0 0 1px rgba(94, 234, 212, 0.06) inset;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.hero-spotlight::before {
+  content: '';
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  top: 0;
+  height: 1px;
+  border-radius: 999px;
+  background: var(--gradient-primary);
+  opacity: 0.85;
+  pointer-events: none;
+}
+
+.hero-spotlight__grid {
+  position: relative;
+  z-index: 1;
   padding: 2rem;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 340px;
+  grid-template-columns: minmax(0, 1fr) 360px;
   gap: 2rem;
+  align-items: start;
 }
 
 .hero__copy {
@@ -1105,6 +1184,7 @@ onMounted(async () => {
   font-weight: 850;
   margin: 0;
   letter-spacing: -0.03em;
+  line-height: 1.08;
 }
 
 .hero-subtitle {
@@ -1117,6 +1197,7 @@ onMounted(async () => {
   margin: 0.3rem 0 0.2rem;
   color: var(--text-secondary);
   max-width: 62ch;
+  line-height: 1.55;
 }
 
 .hero-actions {
@@ -1135,38 +1216,172 @@ onMounted(async () => {
 }
 
 .hero-features {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.55rem;
-  margin-top: 0.75rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-top: 1rem;
 }
 
 .feature-pill {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.5rem 0.75rem;
-  border-radius: var(--radius-full);
-  background: rgba(94, 234, 212, 0.08);
-  border: 1px solid rgba(94, 234, 212, 0.16);
+  padding: 0.75rem 0.85rem;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(94, 234, 212, 0.14);
   color: var(--text-secondary);
-  font-size: 0.875rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  transition: transform var(--transition-normal), border-color var(--transition-normal), background var(--transition-normal);
+  min-height: 54px;
+}
+
+.feature-pill:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(94, 234, 212, 0.26);
 }
 
 .feature-pill i {
-  color: rgba(94, 234, 212, 0.95);
+  width: 34px;
+  height: 34px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(94, 234, 212, 0.1);
+  border: 1px solid rgba(94, 234, 212, 0.16);
+  color: rgba(94, 234, 212, 0.98);
+  font-size: 1.05rem;
 }
 
 .hero__visual {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: flex-end;
+  align-self: stretch;
+}
+
+.howto {
+  border-radius: var(--radius-xl);
+  padding: 1.5rem 1.75rem;
+}
+
+.howto-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.howto-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 850;
+  letter-spacing: -0.01em;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.howto-title i {
+  color: rgba(94, 234, 212, 0.95);
+}
+
+.howto-sub {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+}
+
+.howto-grid {
+  margin-top: 1.1rem;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.howto-card {
+  display: flex;
+  gap: 0.85rem;
+  padding: 0.95rem 1rem;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(94, 234, 212, 0.14);
+  transition: transform var(--transition-normal), border-color var(--transition-normal), background var(--transition-normal);
+}
+
+.howto-card:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(94, 234, 212, 0.26);
+}
+
+.howto-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  background: rgba(34, 197, 94, 0.14);
+  border: 1px solid rgba(34, 197, 94, 0.24);
+  color: rgba(235, 255, 252, 0.92);
+}
+
+.howto-icon--alt {
+  background: rgba(94, 234, 212, 0.12);
+  border-color: rgba(94, 234, 212, 0.22);
+}
+
+.howto-icon--blue {
+  background: rgba(59, 130, 246, 0.14);
+  border-color: rgba(59, 130, 246, 0.22);
+}
+
+.howto-icon i {
+  font-size: 1.15rem;
+}
+
+.howto-body {
+  min-width: 0;
+}
+
+.howto-step {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(94, 234, 212, 0.85);
+  font-weight: 800;
+}
+
+.howto-label {
+  margin-top: 0.2rem;
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.howto-desc {
+  margin-top: 0.2rem;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  line-height: 1.4;
 }
 
 .visual-card {
   width: 100%;
   border-radius: var(--radius-xl);
   padding: 1.25rem;
+  background: rgba(4, 12, 16, 0.36);
+  border: 1px solid rgba(94, 234, 212, 0.12);
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.55);
+  display: flex;
+  flex-direction: column;
 }
 
 .visual-top {
@@ -1214,7 +1429,7 @@ onMounted(async () => {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  height: 92px;
+  height: 96px;
   gap: 6px;
 }
 
@@ -1228,17 +1443,20 @@ onMounted(async () => {
 }
 
 @keyframes equalize {
+
   0%,
   100% {
     transform: scaleY(0.25);
   }
+
   50% {
     transform: scaleY(1);
   }
 }
 
 .visual-micro {
-  margin-top: 1rem;
+  margin-top: auto;
+  padding-top: 1rem;
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
@@ -1290,6 +1508,24 @@ onMounted(async () => {
   .card-border::before {
     content: none;
   }
+}
+
+.lp-panel {
+  position: relative;
+  overflow: hidden;
+}
+
+.lp-panel::after {
+  content: '';
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  top: 0;
+  height: 1px;
+  border-radius: 999px;
+  background: var(--gradient-primary);
+  opacity: 0.7;
+  pointer-events: none;
 }
 
 .showcase {
@@ -1656,6 +1892,17 @@ onMounted(async () => {
   margin: 0;
   font-size: 0.85rem;
   line-height: 1.4;
+  padding: 0.75rem 0.9rem;
+  border-radius: 16px;
+  border: 1px solid rgba(94, 234, 212, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(235, 255, 252, 0.86);
+}
+
+.google-error {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.25);
+  color: rgba(255, 255, 255, 0.92);
 }
 
 .google-note code {
@@ -1674,7 +1921,7 @@ onMounted(async () => {
   position: relative;
 }
 
-.input-with-icon > i {
+.input-with-icon>i {
   position: absolute;
   left: 12px;
   top: 50%;
@@ -1692,7 +1939,7 @@ onMounted(async () => {
   padding-right: 3rem;
 }
 
-.input-with-icon:focus-within i {
+.input-with-icon:focus-within>i {
   color: rgba(94, 234, 212, 0.95);
 }
 
@@ -1774,6 +2021,7 @@ onMounted(async () => {
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -1796,11 +2044,13 @@ onMounted(async () => {
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   .bg-orb,
   .bar,
   .animate-item {
     animation: none !important;
   }
+
   .fade-slide-enter-active,
   .fade-slide-leave-active,
   .tab-indicator {
@@ -1823,12 +2073,16 @@ onMounted(async () => {
     order: 1;
   }
 
-  .hero {
+  .hero-spotlight__grid {
     grid-template-columns: 1fr;
     padding: 1.5rem;
   }
 
   .showcase-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .howto-grid {
     grid-template-columns: 1fr;
   }
 
@@ -1863,7 +2117,15 @@ onMounted(async () => {
     justify-content: center;
   }
 
+  .hero-features {
+    grid-template-columns: 1fr;
+  }
+
   .auth-card {
+    padding: 1.25rem;
+  }
+
+  .howto {
     padding: 1.25rem;
   }
 

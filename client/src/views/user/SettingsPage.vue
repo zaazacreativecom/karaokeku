@@ -82,7 +82,7 @@
             <h1>
               Kelola akun dengan <span class="text-gradient">aman</span> dan nyaman
             </h1>
-            <p class="hero__sub text-muted">
+            <p class="hero__sub text-white">
               Perbarui profil, ganti password, dan atur keamanan akun Anda.
             </p>
 
@@ -154,7 +154,7 @@
                 </div>
                 <div class="panel-title__copy">
                   <h2>Profil</h2>
-                  <p class="text-muted">Perbarui nama, username, dan email.</p>
+                  <p class="text-white">Perbarui nama, username, dan email.</p>
                 </div>
               </div>
 
@@ -216,7 +216,7 @@
                       required
                       autocomplete="username"
                     />
-                    <div class="field-hint text-muted">Digunakan untuk identitas di beberapa fitur.</div>
+                    <div class="field-hint text-white">Digunakan untuk identitas di beberapa fitur.</div>
                   </div>
 
                   <div class="field field--full">

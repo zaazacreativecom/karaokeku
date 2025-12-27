@@ -109,6 +109,11 @@
             >
               <div class="avatar" aria-hidden="true">
                 <span class="avatar-initial">{{ getInitial(conv.partner.name) }}</span>
+                <span
+                  class="presence-dot"
+                  :class="{ 'is-online': chatStore.isUserOnline(conv.partner.id) }"
+                  aria-hidden="true"
+                ></span>
               </div>
 
               <div class="item-body">
@@ -129,19 +134,18 @@
 
           <!-- Users search -->
           <template v-else>
-            <div v-if="!searchQuery" class="empty-state empty-state--compact">
+            <div v-if="!normalizedQuery && onlineUsers.length === 0" class="empty-state empty-state--compact">
               <div class="empty-emoji" aria-hidden="true">
-                <i class="bi bi-emoji-smile"></i>
-                <i class="bi bi-stars"></i>
+                <i class="bi bi-broadcast"></i>
               </div>
-              <p>Ketik nama untuk mencari pengguna.</p>
+              <p>Belum ada pengguna yang online.</p>
               <div class="empty-hint">
-                <i class="bi bi-lightning-charge-fill"></i>
-                Cari cepat dan mulai chat.
+                <i class="bi bi-search"></i>
+                Coba cari dengan mengetik nama.
               </div>
             </div>
 
-            <div v-else-if="filteredUsers.length === 0" class="empty-state empty-state--compact">
+            <div v-else-if="normalizedQuery && filteredUsers.length === 0" class="empty-state empty-state--compact">
               <div class="empty-emoji" aria-hidden="true">
                 <i class="bi bi-person-x-fill"></i>
               </div>
@@ -150,12 +154,12 @@
 
             <template v-else>
               <div class="section-label">
-                <i class="bi bi-magic" aria-hidden="true"></i>
-                Hasil ({{ filteredUsers.length }})
+                <i :class="normalizedQuery ? 'bi bi-magic' : 'bi bi-broadcast'" aria-hidden="true"></i>
+                {{ normalizedQuery ? `Hasil (${filteredUsers.length})` : `Online (${onlineUsers.length})` }}
               </div>
 
               <button
-                v-for="user in filteredUsers"
+                v-for="user in usersShown"
                 :key="user.id"
                 class="chat-item"
                 type="button"
@@ -163,6 +167,11 @@
               >
                 <div class="avatar avatar--soft" aria-hidden="true">
                   <i class="bi bi-person-fill"></i>
+                  <span
+                    class="presence-dot"
+                    :class="{ 'is-online': chatStore.isUserOnline(user.id) }"
+                    aria-hidden="true"
+                  ></span>
                 </div>
 
                 <div class="item-body">
@@ -213,6 +222,7 @@ import { ref, onMounted, computed, watch, onUnmounted, nextTick } from 'vue';
 import { useRoute } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { useChatStore } from '@/stores/chat';
+import { disconnectSocket } from '@/services/socket';
 import ChatWindow from './ChatWindow.vue';
 
 const authStore = useAuthStore();
@@ -282,6 +292,13 @@ const filteredUsers = computed(() => {
     .slice(0, 20);
 });
 
+const onlineUsers = computed(() => {
+  const list = Array.isArray(chatStore.users) ? chatStore.users : [];
+  return list.filter((u) => chatStore.isUserOnline(u?.id)).slice(0, 20);
+});
+
+const usersShown = computed(() => (normalizedQuery.value ? filteredUsers.value : onlineUsers.value));
+
 const clearSearch = async () => {
   searchQuery.value = '';
   await nextTick();
@@ -297,6 +314,18 @@ const openConversation = (partnerId) => {
   searchQuery.value = '';
   chatStore.openChat(partnerId);
 };
+
+watch(
+  () => authStore.isLoggedIn,
+  (loggedIn) => {
+    if (!loggedIn) {
+      disconnectSocket();
+      return;
+    }
+    chatStore.init();
+  },
+  { immediate: true }
+);
 
 const formatTime = (dateString) => {
   if (!dateString) return '';
@@ -338,10 +367,6 @@ watch(activeTab, async (tab) => {
 });
 
 onMounted(() => {
-  if (authStore.isLoggedIn) {
-    chatStore.init();
-  }
-
   if (typeof window !== 'undefined') {
     updateViewportMode();
     scheduleDockUpdate();
@@ -775,6 +800,25 @@ onUnmounted(() => {
 
 .avatar--soft::before {
   opacity: 0.22;
+}
+
+.presence-dot {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.28);
+  box-shadow: 0 0 0 2px rgba(4, 12, 16, 0.9);
+  z-index: 2;
+}
+
+.presence-dot.is-online {
+  background: #22c55e;
+  box-shadow:
+    0 0 0 2px rgba(4, 12, 16, 0.9),
+    0 0 0 4px rgba(34, 197, 94, 0.18);
 }
 
 .item-body {

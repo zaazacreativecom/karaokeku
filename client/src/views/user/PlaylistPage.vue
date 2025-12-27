@@ -68,7 +68,7 @@
             <h1>
               Kelola playlist <span class="text-gradient">karaoke</span> kamu
             </h1>
-            <p class="hero__sub text-muted">
+            <p class="hero__sub text-white">
               Buat playlist untuk mengelompokkan lagu favorit. Play langsung atau rapikan koleksimu kapan saja.
             </p>
 
@@ -141,7 +141,8 @@
         </div>
 
         <!-- Skeleton -->
-        <div v-if="loading && playlists.length === 0" class="playlists-grid playlists-grid--skeleton" aria-hidden="true">
+        <div v-if="loading && playlists.length === 0" class="playlists-grid playlists-grid--skeleton"
+          aria-hidden="true">
           <div v-for="n in 10" :key="n" class="playlist-card playlist-card--skeleton">
             <div class="playlist-cover">
               <div class="skeleton-cover loading-skeleton"></div>
@@ -163,8 +164,8 @@
         </div>
 
         <!-- Error Empty -->
-        <div v-else-if="!loading && errorMessage && playlists.length === 0" class="empty-state empty-state--error reveal"
-          style="--d: 120ms">
+        <div v-else-if="!loading && errorMessage && playlists.length === 0"
+          class="empty-state empty-state--error reveal" style="--d: 120ms">
           <div class="empty-icon" aria-hidden="true">
             <i class="bi bi-cloud-slash"></i>
           </div>
@@ -183,12 +184,13 @@
         </div>
 
         <!-- Empty -->
-        <div v-else-if="!loading && !errorMessage && playlists.length === 0" class="empty-state reveal" style="--d: 120ms">
+        <div v-else-if="!loading && !errorMessage && playlists.length === 0" class="empty-state reveal"
+          style="--d: 120ms">
           <div class="empty-icon">
             <i class="bi bi-collection-play"></i>
           </div>
           <h2>Belum ada playlist</h2>
-          <p class="text-muted">Buat playlist untuk mengelompokkan lagu dan mulai karaoke lebih cepat.</p>
+          <p class="text-white">Buat playlist untuk mengelompokkan lagu dan mulai karaoke lebih cepat.</p>
           <div class="empty-actions">
             <button class="btn btn-primary" type="button" @click="openCreateModal">
               <i class="bi bi-plus-lg me-1"></i>
@@ -204,10 +206,8 @@
         <!-- Grid -->
         <div v-else class="playlists-grid">
           <article v-for="(playlist, idx) in playlists" :key="playlist.id" class="playlist-card reveal"
-            :style="{ '--d': `${Math.min(idx * 35, 280)}ms` }"
-            role="button" tabindex="0"
-            @click="viewPlaylist(playlist)"
-            @keydown.enter.prevent="viewPlaylist(playlist)"
+            :style="{ '--d': `${Math.min(idx * 35, 280)}ms` }" role="button" tabindex="0"
+            @click="viewPlaylist(playlist)" @keydown.enter.prevent="viewPlaylist(playlist)"
             @keydown.space.prevent="viewPlaylist(playlist)">
             <div class="playlist-cover" aria-hidden="true">
               <div class="playlist-cover__inner">
@@ -239,8 +239,8 @@
                 aria-label="Edit playlist">
                 <i class="bi bi-pencil"></i>
               </button>
-              <button class="btn btn-ghost btn-sm btn-icon btn-danger-soft" type="button" @click="confirmDelete(playlist)"
-                aria-label="Hapus playlist">
+              <button class="btn btn-ghost btn-sm btn-icon btn-danger-soft" type="button"
+                @click="confirmDelete(playlist)" aria-label="Hapus playlist">
                 <i class="bi bi-trash"></i>
               </button>
             </div>
@@ -261,7 +261,7 @@
               </div>
               <div class="modal-title__copy">
                 <h3>{{ editingPlaylist ? 'Edit Playlist' : 'Buat Playlist Baru' }}</h3>
-                <p class="text-muted">
+                <p class="text-white">
                   {{ editingPlaylist ? 'Perbarui nama dan deskripsi playlist.' : 'Buat playlist untuk menyimpan lagu favoritmu.' }}
                 </p>
               </div>
@@ -280,7 +280,8 @@
 
               <div class="mb-3">
                 <label class="form-label">Nama Playlist</label>
-                <input type="text" class="form-control" v-model="formData.name" required placeholder="Contoh: Lagu Favorit">
+                <input type="text" class="form-control" v-model="formData.name" required
+                  placeholder="Contoh: Lagu Favorit">
               </div>
               <div class="mb-3">
                 <label class="form-label">Deskripsi (opsional)</label>
@@ -303,8 +304,8 @@
 
     <!-- Delete Confirmation -->
     <transition name="pp-modal">
-      <div v-if="showDeleteModal" class="modal-overlay" @click.self="closeDeleteModal" role="dialog"
-        aria-modal="true" aria-label="Konfirmasi hapus playlist">
+      <div v-if="showDeleteModal" class="modal-overlay" @click.self="closeDeleteModal" role="dialog" aria-modal="true"
+        aria-label="Konfirmasi hapus playlist">
         <div class="modal-content modal-sm">
           <div class="modal-body modal-body--center">
             <div class="danger-icon" aria-hidden="true">
@@ -480,12 +481,10 @@ onMounted(fetchPlaylists)
   --border-color-light: rgba(94, 234, 212, 0.28);
 
   --gradient-primary: linear-gradient(135deg, #22c55e 0%, #06b6d4 55%, #3b82f6 100%);
-  --gradient-glow: linear-gradient(
-    135deg,
-    rgba(34, 197, 94, 0.28) 0%,
-    rgba(6, 182, 212, 0.32) 55%,
-    rgba(59, 130, 246, 0.22) 100%
-  );
+  --gradient-glow: linear-gradient(135deg,
+      rgba(34, 197, 94, 0.28) 0%,
+      rgba(6, 182, 212, 0.32) 55%,
+      rgba(59, 130, 246, 0.22) 100%);
   --shadow-glow: 0 0 36px rgba(6, 182, 212, 0.35);
 
   display: flex;
@@ -555,10 +554,12 @@ onMounted(fetchPlaylists)
 }
 
 @keyframes orbFloat {
+
   0%,
   100% {
     transform: translate3d(0, 0, 0) scale(1);
   }
+
   50% {
     transform: translate3d(18px, -14px, 0) scale(1.06);
   }
@@ -658,7 +659,7 @@ onMounted(fetchPlaylists)
   transition: opacity var(--transition-normal), transform var(--transition-normal);
 }
 
-.nav-item > * {
+.nav-item>* {
   position: relative;
   z-index: 1;
 }
@@ -677,12 +678,10 @@ onMounted(fetchPlaylists)
 
 .nav-item.active {
   color: white;
-  background: linear-gradient(
-    135deg,
-    rgba(34, 197, 94, 0.18) 0%,
-    rgba(6, 182, 212, 0.12) 55%,
-    rgba(59, 130, 246, 0.16) 100%
-  );
+  background: linear-gradient(135deg,
+      rgba(34, 197, 94, 0.18) 0%,
+      rgba(6, 182, 212, 0.12) 55%,
+      rgba(59, 130, 246, 0.16) 100%);
   border-color: rgba(94, 234, 212, 0.28);
 }
 
@@ -872,12 +871,10 @@ onMounted(fetchPlaylists)
 }
 
 .hero-card--primary {
-  background: linear-gradient(
-    135deg,
-    rgba(34, 197, 94, 0.12) 0%,
-    rgba(6, 182, 212, 0.1) 55%,
-    rgba(59, 130, 246, 0.12) 100%
-  );
+  background: linear-gradient(135deg,
+      rgba(34, 197, 94, 0.12) 0%,
+      rgba(6, 182, 212, 0.1) 55%,
+      rgba(59, 130, 246, 0.12) 100%);
 }
 
 .hero-card__icon {
@@ -1410,6 +1407,7 @@ onMounted(fetchPlaylists)
     opacity: 0;
     transform: translateY(12px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -1417,11 +1415,13 @@ onMounted(fetchPlaylists)
 }
 
 @keyframes kpLiquidSheen {
+
   0%,
   100% {
     transform: translate3d(-12%, -10%, 0) rotate(18deg);
     opacity: 0.56;
   }
+
   50% {
     transform: translate3d(10%, 12%, 0) rotate(8deg);
     opacity: 0.78;

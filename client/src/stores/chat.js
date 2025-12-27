@@ -15,9 +15,11 @@ export const useChatStore = defineStore('chat', () => {
   const messages = ref([]) 
   const unreadCount = ref(0)
   const users = ref([])
+  const onlineUserIds = ref([])
   const isChatOpen = ref(false)
   const isWidgetOpen = ref(false)
   const socket = ref(null)
+  let boundSocket = null
   
   const activeConversation = computed(() => {
     if (!activePartnerId.value) return null
@@ -26,24 +28,98 @@ export const useChatStore = defineStore('chat', () => {
     )
   })
 
+  const normalizeUserId = (userId) => {
+    const n = Number(userId)
+    return Number.isFinite(n) ? n : null
+  }
+
+  const setOnlineUsers = (userIds) => {
+    const list = Array.isArray(userIds) ? userIds : []
+    const unique = new Set()
+
+    for (const id of list) {
+      const normalized = normalizeUserId(id)
+      if (normalized !== null) unique.add(normalized)
+    }
+
+    onlineUserIds.value = Array.from(unique)
+  }
+
+  const markUserOnline = (userId) => {
+    const normalized = normalizeUserId(userId)
+    if (normalized === null) return
+    if (onlineUserIds.value.includes(normalized)) return
+    onlineUserIds.value = [...onlineUserIds.value, normalized]
+  }
+
+  const markUserOffline = (userId) => {
+    const normalized = normalizeUserId(userId)
+    if (normalized === null) return
+    onlineUserIds.value = onlineUserIds.value.filter((id) => id !== normalized)
+  }
+
+  const isUserOnline = (userId) => {
+    const normalized = normalizeUserId(userId)
+    if (normalized === null) return false
+    return onlineUserIds.value.includes(normalized)
+  }
+
+  const handleMessageRead = (data) => {
+    markMessageAsReadLocal(data?.messageId)
+  }
+
+  const handleOnlineUsers = (data) => {
+    setOnlineUsers(data?.userIds)
+  }
+
+  const handleUserOnline = (data) => {
+    markUserOnline(data?.userId)
+  }
+
+  const handleUserOffline = (data) => {
+    markUserOffline(data?.userId)
+  }
+
+  const handleSocketConnect = () => {
+    boundSocket?.emit?.('get_online_users')
+  }
+
+  const bindSocketListeners = () => {
+    if (!socket.value) return
+    if (boundSocket === socket.value) return
+
+    // Clean up listeners from previous socket instance (if any)
+    if (boundSocket) {
+      boundSocket.off('receive_message', handleIncomingMessage)
+      boundSocket.off('message_read', handleMessageRead)
+      boundSocket.off('online_users', handleOnlineUsers)
+      boundSocket.off('user_online', handleUserOnline)
+      boundSocket.off('user_offline', handleUserOffline)
+      boundSocket.off('connect', handleSocketConnect)
+    }
+
+    boundSocket = socket.value
+
+    boundSocket.on('receive_message', handleIncomingMessage)
+    boundSocket.on('message_read', handleMessageRead)
+    boundSocket.on('online_users', handleOnlineUsers)
+    boundSocket.on('user_online', handleUserOnline)
+    boundSocket.on('user_offline', handleUserOffline)
+    boundSocket.on('connect', handleSocketConnect)
+
+    // If already connected when init is called, request snapshot now
+    if (boundSocket.connected) {
+      boundSocket.emit('get_online_users')
+    }
+  }
+
   // Initialize store and socket listeners
   const init = () => {
     const authStore = useAuthStore()
     if (!authStore.isLoggedIn) return
 
     socket.value = getSocket()
-    
-    if (socket.value) {
-      // Listen for new messages
-      socket.value.on('receive_message', (data) => {
-        handleIncomingMessage(data)
-      })
-
-      // Listen for read receipts
-      socket.value.on('message_read', (data) => {
-        markMessageAsReadLocal(data.messageId)
-      })
-    }
+    bindSocketListeners()
     
     fetchUnreadCount()
   }
@@ -185,6 +261,8 @@ export const useChatStore = defineStore('chat', () => {
     messages,
     unreadCount,
     users,
+    onlineUserIds,
+    isUserOnline,
     isChatOpen,
     isWidgetOpen,
     init,

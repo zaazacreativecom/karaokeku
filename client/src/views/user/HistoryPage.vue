@@ -77,7 +77,7 @@
               <span>Riwayat & Score</span>
             </div>
             <h1>Riwayat karaoke & <span class="text-gradient">pencapaian</span> kamu</h1>
-            <p class="hero__sub text-muted">Pantau progress, lihat high score, dan mainkan ulang lagu favoritmu.</p>
+            <p class="hero__sub text-white">Pantau progress, lihat high score, dan mainkan ulang lagu favoritmu.</p>
 
             <div class="hero__stats">
               <div class="stat-pill">
@@ -164,7 +164,7 @@
                 </div>
                 <div class="panel-title__copy">
                   <h2>Riwayat Terakhir</h2>
-                  <p class="text-muted">Daftar lagu yang baru kamu mainkan.</p>
+                  <p class="text-white">Daftar lagu yang baru kamu mainkan.</p>
                 </div>
               </div>
               <div class="panel-actions">
@@ -200,7 +200,7 @@
                 <i class="bi bi-clock"></i>
               </div>
               <h3>Belum ada riwayat</h3>
-              <p class="text-muted">Main karaoke dulu, nanti riwayat dan score akan muncul di sini.</p>
+              <p class="text-white">Main karaoke dulu, nanti riwayat dan score akan muncul di sini.</p>
               <router-link to="/songs" class="btn btn-primary btn-sm">
                 <i class="bi bi-play-circle-fill me-1" aria-hidden="true"></i>
                 Pilih Lagu
@@ -228,9 +228,9 @@
                 <div class="history-info">
                   <div class="history-top">
                     <h3 :title="item.song?.title || ''">{{ item.song?.title || 'Unknown' }}</h3>
-                    <span class="history-date text-muted">{{ formatDate(item.created_at) }}</span>
+                    <span class="history-date text-white">{{ formatDate(item.created_at) }}</span>
                   </div>
-                  <p class="text-muted">{{ item.song?.artist || '-' }}</p>
+                  <p class="text-white">{{ item.song?.artist || '-' }}</p>
 
                   <div class="history-meta">
                     <span v-if="item.score !== null && item.score !== undefined" class="meta-pill">
@@ -271,7 +271,7 @@
                   </div>
                   <div class="panel-title__copy">
                     <h2>Ringkasan</h2>
-                    <p class="text-muted">Progress karaoke kamu.</p>
+                    <p class="text-white">Progress karaoke kamu.</p>
                   </div>
                 </div>
               </div>
@@ -316,7 +316,7 @@
                   </div>
                   <div class="panel-title__copy">
                     <h2>High Scores</h2>
-                    <p class="text-muted">Top skor terbaikmu.</p>
+                    <p class="text-white">Top skor terbaikmu.</p>
                   </div>
                 </div>
                 <span class="pill pill--soft" aria-hidden="true">{{ highScores.length }}</span>
@@ -341,7 +341,7 @@
                   <i class="bi bi-trophy"></i>
                 </div>
                 <div class="empty-mini__title">Belum ada high score</div>
-                <div class="empty-mini__text text-muted">Main karaoke dan raih skor terbaikmu.</div>
+                <div class="empty-mini__text text-white">Main karaoke dan raih skor terbaikmu.</div>
               </div>
 
               <div v-else class="highscores-list">

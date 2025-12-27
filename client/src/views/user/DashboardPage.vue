@@ -119,7 +119,7 @@
             <h1>
               Selamat datang, <span class="text-gradient">{{ firstName }}</span>
             </h1>
-            <p class="hero__sub text-muted">
+            <p class="hero__sub text-white">
               Siap untuk karaoke hari ini? Mulai cepat, atau jelajahi lagu favoritmu.
             </p>
 

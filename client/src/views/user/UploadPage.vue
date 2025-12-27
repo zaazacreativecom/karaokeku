@@ -77,8 +77,9 @@
               <span>Upload Lagu</span>
             </div>
             <h1>Upload video <span class="text-gradient">karaoke</span> kamu</h1>
-            <p class="hero__sub text-muted">
-              Lengkapi detail lagu, upload video dan thumbnail (opsional). Admin akan melakukan review sebelum lagu tampil.
+            <p class="hero__sub text-white">
+              Lengkapi detail lagu, upload video dan thumbnail (opsional). Admin akan melakukan review sebelum lagu
+              tampil.
             </p>
 
             <div class="hero__stats">
@@ -116,7 +117,8 @@
                 <i class="bi bi-film"></i>
               </div>
               <div class="hero-card__title">Rekomendasi video</div>
-              <div class="hero-card__text">Gunakan MP4, resolusi 720p/1080p, audio jelas, dan judul + artis lengkap.</div>
+              <div class="hero-card__text">Gunakan MP4, resolusi 720p/1080p, audio jelas, dan judul + artis lengkap.
+              </div>
               <button class="btn btn-primary btn-sm hero-card__btn" type="button" @click="focusUpload(true)">
                 <i class="bi bi-cloud-arrow-up-fill"></i>
                 Upload sekarang
@@ -128,7 +130,8 @@
                 <i class="bi bi-image"></i>
               </div>
               <div class="hero-card__title">Thumbnail opsional</div>
-              <div class="hero-card__text">Tambahkan thumbnail biar terlihat profesional (atau biarkan kosong untuk otomatis).</div>
+              <div class="hero-card__text">Tambahkan thumbnail biar terlihat profesional (atau biarkan kosong untuk
+                otomatis).</div>
               <button class="btn btn-ghost btn-sm hero-card__btn" type="button" @click="focusUpload(false)">
                 <i class="bi bi-plus-lg"></i>
                 Tambah thumbnail
@@ -147,7 +150,7 @@
                 </div>
                 <div class="panel-title__copy">
                   <h2>Form Upload</h2>
-                  <p class="text-muted">Isi informasi lagu, lalu upload video dan thumbnail.</p>
+                  <p class="text-white">Isi informasi lagu, lalu upload video dan thumbnail.</p>
                 </div>
               </div>
               <div class="panel-steps" aria-hidden="true">
@@ -161,13 +164,8 @@
               <div class="form-grid">
                 <div class="field">
                   <label class="form-label">Judul Lagu *</label>
-                  <input
-                    type="text"
-                    class="form-control"
-                    v-model="form.title"
-                    required
-                    placeholder="Masukkan judul lagu"
-                  />
+                  <input type="text" class="form-control" v-model="form.title" required
+                    placeholder="Masukkan judul lagu" />
                 </div>
                 <div class="field">
                   <label class="form-label">Artis</label>
@@ -212,18 +210,10 @@
                     <div class="dropzone-hint">MP4/MKV/WebM</div>
                   </div>
 
-                  <div
-                    class="upload-dropzone"
-                    :class="{ 'has-file': form.file }"
-                    @click="openVideoPicker"
-                    @dragover.prevent
-                    @drop.prevent="handleVideoDrop"
-                    role="button"
-                    tabindex="0"
-                    @keydown.enter.prevent="openVideoPicker"
-                    @keydown.space.prevent="openVideoPicker"
-                    aria-label="Pilih file video"
-                  >
+                  <div class="upload-dropzone" :class="{ 'has-file': form.file }" @click="openVideoPicker"
+                    @dragover.prevent @drop.prevent="handleVideoDrop" role="button" tabindex="0"
+                    @keydown.enter.prevent="openVideoPicker" @keydown.space.prevent="openVideoPicker"
+                    aria-label="Pilih file video">
                     <input ref="fileInput" type="file" @change="handleFileSelect" accept="video/*" hidden />
 
                     <div v-if="!form.file" class="dropzone-content">
@@ -254,18 +244,10 @@
                     <div class="dropzone-hint">JPG/PNG/WebP</div>
                   </div>
 
-                  <div
-                    class="upload-dropzone upload-dropzone--thumb"
-                    :class="{ 'has-file': form.thumbnail }"
-                    @click="openThumbnailPicker"
-                    @dragover.prevent
-                    @drop.prevent="handleThumbnailDrop"
-                    role="button"
-                    tabindex="0"
-                    @keydown.enter.prevent="openThumbnailPicker"
-                    @keydown.space.prevent="openThumbnailPicker"
-                    aria-label="Pilih thumbnail"
-                  >
+                  <div class="upload-dropzone upload-dropzone--thumb" :class="{ 'has-file': form.thumbnail }"
+                    @click="openThumbnailPicker" @dragover.prevent @drop.prevent="handleThumbnailDrop" role="button"
+                    tabindex="0" @keydown.enter.prevent="openThumbnailPicker"
+                    @keydown.space.prevent="openThumbnailPicker" aria-label="Pilih thumbnail">
                     <input ref="thumbInput" type="file" @change="handleThumbnailSelect" accept="image/*" hidden />
 
                     <div v-if="!form.thumbnail" class="dropzone-content dropzone-content--thumb">
@@ -280,12 +262,8 @@
                         <p :title="form.thumbnail.name">{{ form.thumbnail.name }}</p>
                         <span>{{ formatFileSize(form.thumbnail.size) }}</span>
                       </div>
-                      <button
-                        type="button"
-                        class="btn-remove"
-                        @click.stop="removeThumbnail"
-                        aria-label="Hapus thumbnail"
-                      >
+                      <button type="button" class="btn-remove" @click.stop="removeThumbnail"
+                        aria-label="Hapus thumbnail">
                         <i class="bi bi-x-lg" aria-hidden="true"></i>
                       </button>
                     </div>
@@ -329,7 +307,8 @@
                   Reset
                 </button>
 
-                <button type="submit" class="btn btn-primary btn-lg" :disabled="uploading || !form.file || !form.title.trim()">
+                <button type="submit" class="btn btn-primary btn-lg"
+                  :disabled="uploading || !form.file || !form.title.trim()">
                   <span v-if="uploading" class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
                   {{ uploading ? 'Mengupload…' : 'Upload Video' }}
                 </button>
@@ -347,12 +326,12 @@
                   </div>
                   <div class="panel-title__copy">
                     <h2>Panduan cepat</h2>
-                    <p class="text-muted">Biar upload kamu cepat disetujui.</p>
+                    <p class="text-white">Biar upload kamu cepat disetujui.</p>
                   </div>
                 </div>
               </div>
 
-              <ul class="info-list">
+              <ul class="info-list ms-3">
                 <li><strong>Judul</strong> dan <strong>artis</strong> diisi jelas.</li>
                 <li>Video rapi, audio jelas, dan tidak ada watermark berlebihan.</li>
                 <li>Thumbnail opsional (lebih bagus jika resolusi 16:9).</li>
@@ -368,7 +347,7 @@
                   </div>
                   <div class="panel-title__copy">
                     <h2>Upload Saya</h2>
-                    <p class="text-muted">Pantau status review admin.</p>
+                    <p class="text-white">Pantau status review admin.</p>
                   </div>
                 </div>
 
@@ -378,7 +357,8 @@
                 </button>
               </div>
 
-              <div v-if="loadingUploads && myUploads.length === 0" class="uploads-list uploads-list--skeleton" aria-hidden="true">
+              <div v-if="loadingUploads && myUploads.length === 0" class="uploads-list uploads-list--skeleton"
+                aria-hidden="true">
                 <div v-for="n in 6" :key="n" class="upload-item upload-item--skeleton">
                   <div class="upload-thumb">
                     <div class="skeleton-thumb loading-skeleton"></div>
@@ -391,12 +371,13 @@
                 </div>
               </div>
 
-              <div v-else-if="!loadingUploads && myUploads.length === 0" class="empty-state empty-state--mini reveal" style="--d: 0ms">
+              <div v-else-if="!loadingUploads && myUploads.length === 0" class="empty-state empty-state--mini reveal"
+                style="--d: 0ms">
                 <div class="empty-icon" aria-hidden="true">
                   <i class="bi bi-cloud-upload"></i>
                 </div>
                 <h3>Belum ada upload</h3>
-                <p class="text-muted">Pilih video dan upload untuk mulai.</p>
+                <p class="text-white">Pilih video dan upload untuk mulai.</p>
                 <button class="btn btn-primary btn-sm" type="button" @click="focusUpload(true)">
                   <i class="bi bi-upload me-1" aria-hidden="true"></i>
                   Upload sekarang
@@ -412,7 +393,7 @@
 
                   <div class="upload-info">
                     <h3 :title="upload.title">{{ upload.title }}</h3>
-                    <p class="text-muted">{{ upload.artist || '-' }}</p>
+                    <p class="text-white">{{ upload.artist || '-' }}</p>
                   </div>
 
                   <span class="status-pill" :class="statusPillClass(upload.status)">
@@ -681,12 +662,10 @@ onUnmounted(() => {
   --border-color-light: rgba(94, 234, 212, 0.28);
 
   --gradient-primary: linear-gradient(135deg, #22c55e 0%, #06b6d4 55%, #3b82f6 100%);
-  --gradient-glow: linear-gradient(
-    135deg,
-    rgba(34, 197, 94, 0.28) 0%,
-    rgba(6, 182, 212, 0.32) 55%,
-    rgba(59, 130, 246, 0.22) 100%
-  );
+  --gradient-glow: linear-gradient(135deg,
+      rgba(34, 197, 94, 0.28) 0%,
+      rgba(6, 182, 212, 0.32) 55%,
+      rgba(59, 130, 246, 0.22) 100%);
   --shadow-glow: 0 0 36px rgba(6, 182, 212, 0.35);
 
   display: flex;
@@ -756,10 +735,12 @@ onUnmounted(() => {
 }
 
 @keyframes orbFloat {
+
   0%,
   100% {
     transform: translate3d(0, 0, 0) scale(1);
   }
+
   50% {
     transform: translate3d(18px, -14px, 0) scale(1.06);
   }
@@ -860,7 +841,7 @@ onUnmounted(() => {
   transition: opacity var(--transition-normal), transform var(--transition-normal);
 }
 
-.nav-item > * {
+.nav-item>* {
   position: relative;
   z-index: 1;
 }
@@ -879,12 +860,10 @@ onUnmounted(() => {
 
 .nav-item.active {
   color: white;
-  background: linear-gradient(
-    135deg,
-    rgba(34, 197, 94, 0.18) 0%,
-    rgba(6, 182, 212, 0.12) 55%,
-    rgba(59, 130, 246, 0.16) 100%
-  );
+  background: linear-gradient(135deg,
+      rgba(34, 197, 94, 0.18) 0%,
+      rgba(6, 182, 212, 0.12) 55%,
+      rgba(59, 130, 246, 0.16) 100%);
   border-color: rgba(94, 234, 212, 0.28);
 }
 
@@ -1074,12 +1053,10 @@ onUnmounted(() => {
 }
 
 .hero-card--primary {
-  background: linear-gradient(
-    135deg,
-    rgba(34, 197, 94, 0.12) 0%,
-    rgba(6, 182, 212, 0.1) 55%,
-    rgba(59, 130, 246, 0.12) 100%
-  );
+  background: linear-gradient(135deg,
+      rgba(34, 197, 94, 0.12) 0%,
+      rgba(6, 182, 212, 0.1) 55%,
+      rgba(59, 130, 246, 0.12) 100%);
 }
 
 .hero-card__icon {
@@ -1724,6 +1701,7 @@ onUnmounted(() => {
     opacity: 0;
     transform: translateY(12px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);

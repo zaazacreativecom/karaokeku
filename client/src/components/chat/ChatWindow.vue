@@ -67,8 +67,7 @@ const partner = computed(() => {
     return chatStore.users.find(u => u.id === props.partnerId);
 });
 
-// Mock online status for now (socket logic handles this but simpler for UI first)
-const isOnline = ref(true);
+const isOnline = computed(() => chatStore.isUserOnline(props.partnerId));
 
 const scrollToBottom = () => {
     nextTick(() => {

@@ -9,6 +9,8 @@ const jwt = require('jsonwebtoken');
 let io;
 const userSockets = new Map(); // Map<userId, Set<socketId>>
 
+const getOnlineUserIds = () => Array.from(userSockets.keys());
+
 const initializeSocket = (server) => {
   io = socketIo(server, {
     cors: {
@@ -45,8 +47,16 @@ const initializeSocket = (server) => {
     // Join a room with their own ID for private messaging
     socket.join(`user_${socket.userId}`);
 
+    // Send initial online users list to the newly connected client
+    socket.emit('online_users', { userIds: getOnlineUserIds() });
+
     // Broadcast user online status
     socket.broadcast.emit('user_online', { userId: socket.userId });
+
+    // Client can request a fresh snapshot (useful after reconnect)
+    socket.on('get_online_users', () => {
+      socket.emit('online_users', { userIds: getOnlineUserIds() });
+    });
 
     // Handle Disconnect
     socket.on('disconnect', () => {

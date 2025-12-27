@@ -78,7 +78,7 @@
               <span>Request Lagu</span>
             </div>
             <h1>Request lagu <span class="text-gradient">favorit</span> kamu</h1>
-            <p class="hero__sub text-muted">
+            <p class="hero__sub text-white">
               Mau lagu tertentu ditambahkan? Isi form request di bawah. Admin akan meninjau request kamu secara berkala.
             </p>
 
@@ -149,7 +149,7 @@
                 </div>
                 <div class="panel-title__copy">
                   <h2>Form Request</h2>
-                  <p class="text-muted">Lengkapi detail lagu. Minimal: judul dan artis.</p>
+                  <p class="text-white">Lengkapi detail lagu. Minimal: judul dan artis.</p>
                 </div>
               </div>
               <div class="panel-steps" aria-hidden="true">
@@ -273,7 +273,7 @@
                   </div>
                   <div class="panel-title__copy">
                     <h2>Panduan cepat</h2>
-                    <p class="text-muted">Agar request kamu lebih cepat diproses.</p>
+                    <p class="text-white">Agar request kamu lebih cepat diproses.</p>
                   </div>
                 </div>
               </div>
@@ -294,7 +294,7 @@
                   </div>
                   <div class="panel-title__copy">
                     <h2>Metode donasi</h2>
-                    <p class="text-muted">Preview cepat (detail lengkap di halaman Donasi).</p>
+                    <p class="text-white">Preview cepat (detail lengkap di halaman Donasi).</p>
                   </div>
                 </div>
                 <router-link to="/donation" class="btn btn-ghost btn-sm">

@@ -919,15 +919,9 @@ const togglePlay = () => {
 
 const onTimeUpdate = (e) => {
   const time = e.target.currentTime
-  const duration = e.target.duration
 
   playerStore.updateTime(time)
   updateLyrics(time)
-
-  // Auto-end song at 90% to skip outro
-  if (duration > 0 && time >= duration * 0.9 && !showScoreModal.value && !playerStore.loading) {
-    onVideoEnded()
-  }
 }
 const isEnding = ref(false);
 

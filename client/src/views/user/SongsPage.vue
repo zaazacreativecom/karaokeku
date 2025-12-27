@@ -69,7 +69,7 @@
             <h1>
               Temukan lagu <span class="text-gradient">favoritmu</span>
             </h1>
-            <p class="hero__sub text-muted">
+            <p class="hero__sub text-white">
               Cari judul atau artis, filter genre & bahasa, lalu mulai karaoke dalam 1 klik.
             </p>
 
@@ -202,7 +202,8 @@
               <p :title="toCamelCase(song.artist)">{{ toCamelCase(song.artist) }}</p>
               <div class="song-meta">
                 <span v-if="song.genre" class="meta-pill"><i class="bi bi-tag"></i> {{ toCamelCase(song.genre) }}</span>
-                <span class="meta-pill meta-pill--soft"><i class="bi bi-play-fill"></i> {{ song.play_count || 0 }}</span>
+                <span class="meta-pill meta-pill--soft"><i class="bi bi-play-fill"></i> {{ song.play_count || 0
+                  }}</span>
               </div>
             </div>
             <div class="song-actions">
@@ -513,12 +514,10 @@ onUnmounted(() => {
   --border-color-light: rgba(94, 234, 212, 0.28);
 
   --gradient-primary: linear-gradient(135deg, #22c55e 0%, #06b6d4 55%, #3b82f6 100%);
-  --gradient-glow: linear-gradient(
-    135deg,
-    rgba(34, 197, 94, 0.28) 0%,
-    rgba(6, 182, 212, 0.32) 55%,
-    rgba(59, 130, 246, 0.22) 100%
-  );
+  --gradient-glow: linear-gradient(135deg,
+      rgba(34, 197, 94, 0.28) 0%,
+      rgba(6, 182, 212, 0.32) 55%,
+      rgba(59, 130, 246, 0.22) 100%);
   --shadow-glow: 0 0 36px rgba(6, 182, 212, 0.35);
 
   display: flex;
@@ -588,10 +587,12 @@ onUnmounted(() => {
 }
 
 @keyframes orbFloat {
+
   0%,
   100% {
     transform: translate3d(0, 0, 0) scale(1);
   }
+
   50% {
     transform: translate3d(18px, -14px, 0) scale(1.06);
   }
@@ -689,7 +690,7 @@ onUnmounted(() => {
   transition: opacity var(--transition-normal), transform var(--transition-normal);
 }
 
-.nav-item > * {
+.nav-item>* {
   position: relative;
   z-index: 1;
 }
@@ -708,12 +709,10 @@ onUnmounted(() => {
 
 .nav-item.active {
   color: white;
-  background: linear-gradient(
-    135deg,
-    rgba(34, 197, 94, 0.18) 0%,
-    rgba(6, 182, 212, 0.12) 55%,
-    rgba(59, 130, 246, 0.16) 100%
-  );
+  background: linear-gradient(135deg,
+      rgba(34, 197, 94, 0.18) 0%,
+      rgba(6, 182, 212, 0.12) 55%,
+      rgba(59, 130, 246, 0.16) 100%);
   border-color: rgba(94, 234, 212, 0.28);
 }
 
@@ -906,12 +905,10 @@ onUnmounted(() => {
 }
 
 .hero-card--primary {
-  background: linear-gradient(
-    135deg,
-    rgba(34, 197, 94, 0.12) 0%,
-    rgba(6, 182, 212, 0.1) 55%,
-    rgba(59, 130, 246, 0.12) 100%
-  );
+  background: linear-gradient(135deg,
+      rgba(34, 197, 94, 0.12) 0%,
+      rgba(6, 182, 212, 0.1) 55%,
+      rgba(59, 130, 246, 0.12) 100%);
 }
 
 .hero-card__icon {
@@ -1431,6 +1428,7 @@ onUnmounted(() => {
     opacity: 0;
     transform: translateY(12px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);

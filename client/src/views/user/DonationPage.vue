@@ -79,8 +79,9 @@
             </div>
 
             <h1>Dukung <span class="text-gradient">KaraokeKu</span> tetap hidup</h1>
-            <p class="hero__sub text-muted">
-              Donasi kamu membantu biaya server dan pengembangan fitur baru, agar KaraokeKu tetap bisa diakses oleh semua.
+            <p class="hero__sub text-white">
+              Donasi kamu membantu biaya server dan pengembangan fitur baru, agar KaraokeKu tetap bisa diakses oleh
+              semua.
             </p>
 
             <div class="hero__stats">
@@ -144,7 +145,8 @@
           </div>
         </section>
 
-        <div v-if="errorMessage && !loading" class="alert-card alert-card--danger reveal" style="--d: 70ms" role="status">
+        <div v-if="errorMessage && !loading" class="alert-card alert-card--danger reveal" style="--d: 70ms"
+          role="status">
           <div class="alert-icon" aria-hidden="true">
             <i class="bi bi-exclamation-triangle-fill"></i>
           </div>
@@ -168,7 +170,7 @@
                 </div>
                 <div class="panel-title__copy">
                   <h2>Metode Donasi</h2>
-                  <p class="text-muted">Pilih metode yang paling nyaman. Klik tombol copy untuk menyalin nomor.</p>
+                  <p class="text-white">Pilih metode yang paling nyaman. Klik tombol copy untuk menyalin nomor.</p>
                 </div>
               </div>
 
@@ -219,12 +221,8 @@
 
                     <div class="qris-body">
                       <div v-if="method.qr_code_url" class="qris-frame">
-                        <img
-                          :src="getImageUrl(method.qr_code_url)"
-                          :alt="method.name"
-                          class="qris-img"
-                          loading="lazy"
-                        />
+                        <img :src="getImageUrl(method.qr_code_url)" :alt="method.name" class="qris-img"
+                          loading="lazy" />
                       </div>
                       <div v-else class="qris-missing text-muted">
                         QR tidak tersedia untuk metode ini.
@@ -252,14 +250,12 @@
                     <div class="method-info">
                       <div class="method-name">{{ method.name }}</div>
                       <div class="method-number">{{ method.account_number }}</div>
-                      <div v-if="method.account_name" class="method-holder text-muted">a.n. {{ method.account_name }}</div>
+                      <div v-if="method.account_name" class="method-holder text-muted">a.n. {{ method.account_name }}
+                      </div>
                     </div>
-                    <button
-                      class="btn btn-ghost btn-sm btn-icon"
-                      type="button"
+                    <button class="btn btn-ghost btn-sm btn-icon" type="button"
                       @click="copyToClipboard(method.account_number, method.name)"
-                      :aria-label="`Copy nomor ${method.name}`"
-                    >
+                      :aria-label="`Copy nomor ${method.name}`">
                       <i class="bi bi-copy" aria-hidden="true"></i>
                     </button>
                   </div>
@@ -281,14 +277,12 @@
                     <div class="method-info">
                       <div class="method-name">{{ method.name }}</div>
                       <div class="method-number">{{ method.account_number }}</div>
-                      <div v-if="method.account_name" class="method-holder text-muted">a.n. {{ method.account_name }}</div>
+                      <div v-if="method.account_name" class="method-holder text-muted">a.n. {{ method.account_name }}
+                      </div>
                     </div>
-                    <button
-                      class="btn btn-ghost btn-sm btn-icon"
-                      type="button"
+                    <button class="btn btn-ghost btn-sm btn-icon" type="button"
                       @click="copyToClipboard(method.account_number, method.name)"
-                      :aria-label="`Copy nomor ${method.name}`"
-                    >
+                      :aria-label="`Copy nomor ${method.name}`">
                       <i class="bi bi-copy" aria-hidden="true"></i>
                     </button>
                   </div>
@@ -319,12 +313,12 @@
                   </div>
                   <div class="panel-title__copy">
                     <h2>Kenapa donasi?</h2>
-                    <p class="text-muted">Donasi kamu berdampak langsung.</p>
+                    <p class="text-white">Donasi kamu berdampak langsung.</p>
                   </div>
                 </div>
               </div>
 
-              <ul class="tips-list">
+              <ul class="tips-list ms-3">
                 <li><strong>Biaya server</strong> untuk streaming dan penyimpanan.</li>
                 <li><strong>Pengembangan</strong> fitur baru dan perbaikan bug.</li>
                 <li><strong>Prioritas request</strong> untuk lagu-lagu yang kamu minta.</li>
@@ -518,12 +512,10 @@ onMounted(fetchPaymentMethods)
   --border-color-light: rgba(94, 234, 212, 0.28);
 
   --gradient-primary: linear-gradient(135deg, #22c55e 0%, #06b6d4 55%, #3b82f6 100%);
-  --gradient-glow: linear-gradient(
-    135deg,
-    rgba(34, 197, 94, 0.28) 0%,
-    rgba(6, 182, 212, 0.32) 55%,
-    rgba(59, 130, 246, 0.22) 100%
-  );
+  --gradient-glow: linear-gradient(135deg,
+      rgba(34, 197, 94, 0.28) 0%,
+      rgba(6, 182, 212, 0.32) 55%,
+      rgba(59, 130, 246, 0.22) 100%);
   --shadow-glow: 0 0 36px rgba(6, 182, 212, 0.35);
 
   display: flex;
@@ -593,10 +585,12 @@ onMounted(fetchPaymentMethods)
 }
 
 @keyframes orbFloat {
+
   0%,
   100% {
     transform: translate3d(0, 0, 0) scale(1);
   }
+
   50% {
     transform: translate3d(18px, -14px, 0) scale(1.06);
   }
@@ -697,7 +691,7 @@ onMounted(fetchPaymentMethods)
   transition: opacity var(--transition-normal), transform var(--transition-normal);
 }
 
-.nav-item > * {
+.nav-item>* {
   position: relative;
   z-index: 1;
 }
@@ -716,12 +710,10 @@ onMounted(fetchPaymentMethods)
 
 .nav-item.active {
   color: white;
-  background: linear-gradient(
-    135deg,
-    rgba(34, 197, 94, 0.18) 0%,
-    rgba(6, 182, 212, 0.12) 55%,
-    rgba(59, 130, 246, 0.16) 100%
-  );
+  background: linear-gradient(135deg,
+      rgba(34, 197, 94, 0.18) 0%,
+      rgba(6, 182, 212, 0.12) 55%,
+      rgba(59, 130, 246, 0.16) 100%);
   border-color: rgba(94, 234, 212, 0.28);
 }
 
@@ -911,12 +903,10 @@ onMounted(fetchPaymentMethods)
 }
 
 .hero-card--primary {
-  background: linear-gradient(
-    135deg,
-    rgba(34, 197, 94, 0.12) 0%,
-    rgba(6, 182, 212, 0.1) 55%,
-    rgba(59, 130, 246, 0.12) 100%
-  );
+  background: linear-gradient(135deg,
+      rgba(34, 197, 94, 0.12) 0%,
+      rgba(6, 182, 212, 0.1) 55%,
+      rgba(59, 130, 246, 0.12) 100%);
 }
 
 .hero-card__icon {
@@ -1369,7 +1359,7 @@ onMounted(fetchPaymentMethods)
     radial-gradient(520px 260px at 55% 115%, rgba(59, 130, 246, 0.12) 0%, transparent 64%);
 }
 
-.thanks-card > * {
+.thanks-card>* {
   position: relative;
   z-index: 1;
 }
@@ -1382,12 +1372,10 @@ onMounted(fetchPaymentMethods)
   display: grid;
   place-items: center;
   border: 1px solid rgba(94, 234, 212, 0.16);
-  background: linear-gradient(
-    135deg,
-    rgba(34, 197, 94, 0.16) 0%,
-    rgba(6, 182, 212, 0.14) 55%,
-    rgba(59, 130, 246, 0.16) 100%
-  );
+  background: linear-gradient(135deg,
+      rgba(34, 197, 94, 0.16) 0%,
+      rgba(6, 182, 212, 0.14) 55%,
+      rgba(59, 130, 246, 0.16) 100%);
   box-shadow: 0 16px 60px rgba(0, 0, 0, 0.45);
 }
 
@@ -1500,6 +1488,7 @@ onMounted(fetchPaymentMethods)
     opacity: 0;
     transform: translateY(12px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);

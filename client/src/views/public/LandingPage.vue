@@ -1674,7 +1674,7 @@ onMounted(async () => {
   position: relative;
 }
 
-.input-with-icon i {
+.input-with-icon > i {
   position: absolute;
   left: 12px;
   top: 50%;
@@ -1688,6 +1688,10 @@ onMounted(async () => {
   padding-left: 2.5rem;
 }
 
+.password-input .form-control {
+  padding-right: 3rem;
+}
+
 .input-with-icon:focus-within i {
   color: rgba(94, 234, 212, 0.95);
 }
@@ -1697,10 +1701,15 @@ onMounted(async () => {
   right: 10px;
   top: 50%;
   transform: translateY(-50%);
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
   background: none;
   border: none;
   color: rgba(235, 255, 252, 0.55);
   cursor: pointer;
+  z-index: 2;
 }
 
 .toggle-password:hover {

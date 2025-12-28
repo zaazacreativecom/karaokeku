@@ -20,7 +20,7 @@ const getAllSongs = async (req, res, next) => {
       language,
       page: parseInt(page) || 1,
       limit: parseInt(limit) || 20,
-      sortBy: sortBy || 'title',
+      sortBy: sortBy || 'created_at',
       sortOrder: sortOrder || 'ASC'
     });
     

@@ -25,7 +25,7 @@ export const useSongsStore = defineStore('songs', () => {
     search: '',
     genre: '',
     language: '',
-    sortBy: 'title',
+    sortBy: 'created_at',
     sortOrder: 'ASC'
   })
   
@@ -150,8 +150,8 @@ export const useSongsStore = defineStore('songs', () => {
       search: '',
       genre: '',
       language: '',
-      sortBy: 'title',
-      sortOrder: 'ASC'
+      sortBy: 'created_at',
+      sortOrder: 'DESC'
     }
     fetchSongs(true)
   }

@@ -19,7 +19,7 @@ const getAllSongs = async (options = {}) => {
     status = 'active',
     page = 1,
     limit = 20,
-    sortBy = 'title',
+    sortBy = 'created_at',
     sortOrder = 'ASC'
   } = options;
   
@@ -47,10 +47,17 @@ const getAllSongs = async (options = {}) => {
     where.language = language;
   }
   
+  const order = [[sortBy, sortOrder]];
+  // Tie-breaker to keep results stable and ensure "terbaru" benar-benar di atas
+  // saat banyak lagu dibuat pada timestamp yang sama (mis. hasil scan massal).
+  if (sortBy !== 'id') {
+    order.push(['id', 'DESC']);
+  }
+
   // Query
   const { count, rows } = await Song.findAndCountAll({
     where,
-    order: [[sortBy, sortOrder]],
+    order,
     limit: parseInt(limit),
     offset: parseInt(offset)
   });

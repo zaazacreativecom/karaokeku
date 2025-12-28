@@ -57,6 +57,7 @@ router.put('/songs/:id', adminController.updateSong);
 router.delete('/songs/:id', adminController.deleteSong);
 router.post('/songs/:id/thumbnail', upload.single('thumbnail'), adminController.uploadThumbnail);
 router.post('/songs/scan', adminController.scanSongs);
+router.post('/songs/sync-files', adminController.syncSongsWithFiles);
 
 // Users management
 router.get('/users', adminController.getAllUsers);

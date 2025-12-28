@@ -10,6 +10,7 @@ const app = require('./app');
 const { testConnection } = require('./src/config/database');
 const { syncDatabase } = require('./src/models');
 const { initializeSocket } = require('./src/socket');
+const { pruneMissingLocalSongs } = require('./src/services/songMaintenanceService');
 require('dotenv').config();
 
 const PORT = process.env.PORT || 3000;
@@ -43,6 +44,9 @@ const startServer = async () => {
     
     // Buat admin default jika belum ada
     await createDefaultAdmin();
+
+    // Optional: background job to keep DB in sync with files in uploads/videos
+    startSongFileSyncJob();
     
     // Start server
     server.listen(PORT, () => {
@@ -58,6 +62,34 @@ const startServer = async () => {
     console.error(error.stack);
     process.exit(1);
   }
+};
+
+const startSongFileSyncJob = () => {
+  const intervalMinutes = parseInt(process.env.SONG_FILE_SYNC_INTERVAL_MINUTES || '0', 10);
+  if (!Number.isFinite(intervalMinutes) || intervalMinutes <= 0) return;
+
+  const intervalMs = intervalMinutes * 60 * 1000;
+  let running = false;
+
+  const runOnce = async () => {
+    if (running) return;
+    running = true;
+    try {
+      const result = await pruneMissingLocalSongs({ dryRun: false });
+      if (result?.deleted > 0 || (result?.errors?.length || 0) > 0) {
+        console.log('🧹 Song file sync result:', result);
+      }
+    } catch (error) {
+      console.warn('⚠️  Song file sync job error:', error.message || error);
+    } finally {
+      running = false;
+    }
+  };
+
+  // Run at startup then periodically.
+  runOnce();
+  setInterval(runOnce, intervalMs);
+  console.log(`🕒 Song file sync job aktif: tiap ${intervalMinutes} menit`);
 };
 
 /**

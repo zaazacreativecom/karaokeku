@@ -49,7 +49,11 @@ const uploadsUrlToFilePath = (urlPath) => {
  */
 const videosUrlToFilePath = (urlPath) => {
   if (!urlPath || typeof urlPath !== 'string') return null;
-  const cleanPath = urlPath.split('?')[0].split('#')[0];
+  // IMPORTANT:
+  // - Only strip query string. Do NOT strip '#', because this project uses '#'
+  //   inside filenames (format: TITLE#ARTIST#COUNTRY.mp4/.mpg).
+  // - Fragment identifiers are not expected to be persisted in DB URLs.
+  const cleanPath = urlPath.split('?')[0];
   if (!cleanPath.startsWith('/videos/')) return null;
 
   const rel = cleanPath.slice('/videos/'.length);

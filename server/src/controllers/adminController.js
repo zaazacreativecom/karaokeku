@@ -6,6 +6,7 @@
 const { User, Song, Upload, PlayHistory, Setting, sequelize } = require('../models');
 const songService = require('../services/songService');
 const uploadService = require('../services/uploadService');
+const songMaintenanceService = require('../services/songMaintenanceService');
 const { scanDirectory, addSongsToDatabase, SUPPORTED_EXTENSIONS } = require('../utils/songScanner');
 const { formatResponse, formatPagination, parseSongFilename } = require('../utils/helpers');
 const { ensureSongThumbnail } = require('../utils/songThumbnail');
@@ -224,7 +225,7 @@ const deleteSong = async (req, res, next) => {
  */
 const scanSongs = async (req, res, next) => {
   try {
-    const { directory, dryRun = false } = req.body;
+    const { directory, dryRun = false, pruneMissing = true } = req.body;
     
     const songsDir = directory || process.env.SONGS_DIRECTORY || SONGS_DIRECTORY;
     const absolutePath = path.resolve(process.cwd(), songsDir);
@@ -233,10 +234,14 @@ const scanSongs = async (req, res, next) => {
     const files = scanDirectory(absolutePath);
     
     if (files.length === 0) {
+      const pruneResult = pruneMissing
+        ? await songMaintenanceService.pruneMissingLocalSongs({ dryRun })
+        : null;
+
       return res.json(formatResponse(
         true,
         'Tidak ada file video ditemukan.',
-        { scanned: 0, added: 0, skipped: 0 }
+        { scanned: 0, added: 0, skipped: 0, pruneMissing, pruned: pruneResult }
       ));
     }
     
@@ -245,6 +250,11 @@ const scanSongs = async (req, res, next) => {
       dryRun,
       skipExisting: true
     });
+
+    // Opsional: hapus lagu di DB jika file lokal sudah tidak ada
+    const pruneResult = pruneMissing
+      ? await songMaintenanceService.pruneMissingLocalSongs({ dryRun })
+      : null;
     
     res.json(formatResponse(
       true,
@@ -252,9 +262,25 @@ const scanSongs = async (req, res, next) => {
       {
         directory: absolutePath,
         supportedFormats: SUPPORTED_EXTENSIONS,
+        pruneMissing,
+        pruned: pruneResult,
         ...results
       }
     ));
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/admin/songs/sync-files
+ * Hapus record lagu jika file video lokalnya sudah tidak ada.
+ */
+const syncSongsWithFiles = async (req, res, next) => {
+  try {
+    const { dryRun = false, limit = 0 } = req.body || {};
+    const result = await songMaintenanceService.pruneMissingLocalSongs({ dryRun, limit });
+    res.json(formatResponse(true, 'Sinkronisasi file lagu selesai.', result));
   } catch (error) {
     next(error);
   }
@@ -496,6 +522,7 @@ module.exports = {
   deleteSong,
   uploadThumbnail,
   scanSongs,
+  syncSongsWithFiles,
   // Users
   getAllUsers,
   updateUser,

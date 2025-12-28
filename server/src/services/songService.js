@@ -4,7 +4,8 @@
  */
 
 const { Op } = require('sequelize');
-const { Song, PlayHistory, UserScore, sequelize } = require('../models');
+const { Song, PlaylistItem, PlayHistory, UserScore, Favorite, sequelize } = require('../models');
+const { deleteSongMediaFiles } = require('../utils/songMediaCleanup');
 
 /**
  * Dapatkan semua lagu dengan filter dan pagination
@@ -193,7 +194,8 @@ const updateSong = async (songId, updateData) => {
  * Hapus lagu (admin)
  * @param {number} songId - ID lagu
  */
-const deleteSong = async (songId) => {
+const deleteSong = async (songId, options = {}) => {
+  const { deleteFiles = true } = options;
   const song = await Song.findByPk(songId);
   
   if (!song) {
@@ -201,8 +203,28 @@ const deleteSong = async (songId) => {
     error.statusCode = 404;
     throw error;
   }
-  
-  await song.destroy();
+
+  // Hapus record terkait terlebih dahulu (hindari foreign key constraint errors)
+  await sequelize.transaction(async (transaction) => {
+    await PlaylistItem.destroy({ where: { song_id: song.id }, transaction });
+    await PlayHistory.destroy({ where: { song_id: song.id }, transaction });
+    await UserScore.destroy({ where: { song_id: song.id }, transaction });
+    await Favorite.destroy({ where: { song_id: song.id }, transaction });
+    await song.destroy({ transaction });
+  });
+
+  // Best-effort: hapus file media lokal terkait lagu (video/thumbnail/low variants)
+  if (deleteFiles) {
+    try {
+      const result = await deleteSongMediaFiles(song);
+      if (result.errors.length > 0) {
+        console.warn('⚠️  Beberapa file gagal dihapus:', result.errors);
+      }
+    } catch (error) {
+      console.warn('⚠️  Gagal menghapus file media lagu (non-fatal):', error.message || error);
+    }
+  }
+
   return true;
 };
 

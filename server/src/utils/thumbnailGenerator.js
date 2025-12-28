@@ -96,7 +96,10 @@ const generateThumbnail = (videoPath, outputDir, filename) => {
   });
 
   inflight.set(outputPath, job);
-  job.finally(() => inflight.delete(outputPath));
+  job.then(
+    () => inflight.delete(outputPath),
+    () => inflight.delete(outputPath)
+  );
   return job;
 };
 

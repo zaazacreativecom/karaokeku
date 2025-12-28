@@ -330,7 +330,7 @@
           </div>
 
           <!-- Song List -->
-          <div class="overlay-songs">
+          <div ref="overlaySongsRef" class="overlay-songs" @scroll.passive="onOverlaySongsScroll">
             <div v-for="song in songs" :key="song.id" class="overlay-song-item">
               <div class="song-thumbnail">
                 <img v-if="getThumbnailUrl(song)" :src="getThumbnailUrl(song)" :alt="song.title" loading="lazy" />
@@ -365,6 +365,10 @@
             </div>
 
             <div v-if="loadingSongs" class="loading-songs">
+              <div class="spinner-border text-primary"></div>
+            </div>
+
+            <div v-if="loadingMoreSongs" class="loading-songs loading-songs--more">
               <div class="spinner-border text-primary"></div>
             </div>
           </div>
@@ -576,6 +580,7 @@ const songs = ref([])
 const genres = ref([])
 const languages = ref([])
 const loadingSongs = ref(false)
+const loadingMoreSongs = ref(false)
 const currentLyrics = ref('')
 const showScoreModal = ref(false)
 const lastScore = ref(0)
@@ -1163,39 +1168,116 @@ const toggleMobileControl = (control) => {
 }
 
 const handleSearch = () => {
-  fetchSongs()
+  scheduleFetchSongs()
 }
 
 const clearSearch = () => {
   if (!searchQuery.value) return
   searchQuery.value = ''
-  fetchSongs()
+  scheduleFetchSongs(0)
 }
 
 const resetOverlayFilters = () => {
   searchQuery.value = ''
   filterGenre.value = ''
   filterLanguage.value = ''
-  fetchSongs()
+  scheduleFetchSongs(0)
 }
 
+const overlaySongsRef = ref(null)
+const songsPage = ref(1)
+const songsHasNextPage = ref(false)
+const SONGS_PAGE_SIZE = 30
+const SONGS_SCROLL_THRESHOLD_PX = 220
+const songsQuerySeq = ref(0)
+let searchDebounceTimeout = null
+
+const scheduleFetchSongs = (delayMs = 250) => {
+  if (searchDebounceTimeout) clearTimeout(searchDebounceTimeout)
+  searchDebounceTimeout = setTimeout(() => {
+    fetchSongs()
+  }, delayMs)
+}
+
+const buildSongsParams = (page) => ({
+  search: (searchQuery.value || '').trim(),
+  genre: filterGenre.value,
+  language: filterLanguage.value,
+  page,
+  limit: SONGS_PAGE_SIZE
+})
+
+const canLoadMoreSongs = () =>
+  !loadingSongs.value && !loadingMoreSongs.value && songsHasNextPage.value
+
 const fetchSongs = async () => {
+  songsQuerySeq.value += 1
+  const seq = songsQuerySeq.value
+
   loadingSongs.value = true
+  loadingMoreSongs.value = false
+  songs.value = []
+  songsPage.value = 1
+  songsHasNextPage.value = false
 
   try {
-    const params = {
-      search: searchQuery.value,
-      genre: filterGenre.value,
-      language: filterLanguage.value,
-      limit: 50
-    }
+    const response = await songsAPI.getAll(buildSongsParams(1))
+    if (seq !== songsQuerySeq.value) return
 
-    const response = await songsAPI.getAll(params)
-    songs.value = response.data.data || []
+    const data = response.data.data || []
+    const meta = response.data.meta || {}
+
+    songs.value = data
+    songsPage.value = meta.page || 1
+    songsHasNextPage.value = Boolean(meta.hasNextPage)
   } catch (error) {
     console.error('Error fetching songs:', error)
   } finally {
-    loadingSongs.value = false
+    if (seq === songsQuerySeq.value) {
+      await nextTick()
+      overlaySongsRef.value?.scrollTo?.({ top: 0 })
+      loadingSongs.value = false
+      onOverlaySongsScroll()
+    }
+  }
+}
+
+const fetchMoreSongs = async () => {
+  if (!canLoadMoreSongs()) return
+
+  const seq = songsQuerySeq.value
+  const nextPage = songsPage.value + 1
+  loadingMoreSongs.value = true
+
+  try {
+    const response = await songsAPI.getAll(buildSongsParams(nextPage))
+    if (seq !== songsQuerySeq.value) return
+
+    const data = response.data.data || []
+    const meta = response.data.meta || {}
+
+    songs.value = [...songs.value, ...data]
+    songsPage.value = meta.page || nextPage
+    songsHasNextPage.value = Boolean(meta.hasNextPage)
+  } catch (error) {
+    console.error('Error fetching more songs:', error)
+  } finally {
+    if (seq === songsQuerySeq.value) {
+      await nextTick()
+      loadingMoreSongs.value = false
+      onOverlaySongsScroll()
+    }
+  }
+}
+
+const onOverlaySongsScroll = () => {
+  if (!overlaySongsRef.value) return
+  if (!canLoadMoreSongs()) return
+
+  const el = overlaySongsRef.value
+  const remaining = el.scrollHeight - (el.scrollTop + el.clientHeight)
+  if (remaining <= SONGS_SCROLL_THRESHOLD_PX) {
+    fetchMoreSongs()
   }
 }
 
@@ -1272,6 +1354,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  if (searchDebounceTimeout) clearTimeout(searchDebounceTimeout)
   if (videoRef.value) {
     videoRef.value.pause()
   }
@@ -1283,6 +1366,15 @@ onUnmounted(() => {
     audioContext.close()
   }
 })
+
+watch(
+  () => playerStore.showOverlay,
+  async (open) => {
+    if (!open) return
+    await nextTick()
+    onOverlaySongsScroll()
+  }
+)
 </script>
 
 <style scoped>
@@ -2552,6 +2644,8 @@ onUnmounted(() => {
   flex: 1;
   overflow-y: auto;
   padding: 0 1.35rem 1.35rem;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 .overlay-song-item {
@@ -2753,6 +2847,10 @@ onUnmounted(() => {
 
 .loading-songs .spinner-border {
   color: var(--primary-light);
+}
+
+.loading-songs--more {
+  padding: 1.25rem 0 1.75rem;
 }
 
 /* Toast */

@@ -465,6 +465,7 @@ const glowImage = computed(() => {
 })
 
 const forceOriginalQuality = ref(false)
+const overrideVideoUrl = ref('')
 
 const shouldUseLowQuality = () => {
   if (typeof navigator === 'undefined') return false
@@ -482,8 +483,16 @@ watch(
   () => {
     forceOriginalQuality.value = false
     preferLowQualityForSong.value = shouldUseLowQuality()
+    overrideVideoUrl.value = ''
   },
   { immediate: true }
+)
+
+watch(
+  () => playerStore.vocalOn,
+  () => {
+    overrideVideoUrl.value = ''
+  }
 )
 
 const stripLocalhost = (url) => {
@@ -512,7 +521,7 @@ const encodeFilenameInUrl = (url) => {
 }
 
 const selectedVideoUrl = computed(() => {
-  let url = playerStore.currentVideoUrl || currentSong.value?.video_url_full
+  let url = overrideVideoUrl.value || playerStore.currentVideoUrl || currentSong.value?.video_url_full
   url = stripLocalhost(url)
   if (!url) return ''
 
@@ -528,6 +537,14 @@ const selectedVideoUrl = computed(() => {
 // Fix for URLs with special characters (like #)
 const encodedVideoUrl = computed(() => encodeFilenameInUrl(selectedVideoUrl.value))
 
+const toMp4VariantUrl = (url) => {
+  if (!url) return ''
+  const [pathPart, queryPart] = url.split('?')
+  if (!pathPart.toLowerCase().endsWith('.mpg')) return url
+  const mp4Path = pathPart.replace(/\.mpg$/i, '.mp4')
+  return queryPart ? `${mp4Path}?${queryPart}` : mp4Path
+}
+
 const onVideoError = () => {
   // Fallback to original quality if low variant is missing/invalid
   if (preferLowQualityForSong.value && !forceOriginalQuality.value) {
@@ -535,6 +552,17 @@ const onVideoError = () => {
     nextTick(() => {
       if (!videoRef.value) return
       // Try to continue playback seamlessly (best effort)
+      videoRef.value.play().catch(() => { })
+    })
+    return
+  }
+
+  // If a song URL ends with .mpg and the browser can't play it, try the .mp4 variant.
+  if (!overrideVideoUrl.value && selectedVideoUrl.value.toLowerCase().endsWith('.mpg')) {
+    overrideVideoUrl.value = toMp4VariantUrl(selectedVideoUrl.value)
+    forceOriginalQuality.value = true
+    nextTick(() => {
+      if (!videoRef.value) return
       videoRef.value.play().catch(() => { })
     })
   }

@@ -18,7 +18,7 @@ const { UPLOAD_PATH, VIDEOS_PATH, VIDEOS_LOW_PATH, TEMP_PATH, THUMBNAILS_PATH } 
 
 // Format video yang diizinkan
 const getAllowedFormats = () => {
-  const formats = process.env.ALLOWED_VIDEO_FORMATS || 'mp4,mkv,webm,avi';
+  const formats = process.env.ALLOWED_VIDEO_FORMATS || 'mp4,mkv,webm,avi,mpg';
   return formats.split(',').map(f => f.trim().toLowerCase());
 };
 

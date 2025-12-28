@@ -61,6 +61,17 @@ const scanDirectory = (directory) => {
     } else if (item.isFile()) {
       const ext = path.extname(item.name).toLowerCase();
       
+      // Jika ada pasangan .mpg dan .mp4 dengan basename yang sama,
+      // skip .mp4 agar tidak menambah duplikat (misalnya hasil konversi on-demand).
+      if (ext === '.mp4') {
+        const base = path.basename(item.name, ext);
+        const mpgCandidateLower = path.join(directory, `${base}.mpg`);
+        const mpgCandidateUpper = path.join(directory, `${base}.MPG`);
+        if (fs.existsSync(mpgCandidateLower) || fs.existsSync(mpgCandidateUpper)) {
+          continue;
+        }
+      }
+
       if (SUPPORTED_EXTENSIONS.includes(ext)) {
         const stats = fs.statSync(fullPath);
         const videoUrl = computeVideoUrl(fullPath);

@@ -41,6 +41,11 @@ self.addEventListener('activate', (event) => {
 function isCacheableRequest(request) {
   if (request.method !== 'GET') return false
 
+  // Cache API tidak mendukung menyimpan response partial (206).
+  // Range requests biasanya dipakai oleh <video>/<audio> untuk streaming/seek.
+  if (request.headers.has('range')) return false
+  if (request.destination === 'video' || request.destination === 'audio') return false
+
   const url = new URL(request.url)
   if (url.origin !== self.location.origin) return false
 
@@ -48,6 +53,9 @@ function isCacheableRequest(request) {
   if (url.pathname.startsWith('/videos/')) return false
   if (url.pathname.startsWith('/uploads/')) return false
   if (url.pathname.startsWith('/socket.io/')) return false
+
+  // Extra guard: jangan cache file media via ekstensi
+  if (/\.(mp4|mpg|webm|mkv|mov|avi|mp3|m4a|aac|wav|ogg)$/i.test(url.pathname)) return false
 
   return true
 }
@@ -61,7 +69,9 @@ self.addEventListener('fetch', (event) => {
         try {
           const response = await fetch(event.request)
           const cache = await caches.open(RUNTIME_CACHE)
-          cache.put(event.request, response.clone())
+          if (response.status !== 206) {
+            cache.put(event.request, response.clone()).catch(() => {})
+          }
           return response
         } catch (_error) {
           const cache = await caches.open(RUNTIME_CACHE)
@@ -81,7 +91,9 @@ self.addEventListener('fetch', (event) => {
       try {
         const response = await fetch(event.request)
         const cache = await caches.open(RUNTIME_CACHE)
-        cache.put(event.request, response.clone())
+        if (response.status !== 206) {
+          cache.put(event.request, response.clone()).catch(() => {})
+        }
         return response
       } catch (_error) {
         return Response.error()

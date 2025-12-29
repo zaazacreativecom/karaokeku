@@ -48,96 +48,6 @@
     <main class="landing-content">
       <!-- Left -->
       <section class="landing-left" aria-label="Konten utama">
-        <section class="hero-spotlight" aria-label="Perkenalan">
-          <div class="hero-spotlight__grid">
-            <div class="hero__copy">
-              <div class="logo-wrapper">
-                <span class="logo-badge" aria-hidden="true">
-                  <i class="bi bi-music-note-beamed"></i>
-                </span>
-                <div class="brand-section">
-                  <div class="hero-kicker" aria-label="Highlight">
-                    <span class="kicker-pill">
-                      <i class="bi bi-broadcast" aria-hidden="true"></i>
-                      Real-time
-                    </span>
-                    <span class="kicker-pill">
-                      <i class="bi bi-mic-fill" aria-hidden="true"></i>
-                      Vocal/Karaoke
-                    </span>
-                    <span class="kicker-pill">
-                      <i class="bi bi-trophy-fill" aria-hidden="true"></i>
-                      Score
-                    </span>
-                  </div>
-                  <h1 class="hero-title">
-                    Karaoke<span class="text-gradient">Ku</span>
-                  </h1>
-                  <p class="hero-subtitle">Karaoke online yang ringan, seru, dan siap di semua perangkat.</p>
-                </div>
-              </div>
-
-              <p class="hero-desc">
-                Pilih lagu favorit, nyanyi dengan mode Vocal/Karaoke, pantau lirik, kumpulkan skor, dan ngobrol bareng
-                teman secara real-time.
-              </p>
-
-              <div class="hero-actions">
-                <button type="button" class="btn btn-primary btn-lg" @click="focusAuth('register')">
-                  Mulai Gratis <i class="bi bi-arrow-right"></i>
-                </button>
-                <button type="button" class="btn btn-outline-primary btn-lg" @click="focusAuth('login')">
-                  Saya Sudah Punya Akun
-                </button>
-              </div>
-
-              <div class="hero-features" aria-label="Fitur unggulan">
-                <div class="feature-pill">
-                  <i class="bi bi-music-note-list"></i>
-                  Koleksi Lagu
-                </div>
-                <div class="feature-pill">
-                  <i class="bi bi-heart-pulse"></i>
-                  Favorit & Playlist
-                </div>
-                <div class="feature-pill">
-                  <i class="bi bi-chat-dots"></i>
-                  Request Lagu
-                </div>
-                <div class="feature-pill">
-                  <i class="bi bi-upload"></i>
-                  Upload Mandiri
-                </div>
-              </div>
-            </div>
-
-            <div class="hero__visual d-none d-lg-block" aria-hidden="true">
-              <div class="visual-card card-border">
-                <div class="visual-top">
-                  <span class="dot dot--g"></span>
-                  <span class="dot dot--b"></span>
-                  <span class="dot dot--c"></span>
-                </div>
-
-                <div class="visual-title">
-                  <span class="visual-title__pill"></span>
-                  <span class="visual-title__pill pill--short"></span>
-                </div>
-
-                <div class="equalizer">
-                  <span v-for="i in 12" :key="i" class="bar" :style="{ animationDelay: `${i * 80}ms` }"></span>
-                </div>
-
-                <div class="visual-micro">
-                  <span class="micro-chip"><i class="bi bi-mic-fill"></i> Karaoke</span>
-                  <span class="micro-chip"><i class="bi bi-stars"></i> Score</span>
-                  <span class="micro-chip"><i class="bi bi-people-fill"></i> Party</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
         <section class="howto lp-panel card-glass card-border" aria-label="Cara mulai">
           <div class="howto-head">
             <h3 class="howto-title">
@@ -264,7 +174,8 @@
 
       <!-- Right -->
       <aside class="landing-right" ref="authSection" aria-label="Autentikasi">
-        <div class="auth-card lp-panel card card-glass card-border" :class="{ 'is-register': activeTab === 'register' }">
+        <div class="auth-card lp-panel card card-glass card-border"
+          :class="{ 'is-register': activeTab === 'register' }">
           <div class="auth-head">
             <p class="auth-eyebrow">Selamat datang</p>
             <h2 class="auth-title">
@@ -1565,6 +1476,7 @@ onMounted(async () => {
   margin: 0;
   font-size: 1.05rem;
   font-weight: 700;
+  color: rgba(94, 234, 212, 0.95);
 }
 
 .card-title i {
@@ -1649,6 +1561,7 @@ onMounted(async () => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  color: var(--text-secondary);
 }
 
 .song-artist {
@@ -1739,6 +1652,7 @@ onMounted(async () => {
 .user-name {
   flex: 1;
   font-size: 0.875rem;
+  color: var(--text-secondary);
 }
 
 .user-score {
@@ -1782,6 +1696,7 @@ onMounted(async () => {
 .auth-title {
   margin: 0.35rem 0 0.25rem;
   font-size: 1.5rem;
+  color: var(--text-secondary);
 }
 
 .auth-subtitle {
@@ -1890,13 +1805,10 @@ onMounted(async () => {
 .google-note,
 .google-error {
   margin: 0;
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   line-height: 1.4;
   padding: 0.75rem 0.9rem;
-  border-radius: 16px;
-  border: 1px solid rgba(94, 234, 212, 0.14);
-  background: rgba(255, 255, 255, 0.04);
-  color: rgba(235, 255, 252, 0.86);
+  color: var(--text-secondary);
 }
 
 .google-error {

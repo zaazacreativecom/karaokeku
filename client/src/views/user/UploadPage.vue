@@ -191,6 +191,7 @@
                   <select class="form-select" v-model="form.language">
                     <option value="">Pilih bahasa</option>
                     <option value="Indonesia">Indonesia</option>
+                    <option value="Malaysia">Malaysia</option>
                     <option value="English">English</option>
                     <option value="Korean">Korean</option>
                     <option value="Japanese">Japanese</option>
@@ -413,7 +414,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { uploadsAPI } from '@/services/api'
 import MobileNav from '@/components/MobileNav.vue'
 
@@ -444,23 +445,21 @@ const scrollToSection = (element) => {
   element?.scrollIntoView?.({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'start' })
 }
 
-const openVideoPicker = async () => {
-  await nextTick()
+const openVideoPicker = () => {
   fileInput.value?.click?.()
 }
 
-const openThumbnailPicker = async () => {
-  await nextTick()
+const openThumbnailPicker = () => {
   thumbInput.value?.click?.()
 }
 
-const focusUpload = async (openVideo = false) => {
+const focusUpload = (openVideo = false) => {
   scrollToSection(uploadFormSection.value)
   if (openVideo) {
-    setTimeout(() => openVideoPicker(), prefersReducedMotion() ? 0 : 220)
+    openVideoPicker()
     return
   }
-  setTimeout(() => openThumbnailPicker(), prefersReducedMotion() ? 0 : 220)
+  openThumbnailPicker()
 }
 
 const scrollToMyUploads = () => {
@@ -1208,7 +1207,7 @@ onUnmounted(() => {
 .form-control,
 .form-select {
   width: 100%;
-  background: rgba(255, 255, 255, 0.04);
+  /* background: rgba(255, 255, 255, 0.04); */
   border: 1px solid rgba(94, 234, 212, 0.14);
   border-radius: 16px;
   color: var(--text-primary);
@@ -1229,13 +1228,14 @@ onUnmounted(() => {
 /* Dropzones */
 .dropzones {
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(0, 0.65fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 1rem;
 }
 
 .dropzone-card {
   display: grid;
   gap: 0.65rem;
+  min-width: 0;
 }
 
 .dropzone-header {
@@ -1273,6 +1273,7 @@ onUnmounted(() => {
   background: rgba(255, 255, 255, 0.03);
   position: relative;
   outline: none;
+  min-width: 0;
 }
 
 .upload-dropzone:hover {
@@ -1328,6 +1329,8 @@ onUnmounted(() => {
   align-items: center;
   gap: 0.85rem;
   text-align: left;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .file-preview i {
@@ -1357,6 +1360,7 @@ onUnmounted(() => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .file-preview__copy span {
@@ -1795,7 +1799,7 @@ onUnmounted(() => {
   }
 
   .dropzones {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .form-actions {

@@ -160,79 +160,84 @@
             </div>
 
             <form class="request-form" @submit.prevent="submitRequest">
-              <div class="form-grid">
-                <div class="field">
-                  <label class="form-label">Judul Lagu *</label>
-                  <input
-                    ref="titleInputRef"
-                    type="text"
-                    class="form-control"
-                    v-model="form.title"
-                    placeholder="Contoh: Laskar Pelangi"
-                    required
-                    :disabled="isSubmitting"
-                  />
-                </div>
-                <div class="field">
-                  <label class="form-label">Artis / Penyanyi *</label>
-                  <input
-                    type="text"
-                    class="form-control"
-                    v-model="form.artist"
-                    placeholder="Contoh: Nidji"
-                    required
-                    :disabled="isSubmitting"
-                  />
+              <div class="request-tabs-wrap">
+                <div class="request-tabs__meta">
+                  <div class="request-tabs__title">
+                    <span>Multi request</span>
+                    <span class="request-tabs__count text-secondary">{{ completedTabsCount }}/{{ maxRequests }}
+                      siap</span>
+                  </div>
+                  <div class="request-tabs__hint text-secondary">
+                    Pilih Tab 1–{{ maxRequests }} untuk isi hingga 10 lagu (tab kosong tidak akan dikirim).
+                  </div>
                 </div>
 
-                <div class="field">
-                  <label class="form-label">Genre</label>
-                  <select class="form-select" v-model="form.genre" :disabled="isSubmitting">
-                    <option value="">Pilih Genre</option>
-                    <option value="Pop">Pop</option>
-                    <option value="Rock">Rock</option>
-                    <option value="Dangdut">Dangdut</option>
-                    <option value="Jazz">Jazz</option>
-                    <option value="R&B">R&B</option>
-                    <option value="K-Pop">K-Pop</option>
-                    <option value="Indie">Indie</option>
-                    <option value="Lainnya">Lainnya</option>
-                  </select>
+                <div class="request-tabs" role="tablist" aria-label="Pilih slot request lagu"
+                  @keydown="handleTabKeydown">
+                  <button v-for="i in maxRequests" :key="i" class="request-tab" type="button" role="tab"
+                    :id="getTabId(i - 1)" :aria-controls="getPanelId(i - 1)" :aria-selected="activeTab === i - 1"
+                    :tabindex="activeTab === i - 1 ? 0 : -1" :class="getTabClass(i - 1)" @click="setActiveTab(i - 1)">
+                    <span class="request-tab__num">{{ i }}</span>
+                    <span class="request-tab__state" aria-hidden="true"></span>
+                  </button>
                 </div>
-                <div class="field">
-                  <label class="form-label">Bahasa</label>
-                  <select class="form-select" v-model="form.language" :disabled="isSubmitting">
-                    <option value="">Pilih Bahasa</option>
-                    <option value="Indonesia">Indonesia</option>
-                    <option value="English">English</option>
-                    <option value="Korean">Korean</option>
-                    <option value="Japanese">Japanese</option>
-                    <option value="Mandarin">Mandarin</option>
-                    <option value="Lainnya">Lainnya</option>
-                  </select>
-                </div>
+              </div>
 
-                <div class="field field--full">
-                  <label class="form-label">Link Referensi (opsional)</label>
-                  <input
-                    type="url"
-                    class="form-control"
-                    v-model="form.link"
-                    placeholder="Contoh: https://youtube.com/…"
-                    :disabled="isSubmitting"
-                  />
-                  <div class="help-text">Bantu admin menemukan versi yang tepat (YouTube/Spotify/Link resmi).</div>
-                </div>
+              <div class="request-tabpanel" role="tabpanel" :id="getPanelId(activeTab)"
+                :aria-labelledby="getTabId(activeTab)">
+                <div class="form-grid">
+                  <div class="field">
+                    <label class="form-label">Judul Lagu *</label>
+                    <input ref="titleInputRef" type="text" class="form-control" v-model="activeRequest.title"
+                      placeholder="Contoh: Laskar Pelangi" :disabled="isSubmitting" />
+                  </div>
+                  <div class="field">
+                    <label class="form-label">Artis / Penyanyi *</label>
+                    <input type="text" class="form-control" v-model="activeRequest.artist" placeholder="Contoh: Nidji"
+                      :disabled="isSubmitting" />
+                  </div>
 
-                <div class="field field--full">
-                  <label class="form-label">Catatan (opsional)</label>
-                  <textarea
-                    class="form-control"
-                    rows="4"
-                    v-model="form.notes"
-                    placeholder="Contoh: versi karaoke / versi original / bahasa / request khusus…"
-                    :disabled="isSubmitting"
-                  ></textarea>
+                  <div class="field">
+                    <label class="form-label">Genre</label>
+                    <select class="form-select" v-model="activeRequest.genre" :disabled="isSubmitting">
+                      <option value="">Pilih Genre</option>
+                      <option value="Pop">Pop</option>
+                      <option value="Rock">Rock</option>
+                      <option value="Dangdut">Dangdut</option>
+                      <option value="Jazz">Jazz</option>
+                      <option value="R&B">R&B</option>
+                      <option value="K-Pop">K-Pop</option>
+                      <option value="Indie">Indie</option>
+                      <option value="Lainnya">Lainnya</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label class="form-label">Bahasa/Negara</label>
+                    <select class="form-select" v-model="activeRequest.language" :disabled="isSubmitting">
+                      <option value="">Pilih Bahasa</option>
+                      <option value="Indonesia">Indonesia</option>
+                      <option value="Malaysia">Malaysia</option>
+                      <option value="English">English</option>
+                      <option value="Korean">Korean</option>
+                      <option value="Japanese">Japanese</option>
+                      <option value="Mandarin">Mandarin</option>
+                      <option value="Lainnya">Lainnya</option>
+                    </select>
+                  </div>
+
+                  <div class="field field--full">
+                    <label class="form-label">Link Referensi (opsional)</label>
+                    <input type="url" class="form-control" v-model="activeRequest.link"
+                      placeholder="Contoh: https://youtube.com/…" :disabled="isSubmitting" />
+                    <div class="help-text">Bantu admin menemukan versi yang tepat (YouTube/Spotify/Link resmi).</div>
+                  </div>
+
+                  <div class="field field--full">
+                    <label class="form-label">Catatan (opsional)</label>
+                    <textarea class="form-control" rows="4" v-model="activeRequest.notes"
+                      placeholder="Contoh: versi karaoke / versi original / bahasa / request khusus…"
+                      :disabled="isSubmitting"></textarea>
+                  </div>
                 </div>
               </div>
 
@@ -247,17 +252,20 @@
               </div>
 
               <div class="form-actions">
-                <button type="button" class="btn btn-ghost" @click="resetForm" :disabled="isSubmitting">
-                  <i class="bi bi-arrow-counterclockwise me-1"></i>
-                  Reset
-                </button>
-                <button
-                  type="submit"
-                  class="btn btn-primary btn-lg"
-                  :disabled="isSubmitting || !form.title.trim() || !form.artist.trim()"
-                >
+                <div class="form-actions__left">
+                  <button type="button" class="btn btn-ghost" @click="resetActiveTab" :disabled="isSubmitting">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i>
+                    Reset Tab
+                  </button>
+                  <button type="button" class="btn btn-ghost" @click="resetAllTabs" :disabled="isSubmitting">
+                    <i class="bi bi-trash3 me-1"></i>
+                    Reset Semua
+                  </button>
+                </div>
+                <button type="submit" class="btn btn-primary btn-lg"
+                  :disabled="isSubmitting || completedTabsCount === 0">
                   <span v-if="isSubmitting" class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
-                  {{ isSubmitting ? 'Mengirim…' : 'Kirim Request' }}
+                  {{ submitButtonLabel }}
                 </button>
               </div>
             </form>
@@ -278,7 +286,7 @@
                 </div>
               </div>
 
-              <ul class="tips-list">
+              <ul class="tips-list ms-3">
                 <li>Tulis judul dan artis <strong>tanpa singkatan</strong>.</li>
                 <li>Jika ada, sertakan link referensi agar versi lagu tepat.</li>
                 <li>Request dengan donasi akan <strong>diprioritaskan</strong>.</li>
@@ -324,12 +332,8 @@
                 <div v-if="ewalletMethods.length" class="methods-group">
                   <div class="methods-title">E-Wallet</div>
                   <div class="methods-chips">
-                    <span
-                      v-for="w in ewalletMethods.slice(0, 4)"
-                      :key="w.id"
-                      class="method-chip"
-                      :class="getMethodClass(w.name)"
-                    >
+                    <span v-for="w in ewalletMethods.slice(0, 4)" :key="w.id" class="method-chip"
+                      :class="getMethodClass(w.name)">
                       <i class="bi bi-wallet2" aria-hidden="true"></i>
                       <span class="method-chip__name">{{ w.name }}</span>
                       <span class="method-chip__number">{{ w.account_number }}</span>
@@ -364,7 +368,8 @@
 
     <!-- Donation Modal -->
     <transition name="rp-modal">
-      <div v-if="showDonationModal" class="modal-overlay" @click.self="closeDonationModal" role="dialog" aria-modal="true">
+      <div v-if="showDonationModal" class="modal-overlay" @click.self="closeDonationModal" role="dialog"
+        aria-modal="true">
         <div class="modal-content" role="document">
           <div class="modal-header">
             <div class="modal-title">
@@ -385,9 +390,22 @@
             <div class="success-banner">
               <div class="success-banner__title">
                 <i class="bi bi-music-note-beamed" aria-hidden="true"></i>
-                <span class="success-banner__text">
-                  "{{ submittedRequest.title }}" — {{ submittedRequest.artist }}
+                <span v-if="submittedRequests.length === 1" class="success-banner__text">
+                  "{{ submittedRequests[0].title }}" — {{ submittedRequests[0].artist }}
                 </span>
+                <span v-else class="success-banner__text">{{ submittedRequests.length }} request lagu terkirim</span>
+              </div>
+              <div v-if="submittedRequests.length > 1" class="success-banner__list">
+                <ol class="success-list">
+                  <li v-for="(r, idx) in submittedRequests" :key="`${r.title}-${r.artist}-${idx}`">
+                    "{{ r.title }}" — {{ r.artist }}
+                  </li>
+                </ol>
+              </div>
+              <div v-if="failedTabs.length" class="success-banner__warn" role="status">
+                <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+                <span>Beberapa request gagal dikirim (Tab: {{ failedTabs.join(', ') }}). Tutup modal untuk
+                  memperbaiki.</span>
               </div>
               <div class="success-banner__sub text-muted">Admin akan meninjau request kamu secepatnya.</div>
             </div>
@@ -399,7 +417,8 @@
               <div class="donation-prompt__copy">
                 <h4>Dukung kami</h4>
                 <p class="text-muted">
-                  Dengan berdonasi, request kamu akan <strong>diprioritaskan</strong> dan membantu kami menambah lagu baru.
+                  Dengan berdonasi, request kamu akan <strong>diprioritaskan</strong> dan membantu kami menambah lagu
+                  baru.
                 </p>
               </div>
             </div>
@@ -460,18 +479,21 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import axios from 'axios'
 import MobileNav from '@/components/MobileNav.vue'
 
 const API_URL = import.meta.env.VITE_API_URL || '/api'
+const maxRequests = 10
 
 const formSectionRef = ref(null)
 const tipsSectionRef = ref(null)
 const donationSectionRef = ref(null)
 const titleInputRef = ref(null)
 
-const form = reactive({
+const activeTab = ref(0)
+
+const createEmptyRequest = () => ({
   title: '',
   artist: '',
   genre: '',
@@ -480,8 +502,12 @@ const form = reactive({
   notes: ''
 })
 
+const requestForms = ref(Array.from({ length: maxRequests }, createEmptyRequest))
+const activeRequest = computed(() => requestForms.value[activeTab.value])
+
 const showDonationModal = ref(false)
-const submittedRequest = ref({ title: '', artist: '' })
+const submittedRequests = ref([])
+const failedTabs = ref([])
 const isSubmitting = ref(false)
 const errorMessage = ref('')
 
@@ -570,39 +596,171 @@ const methodCount = computed(() => {
   return count || 0
 })
 
-const resetForm = () => {
+const normalize = (value) => String(value ?? '').trim()
+
+const toPayload = (req) => ({
+  title: normalize(req.title),
+  artist: normalize(req.artist),
+  genre: normalize(req.genre),
+  language: normalize(req.language),
+  link: normalize(req.link),
+  notes: normalize(req.notes)
+})
+
+const isPayloadEmpty = (payload) =>
+  !payload.title && !payload.artist && !payload.genre && !payload.language && !payload.link && !payload.notes
+
+const isPayloadComplete = (payload) => Boolean(payload.title) && Boolean(payload.artist)
+
+const completedTabsCount = computed(() =>
+  requestForms.value.reduce((count, req) => count + (isPayloadComplete(toPayload(req)) ? 1 : 0), 0)
+)
+
+const submitButtonLabel = computed(() => {
+  if (isSubmitting.value) return 'Mengirim…'
+  const count = completedTabsCount.value
+  return count > 1 ? `Kirim ${count} Request` : 'Kirim Request'
+})
+
+const getTabId = (index) => `request-tab-${index + 1}`
+const getPanelId = (index) => `request-panel-${index + 1}`
+
+const getTabClass = (index) => {
+  const payload = toPayload(requestForms.value[index])
+  return {
+    'is-active': activeTab.value === index,
+    'is-complete': isPayloadComplete(payload),
+    'is-partial': !isPayloadEmpty(payload) && !isPayloadComplete(payload)
+  }
+}
+
+const setActiveTab = async (index) => {
+  const nextIndex = Math.max(0, Math.min(maxRequests - 1, index))
+  activeTab.value = nextIndex
+
+  if (typeof document === 'undefined') return
+  await nextTick()
+  document.getElementById(getTabId(nextIndex))?.focus?.()
+}
+
+const handleTabKeydown = (event) => {
+  if (isSubmitting.value) return
+
+  const { key } = event
+
+  if (key === 'ArrowRight') {
+    event.preventDefault()
+    setActiveTab((activeTab.value + 1) % maxRequests)
+    return
+  }
+
+  if (key === 'ArrowLeft') {
+    event.preventDefault()
+    setActiveTab((activeTab.value - 1 + maxRequests) % maxRequests)
+    return
+  }
+
+  if (/^[1-9]$/.test(key)) {
+    event.preventDefault()
+    setActiveTab(parseInt(key, 10) - 1)
+    return
+  }
+
+  if (key === '0') {
+    event.preventDefault()
+    setActiveTab(9)
+  }
+}
+
+const resetTab = (index) => {
+  requestForms.value[index] = createEmptyRequest()
+}
+
+const resetActiveTab = () => {
   errorMessage.value = ''
-  form.title = ''
-  form.artist = ''
-  form.genre = ''
-  form.language = ''
-  form.link = ''
-  form.notes = ''
+  resetTab(activeTab.value)
+}
+
+const resetAllTabs = () => {
+  errorMessage.value = ''
+  requestForms.value = Array.from({ length: maxRequests }, createEmptyRequest)
+  activeTab.value = 0
 }
 
 const submitRequest = async () => {
   if (isSubmitting.value) return
 
   errorMessage.value = ''
+  failedTabs.value = []
+  submittedRequests.value = []
   isSubmitting.value = true
 
   try {
-    await axios.post(
-      `${API_URL}/requests`,
-      {
-        title: form.title,
-        artist: form.artist,
-        genre: form.genre,
-        language: form.language,
-        link: form.link,
-        notes: form.notes
-      },
-      getAuthHeader()
+    const ready = []
+    const incompleteTabs = []
+
+    requestForms.value.forEach((req, index) => {
+      const payload = toPayload(req)
+      if (isPayloadEmpty(payload)) return
+
+      if (!isPayloadComplete(payload)) {
+        incompleteTabs.push(index)
+        return
+      }
+
+      ready.push({ index, payload })
+    })
+
+    if (incompleteTabs.length) {
+      const first = incompleteTabs[0]
+      errorMessage.value = `Lengkapi Judul + Artis di Tab ${first + 1} (atau kosongkan tab jika tidak dipakai).`
+      await setActiveTab(first)
+      await nextTick()
+      titleInputRef.value?.focus?.()
+      return
+    }
+
+    if (!ready.length) {
+      errorMessage.value = 'Isi minimal 1 request (Judul + Artis).'
+      await nextTick()
+      titleInputRef.value?.focus?.()
+      return
+    }
+
+    const results = await Promise.allSettled(
+      ready.map(({ payload }) => axios.post(`${API_URL}/requests`, payload, getAuthHeader()))
     )
 
-    submittedRequest.value = { title: form.title, artist: form.artist }
-    showDonationModal.value = true
-    resetForm()
+    const successes = []
+    const failures = []
+
+    results.forEach((result, idx) => {
+      const { index, payload } = ready[idx]
+      if (result.status === 'fulfilled') {
+        successes.push({ index, payload })
+      } else {
+        failures.push({ index, error: result.reason })
+      }
+    })
+
+    if (successes.length) {
+      submittedRequests.value = successes.map(({ payload }) => ({ title: payload.title, artist: payload.artist }))
+      showDonationModal.value = true
+      successes.forEach(({ index }) => resetTab(index))
+    }
+
+    if (failures.length) {
+      const firstFailure = failures[0]
+      failedTabs.value = failures.map((f) => f.index + 1)
+      const serverMessage = firstFailure.error?.response?.data?.message
+      errorMessage.value = serverMessage
+        ? `Gagal mengirim beberapa request (contoh: Tab ${firstFailure.index + 1}): ${serverMessage}`
+        : `Gagal mengirim beberapa request (contoh: Tab ${firstFailure.index + 1}). Silakan coba lagi.`
+      await setActiveTab(firstFailure.index)
+      return
+    }
+
+    await setActiveTab(0)
   } catch (error) {
     console.error('Error submitting request:', error)
     errorMessage.value = error.response?.data?.message || 'Gagal mengirim request. Silakan coba lagi.'
@@ -641,12 +799,10 @@ onMounted(() => {
   --border-color-light: rgba(94, 234, 212, 0.28);
 
   --gradient-primary: linear-gradient(135deg, #22c55e 0%, #06b6d4 55%, #3b82f6 100%);
-  --gradient-glow: linear-gradient(
-    135deg,
-    rgba(34, 197, 94, 0.28) 0%,
-    rgba(6, 182, 212, 0.32) 55%,
-    rgba(59, 130, 246, 0.22) 100%
-  );
+  --gradient-glow: linear-gradient(135deg,
+      rgba(34, 197, 94, 0.28) 0%,
+      rgba(6, 182, 212, 0.32) 55%,
+      rgba(59, 130, 246, 0.22) 100%);
   --shadow-glow: 0 0 36px rgba(6, 182, 212, 0.35);
 
   display: flex;
@@ -716,10 +872,12 @@ onMounted(() => {
 }
 
 @keyframes orbFloat {
+
   0%,
   100% {
     transform: translate3d(0, 0, 0) scale(1);
   }
+
   50% {
     transform: translate3d(18px, -14px, 0) scale(1.06);
   }
@@ -820,7 +978,7 @@ onMounted(() => {
   transition: opacity var(--transition-normal), transform var(--transition-normal);
 }
 
-.nav-item > * {
+.nav-item>* {
   position: relative;
   z-index: 1;
 }
@@ -839,12 +997,10 @@ onMounted(() => {
 
 .nav-item.active {
   color: white;
-  background: linear-gradient(
-    135deg,
-    rgba(34, 197, 94, 0.18) 0%,
-    rgba(6, 182, 212, 0.12) 55%,
-    rgba(59, 130, 246, 0.16) 100%
-  );
+  background: linear-gradient(135deg,
+      rgba(34, 197, 94, 0.18) 0%,
+      rgba(6, 182, 212, 0.12) 55%,
+      rgba(59, 130, 246, 0.16) 100%);
   border-color: rgba(94, 234, 212, 0.28);
 }
 
@@ -1034,12 +1190,10 @@ onMounted(() => {
 }
 
 .hero-card--primary {
-  background: linear-gradient(
-    135deg,
-    rgba(34, 197, 94, 0.12) 0%,
-    rgba(6, 182, 212, 0.1) 55%,
-    rgba(59, 130, 246, 0.12) 100%
-  );
+  background: linear-gradient(135deg,
+      rgba(34, 197, 94, 0.12) 0%,
+      rgba(6, 182, 212, 0.1) 55%,
+      rgba(59, 130, 246, 0.12) 100%);
 }
 
 .hero-card__icon {
@@ -1164,6 +1318,103 @@ onMounted(() => {
   font-size: 0.78rem;
 }
 
+/* Multi request tabs */
+.request-tabs-wrap {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.request-tabs__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6rem 1rem;
+}
+
+.request-tabs__title {
+  display: flex;
+  align-items: baseline;
+  gap: 0.55rem;
+  font-weight: 850;
+  letter-spacing: -0.01em;
+  color: var(--text-secondary);
+}
+
+.request-tabs__count {
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.request-tabs__hint {
+  font-size: 0.85rem;
+}
+
+.request-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.request-tab {
+  width: 44px;
+  height: 40px;
+  border-radius: 16px;
+  border: 1px solid rgba(94, 234, 212, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
+  position: relative;
+}
+
+.request-tab:hover {
+  transform: translateY(-1px);
+  border-color: rgba(94, 234, 212, 0.26);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.request-tab:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(6, 182, 212, 0.16);
+}
+
+.request-tab.is-active {
+  border-color: rgba(94, 234, 212, 0.34);
+  background: rgba(6, 182, 212, 0.12);
+  color: var(--text-primary);
+}
+
+.request-tab__num {
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+}
+
+.request-tab__state {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(148, 163, 184, 0.65);
+}
+
+.request-tab.is-partial .request-tab__state {
+  background: rgba(251, 191, 36, 0.95);
+}
+
+.request-tab.is-complete .request-tab__state {
+  background: rgba(34, 197, 94, 0.95);
+}
+
+.request-tabpanel {
+  padding-top: 0.25rem;
+}
+
 /* Form */
 .request-form {
   padding: 1rem 1.2rem 1.2rem;
@@ -1195,7 +1446,7 @@ onMounted(() => {
 .form-control,
 .form-select {
   width: 100%;
-  background: rgba(255, 255, 255, 0.04);
+  /* background: rgba(255, 255, 255, 0.04); */
   border: 1px solid rgba(94, 234, 212, 0.14);
   border-radius: 16px;
   color: var(--text-primary);
@@ -1264,8 +1515,16 @@ onMounted(() => {
 /* Actions */
 .form-actions {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
   gap: 0.75rem;
+}
+
+.form-actions__left {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
 }
 
 /* Tips */
@@ -1562,12 +1821,10 @@ onMounted(() => {
 .success-banner {
   border-radius: 20px;
   border: 1px solid rgba(94, 234, 212, 0.16);
-  background: linear-gradient(
-    135deg,
-    rgba(34, 197, 94, 0.12) 0%,
-    rgba(6, 182, 212, 0.1) 55%,
-    rgba(59, 130, 246, 0.12) 100%
-  );
+  background: linear-gradient(135deg,
+      rgba(34, 197, 94, 0.12) 0%,
+      rgba(6, 182, 212, 0.1) 55%,
+      rgba(59, 130, 246, 0.12) 100%);
   padding: 0.9rem 1rem;
   margin-bottom: 1rem;
 }
@@ -1593,6 +1850,40 @@ onMounted(() => {
 .success-banner__sub {
   margin-top: 0.35rem;
   font-size: 0.9rem;
+}
+
+.success-banner__list {
+  margin-top: 0.65rem;
+}
+
+.success-list {
+  margin: 0;
+  padding-left: 1.15rem;
+  display: grid;
+  gap: 0.35rem;
+  color: var(--text-secondary);
+}
+
+.success-list li {
+  line-height: 1.4;
+}
+
+.success-banner__warn {
+  margin-top: 0.75rem;
+  display: flex;
+  gap: 0.55rem;
+  align-items: flex-start;
+  padding: 0.55rem 0.7rem;
+  border-radius: 16px;
+  border: 1px solid rgba(239, 68, 68, 0.24);
+  background: rgba(239, 68, 68, 0.1);
+  color: rgba(254, 202, 202, 0.98);
+  font-size: 0.9rem;
+}
+
+.success-banner__warn i {
+  margin-top: 0.1rem;
+  color: rgba(252, 165, 165, 0.98);
 }
 
 .donation-prompt {
@@ -1769,6 +2060,7 @@ onMounted(() => {
     opacity: 0;
     transform: translateY(12px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);

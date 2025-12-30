@@ -342,7 +342,7 @@
                   <i class="bi bi-emoji-heart-eyes"></i>
                 </div>
                 <h2>Terima kasih!</h2>
-                <p class="text-muted">
+                <p class="text-secondary">
                   Setiap donasi kamu sangat berarti untuk menjaga KaraokeKu tetap berjalan dan terus berkembang.
                 </p>
                 <button class="btn btn-primary btn-sm" type="button" @click="scrollToMethods">

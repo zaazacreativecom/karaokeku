@@ -405,6 +405,29 @@
               </div>
               <p class="score-label">Score Kamu</p>
 
+              <div
+                v-if="scoreLevelLabel || scoreRangeLabel || scoreBaseLabel || scoreMultiplierLabel"
+                class="score-meta"
+                aria-label="Info level dan bonus score"
+              >
+                <span v-if="scoreLevelLabel" class="score-chip">
+                  <i class="bi bi-award-fill" aria-hidden="true"></i>
+                  <span>Level {{ scoreLevelLabel }}</span>
+                </span>
+                <span v-if="scoreRangeLabel" class="score-chip score-chip--soft">
+                  <i class="bi bi-shuffle" aria-hidden="true"></i>
+                  <span>{{ scoreRangeLabel }}</span>
+                </span>
+                <span v-if="scoreBaseLabel" class="score-chip score-chip--soft">
+                  <i class="bi bi-speedometer2" aria-hidden="true"></i>
+                  <span>{{ scoreBaseLabel }}</span>
+                </span>
+                <span v-if="scoreMultiplierLabel" class="score-chip score-chip--soft">
+                  <i class="bi bi-graph-up-arrow" aria-hidden="true"></i>
+                  <span>{{ scoreMultiplierLabel }}</span>
+                </span>
+              </div>
+
               <div class="score-meter" aria-hidden="true">
                 <div class="score-meter-bar" :style="{ width: `${scorePercent}%` }"></div>
               </div>
@@ -584,6 +607,12 @@ const loadingMoreSongs = ref(false)
 const currentLyrics = ref('')
 const showScoreModal = ref(false)
 const lastScore = ref(0)
+const lastScoreBase = ref(null)
+const lastScoreMultiplier = ref(1)
+const lastUserLevel = ref('')
+const lastUserBadge = ref('')
+const lastScoreMin = ref(null)
+const lastScoreMax = ref(null)
 const isHighScore = ref(false)
 const animatedScore = ref(0)
 const scoreFireworksCanvas = ref(null)
@@ -621,6 +650,48 @@ const volumeIcon = computed(() => {
 })
 
 const scorePercent = computed(() => Math.max(0, Math.min(100, Number(animatedScore.value) || 0)))
+
+const formatMultiplier = (value) => {
+  const num = Number(value)
+  if (!Number.isFinite(num)) return '1'
+  return num.toFixed(2).replace(/\.?0+$/, '')
+}
+
+const scoreLevelLabel = computed(() => {
+  const level = String(lastUserLevel.value || '').trim()
+  if (!level) return ''
+  const badge = String(lastUserBadge.value || '').trim()
+  return `${badge ? `${badge} ` : ''}${level}`.trim()
+})
+
+const scoreBaseLabel = computed(() => {
+  const base = Number(lastScoreBase.value)
+  const final = Number(lastScore.value)
+  if (!Number.isFinite(base) || !Number.isFinite(final)) return ''
+  if (Math.round(base) === Math.round(final)) return ''
+  const clamped = Math.max(0, Math.min(100, Math.round(base)))
+  return `Dasar ${clamped}/100`
+})
+
+const scoreRangeLabel = computed(() => {
+  const min = Number(lastScoreMin.value)
+  const max = Number(lastScoreMax.value)
+  if (!Number.isFinite(min) || !Number.isFinite(max)) return ''
+
+  const low = Math.max(0, Math.min(100, Math.round(Math.min(min, max))))
+  const high = Math.max(0, Math.min(100, Math.round(Math.max(min, max))))
+
+  if (low === high) return `Rentang ${low}/100`
+  return `Rentang ${low}–${high}`
+})
+
+const scoreMultiplierLabel = computed(() => {
+  const mult = Number(lastScoreMultiplier.value)
+  if (!Number.isFinite(mult) || mult === 1) return ''
+
+  const label = mult > 1 ? 'Bonus' : 'Penyesuaian'
+  return `${label} x${formatMultiplier(mult)}`
+})
 
 const scoreMood = computed(() => {
   const score = Math.max(0, Math.min(100, Number(lastScore.value) || 0))
@@ -986,6 +1057,12 @@ const onVideoEnded = async () => {
   if (result) {
     lastScore.value = result.score
     isHighScore.value = result.isHighScore
+    lastScoreBase.value = result.baseScore ?? null
+    lastScoreMultiplier.value = result.scoreMultiplier ?? 1
+    lastUserLevel.value = result.level || ''
+    lastUserBadge.value = result.badge || ''
+    lastScoreMin.value = result.scoreMin ?? null
+    lastScoreMax.value = result.scoreMax ?? null
     showScoreModal.value = true
   }
 
@@ -3155,6 +3232,35 @@ watch(
   color: var(--text-muted);
   margin-top: 0.5rem;
   margin-bottom: 0;
+}
+
+.score-meta {
+  margin-top: 0.65rem;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.55rem;
+}
+
+.score-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.38rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid rgba(94, 234, 212, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 0.88rem;
+  line-height: 1.2;
+}
+
+.score-chip i {
+  color: rgba(94, 234, 212, 0.92);
+}
+
+.score-chip--soft {
+  background: rgba(6, 182, 212, 0.08);
 }
 
 .score-meter {

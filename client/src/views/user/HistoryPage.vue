@@ -119,7 +119,7 @@
                 <i class="bi bi-trophy-fill"></i>
               </div>
               <div class="hero-card__title">Target hari ini</div>
-              <div class="hero-card__text">Main 1 lagu dan coba raih score di atas 80 untuk naik level lebih cepat.</div>
+              <div class="hero-card__text">Main 1 lagu untuk menambah progres level kamu.</div>
               <router-link to="/songs" class="btn btn-primary btn-sm hero-card__btn">
                 <i class="bi bi-play-circle-fill"></i>
                 Pilih lagu
@@ -131,7 +131,7 @@
                 <i class="bi bi-lightning-charge-fill"></i>
               </div>
               <div class="hero-card__title">Tips</div>
-              <div class="hero-card__text">Nyanyikan dengan tempo stabil dan artikulasi jelas untuk score lebih tinggi.</div>
+              <div class="hero-card__text">Semakin tinggi level kamu, rentang score yang didapat akan semakin besar.</div>
               <router-link to="/karaoke" class="btn btn-ghost btn-sm hero-card__btn">
                 <i class="bi bi-mic-fill"></i>
                 Karaoke

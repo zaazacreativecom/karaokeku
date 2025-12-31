@@ -5,7 +5,93 @@
 
 const { PlayHistory, UserScore, Song, User, sequelize } = require('../models');
 const { Op } = require('sequelize');
-const { calculateScore } = require('../utils/helpers');
+const { randomInt } = require('crypto');
+
+const SCORE_MIN = 80;
+const SCORE_MAX = 100;
+
+const DEFAULT_LEVEL_SCORE_RANGES = Object.freeze({
+  Pemula: { min: 80, max: 88 },
+  Hobi: { min: 85, max: 92 },
+  Profesional: { min: 90, max: 97 },
+  Superstar: { min: 95, max: 100 }
+});
+
+const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+
+const normalizeScoreRange = (range) => {
+  if (!range) return null;
+
+  const minRaw = Number(range.min);
+  const maxRaw = Number(range.max);
+  if (!Number.isFinite(minRaw) || !Number.isFinite(maxRaw)) return null;
+
+  const min = clamp(Math.round(minRaw), SCORE_MIN, SCORE_MAX);
+  const max = clamp(Math.round(maxRaw), SCORE_MIN, SCORE_MAX);
+  if (min > max) return null;
+
+  return { min, max };
+};
+
+const parseLevelScoreRanges = () => {
+  const raw = process.env.SCORE_LEVEL_RANGES;
+  if (!raw) return DEFAULT_LEVEL_SCORE_RANGES;
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return DEFAULT_LEVEL_SCORE_RANGES;
+
+    const normalizeKey = (key) => String(key || '').trim().toLowerCase();
+    const toRange = (value) => {
+      if (Array.isArray(value) && value.length >= 2) {
+        return normalizeScoreRange({ min: value[0], max: value[1] });
+      }
+      if (value && typeof value === 'object') {
+        return normalizeScoreRange({ min: value.min, max: value.max });
+      }
+      return null;
+    };
+
+    const merged = { ...DEFAULT_LEVEL_SCORE_RANGES };
+    for (const [key, value] of Object.entries(parsed)) {
+      const k = normalizeKey(key);
+      const range = toRange(value);
+      if (!range) continue;
+
+      if (k === 'pemula') merged.Pemula = range;
+      if (k === 'hobi') merged.Hobi = range;
+      if (k === 'profesional') merged.Profesional = range;
+      if (k === 'superstar') merged.Superstar = range;
+    }
+
+    return merged;
+  } catch {
+    return DEFAULT_LEVEL_SCORE_RANGES;
+  }
+};
+
+const getUserLevelInfo = (totalSongsPlayed) => {
+  const total = Number(totalSongsPlayed) || 0;
+
+  let level = 'Pemula';
+  let badge = '🎤';
+
+  if (total >= 100) {
+    level = 'Superstar';
+    badge = '⭐';
+  } else if (total >= 50) {
+    level = 'Profesional';
+    badge = '🏆';
+  } else if (total >= 20) {
+    level = 'Hobi';
+    badge = '🎵';
+  }
+
+  const ranges = parseLevelScoreRanges();
+  const scoreRange = ranges[level] ?? { min: SCORE_MIN, max: SCORE_MAX };
+
+  return { level, badge, scoreRange };
+};
 
 /**
  * Mulai sesi karaoke (catat start playback)
@@ -43,10 +129,10 @@ const startPlayback = async (userId, songId) => {
  * Akhiri sesi karaoke dan simpan score
  * @param {number} userId - ID user
  * @param {number} historyId - ID play history
- * @param {Object} data - {playedDuration, score (optional)}
+ * @param {Object} data - {playedDuration} (score dihitung server)
  */
 const endPlayback = async (userId, historyId, data) => {
-  const { playedDuration, score: providedScore } = data;
+  const { playedDuration } = data;
   
   // Cari history record
   const history = await PlayHistory.findOne({
@@ -68,17 +154,18 @@ const endPlayback = async (userId, historyId, data) => {
     throw error;
   }
   
-  // Hitung score jika tidak diberikan
-  let finalScore = providedScore;
-  
-  if ((finalScore === undefined || finalScore === null) && history.song && history.song.duration) {
-    finalScore = calculateScore(playedDuration, history.song.duration);
-  } else if (finalScore === undefined || finalScore === null) {
-    // Default score berdasarkan durasi minimal
-    finalScore = playedDuration > 60 ? Math.min(playedDuration / 3, 100) : 50;
-  }
-  
-  finalScore = Math.round(finalScore);
+  // Score random berdasarkan level user (bukan durasi/timeline)
+  const user = await User.findByPk(userId);
+  const totalPlayedAfter = (Number(user?.total_songs_played) || 0) + 1;
+  const levelInfo = getUserLevelInfo(totalPlayedAfter);
+
+  const scoreRange = levelInfo.scoreRange || { min: SCORE_MIN, max: SCORE_MAX };
+  const minScore = clamp(Number(scoreRange.min) || SCORE_MIN, SCORE_MIN, SCORE_MAX);
+  const maxScoreInRange = clamp(Number(scoreRange.max) || SCORE_MAX, SCORE_MIN, SCORE_MAX);
+  const low = Math.min(minScore, maxScoreInRange);
+  const high = Math.max(minScore, maxScoreInRange);
+
+  const finalScore = randomInt(low, high + 1);
   
   // Update play history
   history.ended_at = new Date();
@@ -120,8 +207,6 @@ const endPlayback = async (userId, historyId, data) => {
     );
   }
   
-  // Update total score user
-  const user = await User.findByPk(userId);
   if (user) {
     // Hitung ulang total score (rata-rata high scores)
     const avgScore = await UserScore.findOne({
@@ -143,6 +228,12 @@ const endPlayback = async (userId, historyId, data) => {
   
   return {
     score: finalScore,
+    baseScore: finalScore,
+    scoreMultiplier: 1,
+    level: levelInfo.level,
+    badge: levelInfo.badge,
+    scoreMin: low,
+    scoreMax: high,
     isHighScore,
     historyId: history.id
   };
@@ -202,31 +293,18 @@ const getUserScoreSummary = async (userId) => {
     order: [['created_at', 'DESC']],
     limit: 10
   });
-  
-  // Level/badge berdasarkan total songs played
-  let level = 'Pemula';
-  let badge = '🎤';
-  
-  if (totalPlayed >= 100) {
-    level = 'Superstar';
-    badge = '⭐';
-  } else if (totalPlayed >= 50) {
-    level = 'Profesional';
-    badge = '🏆';
-  } else if (totalPlayed >= 20) {
-    level = 'Hobi';
-    badge = '🎵';
-  } else if (totalPlayed >= 5) {
-    level = 'Pemula';
-    badge = '🎤';
-  }
+
+  const levelInfo = getUserLevelInfo(totalPlayed);
   
   return {
     totalSongsPlayed: totalPlayed,
     totalDurationMinutes: Math.round(totalDuration / 60),
     averageScore: Math.round(avgScore?.avgScore || 0),
-    level,
-    badge,
+    level: levelInfo.level,
+    badge: levelInfo.badge,
+    scoreMultiplier: 1,
+    scoreMin: levelInfo.scoreRange?.min ?? SCORE_MIN,
+    scoreMax: levelInfo.scoreRange?.max ?? SCORE_MAX,
     highScores,
     recentPlays
   };

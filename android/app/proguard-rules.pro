@@ -1,2 +1,0 @@
--keep class com.google.firebase.messaging.** { *; }
--dontwarn io.socket.**

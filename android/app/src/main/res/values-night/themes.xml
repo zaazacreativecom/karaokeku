@@ -1,5 +1,0 @@
-<resources>
-    <style name="Theme.KaraokeKu" parent="Theme.Material3.DayNight.NoActionBar">
-        <item name="android:windowBackground">?attr/colorBackground</item>
-    </style>
-</resources>

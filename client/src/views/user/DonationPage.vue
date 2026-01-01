@@ -228,7 +228,7 @@
                         QR tidak tersedia untuk metode ini.
                       </div>
 
-                      <div class="qris-hint text-muted">
+                      <div class="qris-hint text-secondary">
                         Scan QR di aplikasi e-wallet / mobile banking.
                       </div>
                     </div>
@@ -277,7 +277,7 @@
                     <div class="method-info">
                       <div class="method-name">{{ method.name }}</div>
                       <div class="method-number">{{ method.account_number }}</div>
-                      <div v-if="method.account_name" class="method-holder text-muted">a.n. {{ method.account_name }}
+                      <div v-if="method.account_name" class="method-holder text-secondary">a.n. {{ method.account_name }}
                       </div>
                     </div>
                     <button class="btn btn-ghost btn-sm btn-icon" type="button"
@@ -1151,11 +1151,11 @@ onMounted(fetchPaymentMethods)
 }
 
 .qris-frame {
-  background: white;
+  /* background: white; */
   padding: 0.6rem;
   border-radius: 16px;
   justify-self: center;
-  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.45);
+  /* box-shadow: 0 18px 60px rgba(0, 0, 0, 0.45); */
 }
 
 .qris-img {
@@ -1163,6 +1163,7 @@ onMounted(fetchPaymentMethods)
   aspect-ratio: 1/1;
   object-fit: contain;
   display: block;
+  margin: auto;
 }
 
 .qris-hint {

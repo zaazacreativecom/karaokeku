@@ -86,6 +86,17 @@ Lalu buka `http://localhost:3000` di Chrome → klik tombol **Install** / **Add 
 
 > Catatan: Untuk install di perangkat non-localhost, butuh HTTPS + domain.
 
+## 🤖 Android App (WebView Wrapper)
+
+Project Android ada di folder `android/` (membungkus web KaraokeKu via WebView) dan bisa dibuild jadi APK.
+Lihat petunjuk di `android/README.md`.
+
+## 📱 Android Native Client
+
+- Folder `android/` sekarang berisi aplikasi native Kotlin/Compose dengan arsitektur MVVM yang berbicara langsung ke backend (`/server`).
+- Fitur utama (autentikasi JWT, daftar lagu, pencarian/penyaringan, pemutaran video, playlist/favorit, permintaan lagu, chat via Socket.IO, riwayat skor, donasi, upload, notifikasi) sudah ditangani secara native.
+- Ikuti `android/README.md` untuk setup, konfigurasi API/Socket, Firebase, dan perintah build (`./gradlew assembleDebug` / `./gradlew installDebug`).
+
 ## 🔐 Login Google (Firebase) (Opsional)
 
 1. Buat project di Firebase Console.

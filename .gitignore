@@ -21,3 +21,17 @@ pnpm-debug.log*
 
 # Uploads (user content)
 uploads/
+
+# Android (native wrapper app)
+android/.gradle/
+android/**/build/
+android/.idea/
+android/**/.idea/
+android/*.iml
+android/**/*.iml
+android/local.properties
+android/.cxx/
+android/**/.cxx/
+android/**/captures/
+android/**/*.jks
+android/**/*.keystore

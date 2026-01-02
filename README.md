@@ -97,6 +97,10 @@ Lihat petunjuk di `android/README.md`.
 - Fitur utama (autentikasi JWT, daftar lagu, pencarian/penyaringan, pemutaran video, playlist/favorit, permintaan lagu, chat via Socket.IO, riwayat skor, donasi, upload, notifikasi) sudah ditangani secara native.
 - Ikuti `android/README.md` untuk setup, konfigurasi API/Socket, Firebase, dan perintah build (`./gradlew assembleDebug` / `./gradlew installDebug`).
 
+## 📱 Multiplatform Native (Flutter)
+
+Folder `native/` berisi aplikasi Flutter native untuk iOS, Android, dan Desktop yang berbicara langsung ke backend. Ikuti `native/README.md` untuk setup `.env`, Firebase, dan perintah build.
+
 ## 🔐 Login Google (Firebase) (Opsional)
 
 1. Buat project di Firebase Console.

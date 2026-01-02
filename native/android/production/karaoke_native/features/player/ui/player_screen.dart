@@ -54,6 +54,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   double _previousVolume = 0.8;
   int _pitch = 0;
   double _tempo = 1.0;
+  bool _preservePitch = true;
 
   PlaybackRepository get _playbackRepository => PlaybackRepository(ref.read(apiClientProvider));
 
@@ -156,9 +157,22 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     final controller = _videoController;
     if (controller == null) return;
     final pitchRate = math.pow(2, _pitch / 12).toDouble();
-    final rate = (pitchRate * _tempo).clamp(0.5, 2.0);
+    final speed = _preservePitch ? _tempo : (pitchRate * _tempo);
+    final pitch = _preservePitch ? pitchRate : 1.0;
+    final clampedSpeed = speed.clamp(0.5, 2.0);
+    final clampedPitch = pitch.clamp(0.5, 2.0);
     try {
-      await controller.setPlaybackSpeed(rate);
+      await _audioChannel.invokeMethod('setPlaybackParameters', {
+        'playerId': controller.playerId,
+        'speed': clampedSpeed,
+        'pitch': clampedPitch,
+      });
+      return;
+    } catch (_) {
+      // Ignore platform channel errors.
+    }
+    try {
+      await controller.setPlaybackSpeed(clampedSpeed.toDouble());
     } catch (_) {
       // Ignore unsupported playback speed changes.
     }
@@ -440,6 +454,12 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     _applyPlaybackRate();
   }
 
+  void _setPreservePitch(bool value) {
+    if (_preservePitch == value) return;
+    setState(() => _preservePitch = value);
+    _applyPlaybackRate();
+  }
+
   void _increaseTempo() {
     if (_tempo >= 2.0) return;
     setState(() => _tempo = double.parse((_tempo + 0.1).toStringAsFixed(1)));
@@ -637,6 +657,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                               pitch: _pitch,
                               tempo: _tempo,
                               volume: _volume,
+                              preservePitch: _preservePitch,
                               onPitchIncrease: _increasePitch,
                               onPitchDecrease: _decreasePitch,
                               onPitchReset: _resetPitch,
@@ -644,6 +665,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                               onTempoDecrease: _decreaseTempo,
                               onTempoReset: _resetTempo,
                               onVolumeChanged: _setVolume,
+                              onPreservePitchChanged: _setPreservePitch,
                             ),
                           ),
                         ),
@@ -1075,6 +1097,7 @@ class _TuningPanel extends StatelessWidget {
   final int pitch;
   final double tempo;
   final double volume;
+  final bool preservePitch;
   final VoidCallback onPitchIncrease;
   final VoidCallback onPitchDecrease;
   final VoidCallback onPitchReset;
@@ -1082,11 +1105,13 @@ class _TuningPanel extends StatelessWidget {
   final VoidCallback onTempoDecrease;
   final VoidCallback onTempoReset;
   final ValueChanged<double> onVolumeChanged;
+  final ValueChanged<bool> onPreservePitchChanged;
 
   const _TuningPanel({
     required this.pitch,
     required this.tempo,
     required this.volume,
+    required this.preservePitch,
     required this.onPitchIncrease,
     required this.onPitchDecrease,
     required this.onPitchReset,
@@ -1094,6 +1119,7 @@ class _TuningPanel extends StatelessWidget {
     required this.onTempoDecrease,
     required this.onTempoReset,
     required this.onVolumeChanged,
+    required this.onPreservePitchChanged,
   });
 
   @override
@@ -1135,6 +1161,15 @@ class _TuningPanel extends StatelessWidget {
                     onDecrease: onTempoDecrease,
                     onIncrease: onTempoIncrease,
                     onReset: tempo != 1.0 ? onTempoReset : null,
+                  ),
+                ),
+                SizedBox(
+                  width: cardWidth,
+                  child: _ToggleCard(
+                    title: 'Pitch Tetap',
+                    subtitle: 'Tempo stabil',
+                    value: preservePitch,
+                    onChanged: onPreservePitchChanged,
                   ),
                 ),
                 SizedBox(
@@ -2074,6 +2109,64 @@ class _SliderCard extends StatelessWidget {
               max: 1,
               onChanged: onChanged,
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ToggleCard extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  const _ToggleCard({
+    required this.title,
+    required this.subtitle,
+    required this.value,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: Colors.white.withValues(alpha: 0.75),
+                      ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: Colors.white.withValues(alpha: 0.7),
+                      ),
+                ),
+              ],
+            ),
+          ),
+          Switch.adaptive(
+            value: value,
+            onChanged: onChanged,
+            activeColor: Colors.white,
+            activeTrackColor: Colors.white.withValues(alpha: 0.35),
+            inactiveThumbColor: Colors.white.withValues(alpha: 0.7),
+            inactiveTrackColor: Colors.white.withValues(alpha: 0.2),
           ),
         ],
       ),

@@ -134,6 +134,12 @@ public abstract class VideoPlayer implements VideoPlayerInstanceApi {
     exoPlayer.setPlaybackParameters(playbackParameters);
   }
 
+  public void setPlaybackParameters(double speed, double pitch) {
+    final PlaybackParameters playbackParameters =
+        new PlaybackParameters((float) speed, (float) pitch);
+    exoPlayer.setPlaybackParameters(playbackParameters);
+  }
+
   @Override
   public long getCurrentPosition() {
     return exoPlayer.getCurrentPosition();

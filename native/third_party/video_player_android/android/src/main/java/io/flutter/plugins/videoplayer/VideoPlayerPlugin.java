@@ -63,6 +63,22 @@ public class VideoPlayerPlugin implements FlutterPlugin, AndroidVideoPlayerApi {
             player.setAudioChannelMode(vocalOn);
             result.success(null);
             return;
+          } else if ("setPlaybackParameters".equals(call.method)) {
+            Number playerId = call.argument("playerId");
+            Number speed = call.argument("speed");
+            Number pitch = call.argument("pitch");
+            if (playerId == null || speed == null || pitch == null) {
+              result.error("bad_args", "Missing playerId, speed, or pitch", null);
+              return;
+            }
+            VideoPlayer player = videoPlayers.get(playerId.longValue());
+            if (player == null) {
+              result.error("not_found", "No player for id " + playerId, null);
+              return;
+            }
+            player.setPlaybackParameters(speed.doubleValue(), pitch.doubleValue());
+            result.success(null);
+            return;
           }
           result.notImplemented();
         });

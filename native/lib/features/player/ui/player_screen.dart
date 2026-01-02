@@ -54,8 +54,10 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   double _previousVolume = 0.8;
   int _pitch = 0;
   double _tempo = 1.0;
+  bool _preservePitch = true;
 
-  PlaybackRepository get _playbackRepository => PlaybackRepository(ref.read(apiClientProvider));
+  PlaybackRepository get _playbackRepository =>
+      PlaybackRepository(ref.read(apiClientProvider));
 
   @override
   void initState() {
@@ -156,9 +158,22 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     final controller = _videoController;
     if (controller == null) return;
     final pitchRate = math.pow(2, _pitch / 12).toDouble();
-    final rate = (pitchRate * _tempo).clamp(0.5, 2.0);
+    final speed = _preservePitch ? _tempo : (pitchRate * _tempo);
+    final pitch = _preservePitch ? pitchRate : 1.0;
+    final clampedSpeed = speed.clamp(0.5, 2.0);
+    final clampedPitch = pitch.clamp(0.5, 2.0);
     try {
-      await controller.setPlaybackSpeed(rate);
+      await _audioChannel.invokeMethod('setPlaybackParameters', {
+        'playerId': controller.playerId,
+        'speed': clampedSpeed,
+        'pitch': clampedPitch,
+      });
+      return;
+    } catch (_) {
+      // Ignore platform channel errors.
+    }
+    try {
+      await controller.setPlaybackSpeed(clampedSpeed.toDouble());
     } catch (_) {
       // Ignore unsupported playback speed changes.
     }
@@ -179,10 +194,15 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     if (_videoController == null || _completed) return;
     final value = _videoController!.value;
     if (value.hasError) {
-      _handlePlaybackError(value.errorDescription ?? 'Video error', allowFallback: true);
+      _handlePlaybackError(
+        value.errorDescription ?? 'Video error',
+        allowFallback: true,
+      );
       return;
     }
-    if (value.isInitialized && value.position >= value.duration && !value.isPlaying) {
+    if (value.isInitialized &&
+        value.position >= value.duration &&
+        !value.isPlaying) {
       _completePlayback();
     }
   }
@@ -197,7 +217,10 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     return '$mp4Path?${parts.sublist(1).join('?')}';
   }
 
-  Future<void> _handlePlaybackError(Object error, {required bool allowFallback}) async {
+  Future<void> _handlePlaybackError(
+    Object error, {
+    required bool allowFallback,
+  }) async {
     await _disposePlayer();
     if (!mounted) return;
 
@@ -210,7 +233,11 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       await _initPlayer();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Kualitas rendah tidak tersedia, pakai kualitas tinggi.')),
+        const SnackBar(
+          content: Text(
+            'Kualitas rendah tidak tersedia, pakai kualitas tinggi.',
+          ),
+        ),
       );
       return;
     }
@@ -235,9 +262,9 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     }
 
     setState(() => _initError = error.toString());
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Gagal memutar video: $error')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('Gagal memutar video: $error')));
   }
 
   void _startLyricTimer() {
@@ -316,10 +343,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
         final curved = Curves.easeOutCubic.transform(animation.value);
         return Opacity(
           opacity: animation.value,
-          child: Transform.scale(
-            scale: 0.92 + (0.08 * curved),
-            child: child,
-          ),
+          child: Transform.scale(scale: 0.92 + (0.08 * curved), child: child),
         );
       },
     );
@@ -440,6 +464,12 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     _applyPlaybackRate();
   }
 
+  void _setPreservePitch(bool value) {
+    if (_preservePitch == value) return;
+    setState(() => _preservePitch = value);
+    _applyPlaybackRate();
+  }
+
   void _increaseTempo() {
     if (_tempo >= 2.0) return;
     setState(() => _tempo = double.parse((_tempo + 0.1).toStringAsFixed(1)));
@@ -502,7 +532,9 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     final isCompact = size.width < 380 || size.height < 700;
     final targetHeight = size.width * 9 / 16;
     final maxHeight = size.height * (isCompact ? 0.42 : 0.48);
-    final double videoHeight = math.max(220.0, math.min(targetHeight, maxHeight)).toDouble();
+    final double videoHeight = math
+        .max(220.0, math.min(targetHeight, maxHeight))
+        .toDouble();
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -565,7 +597,10 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                           animate: _animate,
                           duration: const Duration(milliseconds: 700),
                           child: _GlassPanel(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 14,
+                            ),
                             child: Column(
                               children: [
                                 Row(
@@ -604,11 +639,15 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                                     _ActionPill(
                                       icon: Icons.queue_music,
                                       label: 'Antrian',
-                                      badge: _queue.isNotEmpty ? _queue.length.toString() : null,
+                                      badge: _queue.isNotEmpty
+                                          ? _queue.length.toString()
+                                          : null,
                                       onTap: _openSongPicker,
                                     ),
                                     _ActionPill(
-                                      icon: _vocalOn ? Icons.mic : Icons.mic_off,
+                                      icon: _vocalOn
+                                          ? Icons.mic
+                                          : Icons.mic_off,
                                       label: _vocalOn ? 'Vokal' : 'Karaoke',
                                       onTap: _toggleVocalMode,
                                     ),
@@ -617,7 +656,9 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                                       onChanged: _setQuality,
                                     ),
                                     _ActionPill(
-                                      icon: _volume > 0 ? Icons.volume_up : Icons.volume_off,
+                                      icon: _volume > 0
+                                          ? Icons.volume_up
+                                          : Icons.volume_off,
                                       label: _volume > 0 ? 'Suara' : 'Mute',
                                       onTap: _toggleMute,
                                     ),
@@ -637,6 +678,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                               pitch: _pitch,
                               tempo: _tempo,
                               volume: _volume,
+                              preservePitch: _preservePitch,
                               onPitchIncrease: _increasePitch,
                               onPitchDecrease: _decreasePitch,
                               onPitchReset: _resetPitch,
@@ -644,6 +686,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                               onTempoDecrease: _decreaseTempo,
                               onTempoReset: _resetTempo,
                               onVolumeChanged: _setVolume,
+                              onPreservePitchChanged: _setPreservePitch,
                             ),
                           ),
                         ),
@@ -678,7 +721,9 @@ class _GradientBackground extends StatelessWidget {
     return Stack(
       children: [
         const SizedBox.expand(
-          child: DecoratedBox(decoration: BoxDecoration(gradient: _primaryGradient)),
+          child: DecoratedBox(
+            decoration: BoxDecoration(gradient: _primaryGradient),
+          ),
         ),
         Positioned(
           top: -140,
@@ -733,9 +778,9 @@ class _HeaderBar extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                    ),
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               const SizedBox(height: 4),
               Text(
@@ -743,8 +788,8 @@ class _HeaderBar extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.white.withValues(alpha: 0.8),
-                    ),
+                  color: Colors.white.withValues(alpha: 0.8),
+                ),
               ),
             ],
           ),
@@ -818,10 +863,7 @@ class _VideoShell extends StatelessWidget {
                 child: DecoratedBox(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [
-                        Color(0x22000000),
-                        Color(0xCC0B1D2A),
-                      ],
+                      colors: [Color(0x22000000), Color(0xCC0B1D2A)],
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                     ),
@@ -835,7 +877,8 @@ class _VideoShell extends StatelessWidget {
                   spacing: 8,
                   children: [
                     _StatusPill(label: vocalOn ? 'VOCAL' : 'KARAOKE'),
-                    if (quality == VideoQuality.low) const _StatusPill(label: 'LOW'),
+                    if (quality == VideoQuality.low)
+                      const _StatusPill(label: 'LOW'),
                   ],
                 ),
               ),
@@ -846,14 +889,16 @@ class _VideoShell extends StatelessWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    
                     if (lyric.isNotEmpty) ...[
                       const SizedBox(height: 10),
                       AnimatedSwitcher(
                         duration: const Duration(milliseconds: 250),
                         child: Container(
                           key: ValueKey(lyric),
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 8,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.black.withValues(alpha: 0.55),
                             borderRadius: BorderRadius.circular(14),
@@ -915,7 +960,9 @@ class _ProgressArea extends StatelessWidget {
     return ValueListenableBuilder<VideoPlayerValue>(
       valueListenable: controller!,
       builder: (_, value, __) {
-        final duration = value.duration == Duration.zero ? fallbackDuration : value.duration;
+        final duration = value.duration == Duration.zero
+            ? fallbackDuration
+            : value.duration;
         final position = value.position > duration ? duration : value.position;
         return _ProgressBar(
           position: position,
@@ -947,7 +994,9 @@ class _ProgressBar extends StatelessWidget {
       children: [
         Text(
           _formatDuration(position),
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white),
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: Colors.white),
         ),
         const SizedBox(width: 8),
         Expanded(
@@ -964,14 +1013,17 @@ class _ProgressBar extends StatelessWidget {
               min: 0,
               max: totalMs.toDouble(),
               value: positionMs,
-              onChanged: (value) => onSeek(Duration(milliseconds: value.round())),
+              onChanged: (value) =>
+                  onSeek(Duration(milliseconds: value.round())),
             ),
           ),
         ),
         const SizedBox(width: 8),
         Text(
           _formatDuration(duration),
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white),
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: Colors.white),
         ),
       ],
     );
@@ -987,7 +1039,11 @@ class _PlayPauseButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (controller == null) {
-      return _IconCircleButton(icon: Icons.play_arrow, onTap: onTap, filled: true);
+      return _IconCircleButton(
+        icon: Icons.play_arrow,
+        onTap: onTap,
+        filled: true,
+      );
     }
 
     return ValueListenableBuilder<VideoPlayerValue>(
@@ -1045,7 +1101,11 @@ class _QualityChip extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
 
-  const _QualityChip({required this.label, required this.selected, required this.onTap});
+  const _QualityChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1062,9 +1122,11 @@ class _QualityChip extends StatelessWidget {
         child: Text(
           label,
           style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: selected ? Colors.white : Colors.white.withValues(alpha: 0.75),
-                fontWeight: FontWeight.w600,
-              ),
+            color: selected
+                ? Colors.white
+                : Colors.white.withValues(alpha: 0.75),
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
     );
@@ -1075,6 +1137,7 @@ class _TuningPanel extends StatelessWidget {
   final int pitch;
   final double tempo;
   final double volume;
+  final bool preservePitch;
   final VoidCallback onPitchIncrease;
   final VoidCallback onPitchDecrease;
   final VoidCallback onPitchReset;
@@ -1082,11 +1145,13 @@ class _TuningPanel extends StatelessWidget {
   final VoidCallback onTempoDecrease;
   final VoidCallback onTempoReset;
   final ValueChanged<double> onVolumeChanged;
+  final ValueChanged<bool> onPreservePitchChanged;
 
   const _TuningPanel({
     required this.pitch,
     required this.tempo,
     required this.volume,
+    required this.preservePitch,
     required this.onPitchIncrease,
     required this.onPitchDecrease,
     required this.onPitchReset,
@@ -1094,6 +1159,7 @@ class _TuningPanel extends StatelessWidget {
     required this.onTempoDecrease,
     required this.onTempoReset,
     required this.onVolumeChanged,
+    required this.onPreservePitchChanged,
   });
 
   @override
@@ -1108,9 +1174,9 @@ class _TuningPanel extends StatelessWidget {
             Text(
               'Kontrol Audio',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                  ),
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
             ),
             const SizedBox(height: 12),
             Wrap(
@@ -1125,6 +1191,15 @@ class _TuningPanel extends StatelessWidget {
                     onDecrease: onPitchDecrease,
                     onIncrease: onPitchIncrease,
                     onReset: pitch != 0 ? onPitchReset : null,
+                  ),
+                ),
+                SizedBox(
+                  width: cardWidth,
+                  child: _ToggleCard(
+                    title: 'Pitch Tetap',
+                    subtitle: 'Tempo stabil',
+                    value: preservePitch,
+                    onChanged: onPreservePitchChanged,
                   ),
                 ),
                 SizedBox(
@@ -1160,7 +1235,11 @@ class _QueuePreview extends StatelessWidget {
   final ValueChanged<int> onRemove;
   final ValueChanged<Song> onPlay;
 
-  const _QueuePreview({required this.queue, required this.onRemove, required this.onPlay});
+  const _QueuePreview({
+    required this.queue,
+    required this.onRemove,
+    required this.onPlay,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1174,9 +1253,9 @@ class _QueuePreview extends StatelessWidget {
               Text(
                 'Antrian Lagu',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                    ),
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               const Spacer(),
               _StatusPill(label: '${queue.length} lagu'),
@@ -1198,7 +1277,9 @@ class _QueuePreview extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.2),
+                    ),
                   ),
                   child: Row(
                     children: [
@@ -1219,7 +1300,8 @@ class _QueuePreview extends StatelessWidget {
                               song.title,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                              style: Theme.of(context).textTheme.bodyLarge
+                                  ?.copyWith(
                                     color: Colors.white,
                                     fontWeight: FontWeight.w600,
                                   ),
@@ -1229,7 +1311,8 @@ class _QueuePreview extends StatelessWidget {
                               song.artist,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
                                     color: Colors.white.withValues(alpha: 0.7),
                                   ),
                             ),
@@ -1280,7 +1363,9 @@ class _SongPickerSheetState extends ConsumerState<_SongPickerSheet> {
     final state = ref.read(songsListProvider);
     _searchController.text = state.search;
     if (state.songs.isEmpty) {
-      Future.microtask(() => ref.read(songsListProvider.notifier).loadSongs(reset: true));
+      Future.microtask(
+        () => ref.read(songsListProvider.notifier).loadSongs(reset: true),
+      );
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) setState(() => _animate = true);
@@ -1296,7 +1381,8 @@ class _SongPickerSheetState extends ConsumerState<_SongPickerSheet> {
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
       ref.read(songsListProvider.notifier).loadSongs();
     }
   }
@@ -1311,7 +1397,9 @@ class _SongPickerSheetState extends ConsumerState<_SongPickerSheet> {
 
   void _resetFilters() {
     _searchController.clear();
-    ref.read(songsListProvider.notifier).applyFilters(search: '', genre: null, language: null);
+    ref
+        .read(songsListProvider.notifier)
+        .applyFilters(search: '', genre: null, language: null);
   }
 
   @override
@@ -1324,7 +1412,9 @@ class _SongPickerSheetState extends ConsumerState<_SongPickerSheet> {
 
     return AnimatedPadding(
       duration: const Duration(milliseconds: 200),
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
       child: Container(
         height: size.height * 0.9,
         decoration: const BoxDecoration(
@@ -1339,7 +1429,9 @@ class _SongPickerSheetState extends ConsumerState<_SongPickerSheet> {
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.1),
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(28),
+                ),
                 border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
               ),
               child: Column(
@@ -1361,7 +1453,8 @@ class _SongPickerSheetState extends ConsumerState<_SongPickerSheet> {
                           children: [
                             Text(
                               'Pilih Lagu',
-                              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              style: Theme.of(context).textTheme.titleLarge
+                                  ?.copyWith(
                                     color: Colors.white,
                                     fontWeight: FontWeight.w700,
                                   ),
@@ -1371,11 +1464,17 @@ class _SongPickerSheetState extends ConsumerState<_SongPickerSheet> {
                               spacing: 8,
                               runSpacing: 6,
                               children: [
-                                _StatusPill(label: '${state.songs.length} lagu'),
+                                _StatusPill(
+                                  label: '${state.songs.length} lagu',
+                                ),
                                 if (widget.queueCount > 0)
-                                  _StatusPill(label: '${widget.queueCount} antrian'),
-                                if (state.genre != null) _StatusPill(label: state.genre!),
-                                if (state.language != null) _StatusPill(label: state.language!),
+                                  _StatusPill(
+                                    label: '${widget.queueCount} antrian',
+                                  ),
+                                if (state.genre != null)
+                                  _StatusPill(label: state.genre!),
+                                if (state.language != null)
+                                  _StatusPill(label: state.language!),
                               ],
                             ),
                           ],
@@ -1398,11 +1497,17 @@ class _SongPickerSheetState extends ConsumerState<_SongPickerSheet> {
                         onChanged: _onSearchChanged,
                         decoration: InputDecoration(
                           hintText: 'Cari judul atau artis',
-                          prefixIcon: const Icon(Icons.search, color: Color(0xFF0B1D2A)),
+                          prefixIcon: const Icon(
+                            Icons.search,
+                            color: Color(0xFF0B1D2A),
+                          ),
                           suffixIcon: _searchController.text.isEmpty
                               ? null
                               : IconButton(
-                                  icon: const Icon(Icons.close, color: Color(0xFF0B1D2A)),
+                                  icon: const Icon(
+                                    Icons.close,
+                                    color: Color(0xFF0B1D2A),
+                                  ),
                                   onPressed: () {
                                     _searchController.clear();
                                     _onSearchChanged('');
@@ -1432,13 +1537,21 @@ class _SongPickerSheetState extends ConsumerState<_SongPickerSheet> {
                               fillColor: Colors.white,
                             ),
                             items: [
-                              const DropdownMenuItem(value: null, child: Text('Semua')),
+                              const DropdownMenuItem(
+                                value: null,
+                                child: Text('Semua'),
+                              ),
                               ...genres.map(
-                                (genre) => DropdownMenuItem(value: genre, child: Text(genre)),
+                                (genre) => DropdownMenuItem(
+                                  value: genre,
+                                  child: Text(genre),
+                                ),
                               ),
                             ],
                             onChanged: (value) {
-                              ref.read(songsListProvider.notifier).applyFilters(genre: value);
+                              ref
+                                  .read(songsListProvider.notifier)
+                                  .applyFilters(genre: value);
                             },
                           ),
                           loading: () => const LinearProgressIndicator(),
@@ -1457,13 +1570,21 @@ class _SongPickerSheetState extends ConsumerState<_SongPickerSheet> {
                               fillColor: Colors.white,
                             ),
                             items: [
-                              const DropdownMenuItem(value: null, child: Text('Semua')),
+                              const DropdownMenuItem(
+                                value: null,
+                                child: Text('Semua'),
+                              ),
                               ...langs.map(
-                                (lang) => DropdownMenuItem(value: lang, child: Text(lang)),
+                                (lang) => DropdownMenuItem(
+                                  value: lang,
+                                  child: Text(lang),
+                                ),
                               ),
                             ],
                             onChanged: (value) {
-                              ref.read(songsListProvider.notifier).applyFilters(language: value);
+                              ref
+                                  .read(songsListProvider.notifier)
+                                  .applyFilters(language: value);
                             },
                           ),
                           loading: () => const LinearProgressIndicator(),
@@ -1472,14 +1593,19 @@ class _SongPickerSheetState extends ConsumerState<_SongPickerSheet> {
                       ),
                     ],
                   ),
-                  if (state.search.isNotEmpty || state.genre != null || state.language != null) ...[
+                  if (state.search.isNotEmpty ||
+                      state.genre != null ||
+                      state.language != null) ...[
                     const SizedBox(height: 8),
                     Align(
                       alignment: Alignment.centerRight,
                       child: TextButton.icon(
                         onPressed: _resetFilters,
                         icon: const Icon(Icons.refresh, color: Colors.white),
-                        label: const Text('Reset', style: TextStyle(color: Colors.white)),
+                        label: const Text(
+                          'Reset',
+                          style: TextStyle(color: Colors.white),
+                        ),
                       ),
                     ),
                   ],
@@ -1488,23 +1614,31 @@ class _SongPickerSheetState extends ConsumerState<_SongPickerSheet> {
                     child: state.errorMessage != null
                         ? _ErrorOverlay(
                             message: state.errorMessage!,
-                            onRetry: () => ref.read(songsListProvider.notifier).loadSongs(reset: true),
+                            onRetry: () => ref
+                                .read(songsListProvider.notifier)
+                                .loadSongs(reset: true),
                           )
                         : ListView.separated(
                             controller: _scrollController,
-                            itemCount: state.songs.length + (state.isLoading ? 1 : 0),
-                            separatorBuilder: (_, __) => const SizedBox(height: 10),
+                            itemCount:
+                                state.songs.length + (state.isLoading ? 1 : 0),
+                            separatorBuilder: (_, __) =>
+                                const SizedBox(height: 10),
                             itemBuilder: (context, index) {
                               if (index >= state.songs.length) {
                                 return const Padding(
                                   padding: EdgeInsets.symmetric(vertical: 16),
                                   child: Center(
-                                    child: CircularProgressIndicator(color: Colors.white),
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                    ),
                                   ),
                                 );
                               }
                               final song = state.songs[index];
-                              final thumbnail = UrlUtils.resolveMediaUrl(song.thumbnailUrl);
+                              final thumbnail = UrlUtils.resolveMediaUrl(
+                                song.thumbnailUrl,
+                              );
                               return _SongPickerTile(
                                 song: song,
                                 thumbnail: thumbnail,
@@ -1568,9 +1702,9 @@ class _SongPickerTile extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                      ),
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -1578,8 +1712,8 @@ class _SongPickerTile extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.white.withValues(alpha: 0.75),
-                      ),
+                    color: Colors.white.withValues(alpha: 0.75),
+                  ),
                 ),
                 const SizedBox(height: 6),
                 Wrap(
@@ -1587,7 +1721,8 @@ class _SongPickerTile extends StatelessWidget {
                   runSpacing: 4,
                   children: [
                     if (song.genre != null) _StatusPill(label: song.genre!),
-                    if (song.language != null) _StatusPill(label: song.language!),
+                    if (song.language != null)
+                      _StatusPill(label: song.language!),
                   ],
                 ),
               ],
@@ -1657,23 +1792,23 @@ class _ScoreDialog extends StatelessWidget {
                 Text(
                   'Selesai',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                      ),
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 Text(
                   '${result.score}',
                   style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w800,
-                      ),
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
                 Text(
                   'Skor Karaoke',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Colors.white.withValues(alpha: 0.85),
-                      ),
+                    color: Colors.white.withValues(alpha: 0.85),
+                  ),
                 ),
                 const SizedBox(height: 12),
                 ClipRRect(
@@ -1682,7 +1817,9 @@ class _ScoreDialog extends StatelessWidget {
                     value: scorePercent / 100,
                     minHeight: 10,
                     backgroundColor: Colors.white.withValues(alpha: 0.2),
-                    valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                    valueColor: const AlwaysStoppedAnimation<Color>(
+                      Colors.white,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 14),
@@ -1703,8 +1840,12 @@ class _ScoreDialog extends StatelessWidget {
                         onPressed: () => Navigator.of(context).pop(),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.white,
-                          side: BorderSide(color: Colors.white.withValues(alpha: 0.6)),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          side: BorderSide(
+                            color: Colors.white.withValues(alpha: 0.6),
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
                         ),
                         child: const Text('Tutup'),
                       ),
@@ -1716,7 +1857,9 @@ class _ScoreDialog extends StatelessWidget {
                         style: FilledButton.styleFrom(
                           backgroundColor: Colors.white,
                           foregroundColor: const Color(0xFF0B1D2A),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
                         ),
                         child: const Text('Main Lagi'),
                       ),
@@ -1753,15 +1896,12 @@ class _ErrorOverlay extends StatelessWidget {
               Text(
                 message,
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Colors.white,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: Colors.white),
               ),
               const SizedBox(height: 12),
-              FilledButton(
-                onPressed: onRetry,
-                child: const Text('Coba Lagi'),
-              ),
+              FilledButton(onPressed: onRetry, child: const Text('Coba Lagi')),
             ],
           ),
         ),
@@ -1774,7 +1914,10 @@ class _GlassPanel extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry padding;
 
-  const _GlassPanel({required this.child, this.padding = const EdgeInsets.all(12)});
+  const _GlassPanel({
+    required this.child,
+    this.padding = const EdgeInsets.all(12),
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1813,9 +1956,9 @@ class _StatusPill extends StatelessWidget {
       child: Text(
         label,
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w600,
-            ),
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }
@@ -1840,7 +1983,9 @@ class _IconCircleButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final baseColor = filled ? Colors.white : Colors.white.withValues(alpha: 0.12);
+    final baseColor = filled
+        ? Colors.white
+        : Colors.white.withValues(alpha: 0.12);
     final iconColor = filled ? const Color(0xFF0B1D2A) : Colors.white;
     final border = Border.all(color: Colors.white.withValues(alpha: 0.5));
 
@@ -1878,7 +2023,11 @@ class _IconCircleButton extends StatelessWidget {
                 ),
                 child: Text(
                   badge!,
-                  style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ),
@@ -1921,9 +2070,9 @@ class _ActionPill extends StatelessWidget {
             Text(
               label,
               style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                  ),
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+              ),
             ),
             if (badge != null) ...[
               const SizedBox(width: 6),
@@ -1935,7 +2084,11 @@ class _ActionPill extends StatelessWidget {
                 ),
                 child: Text(
                   badge!,
-                  style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ],
@@ -1976,8 +2129,8 @@ class _StepperCard extends StatelessWidget {
           Text(
             title,
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: Colors.white.withValues(alpha: 0.75),
-                ),
+              color: Colors.white.withValues(alpha: 0.75),
+            ),
           ),
           const SizedBox(height: 6),
           Row(
@@ -1991,9 +2144,9 @@ class _StepperCard extends StatelessWidget {
                   value,
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                      ),
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
               IconButton(
@@ -2007,7 +2160,10 @@ class _StepperCard extends StatelessWidget {
               alignment: Alignment.centerRight,
               child: TextButton(
                 onPressed: onReset,
-                child: const Text('Reset', style: TextStyle(color: Colors.white)),
+                child: const Text(
+                  'Reset',
+                  style: TextStyle(color: Colors.white),
+                ),
               ),
             ),
         ],
@@ -2046,16 +2202,16 @@ class _SliderCard extends StatelessWidget {
               Text(
                 title,
                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: Colors.white.withValues(alpha: 0.75),
-                    ),
+                  color: Colors.white.withValues(alpha: 0.75),
+                ),
               ),
               const Spacer(),
               Text(
                 valueLabel,
                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ],
           ),
@@ -2068,12 +2224,65 @@ class _SliderCard extends StatelessWidget {
               inactiveTrackColor: Colors.white.withValues(alpha: 0.2),
               thumbColor: Colors.white,
             ),
-            child: Slider(
-              value: value,
-              min: 0,
-              max: 1,
-              onChanged: onChanged,
+            child: Slider(value: value, min: 0, max: 1, onChanged: onChanged),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ToggleCard extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  const _ToggleCard({
+    required this.title,
+    required this.subtitle,
+    required this.value,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: Colors.white.withValues(alpha: 0.75),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: Colors.white.withValues(alpha: 0.7),
+                  ),
+                ),
+              ],
             ),
+          ),
+          Switch.adaptive(
+            value: value,
+            onChanged: onChanged,
+            activeColor: Colors.white,
+            activeTrackColor: Colors.white.withValues(alpha: 0.35),
+            inactiveThumbColor: Colors.white.withValues(alpha: 0.7),
+            inactiveTrackColor: Colors.white.withValues(alpha: 0.2),
           ),
         ],
       ),
@@ -2104,9 +2313,7 @@ class _SmallActionButton extends StatelessWidget {
         decoration: BoxDecoration(
           color: outlined ? Colors.transparent : Colors.white,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: 0.6),
-          ),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.6)),
         ),
         child: Row(
           children: [
@@ -2120,9 +2327,9 @@ class _SmallActionButton extends StatelessWidget {
               Text(
                 label!,
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: outlined ? Colors.white : const Color(0xFF0B1D2A),
-                      fontWeight: FontWeight.w600,
-                    ),
+                  color: outlined ? Colors.white : const Color(0xFF0B1D2A),
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ],
           ],
@@ -2137,7 +2344,11 @@ class _GlowBlob extends StatelessWidget {
   final List<Color> colors;
   final double opacity;
 
-  const _GlowBlob({required this.size, required this.colors, required this.opacity});
+  const _GlowBlob({
+    required this.size,
+    required this.colors,
+    required this.opacity,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -2164,7 +2375,11 @@ class _AnimatedEntry extends StatelessWidget {
   final Duration duration;
   final Widget child;
 
-  const _AnimatedEntry({required this.animate, required this.duration, required this.child});
+  const _AnimatedEntry({
+    required this.animate,
+    required this.duration,
+    required this.child,
+  });
 
   @override
   Widget build(BuildContext context) {

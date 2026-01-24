@@ -25,8 +25,9 @@ enum VideoQuality { high, low }
 
 class PlayerScreen extends ConsumerStatefulWidget {
   final Song song;
+  final List<Song> initialQueue;
 
-  const PlayerScreen({super.key, required this.song});
+  const PlayerScreen({super.key, required this.song, this.initialQueue = const []});
 
   @override
   ConsumerState<PlayerScreen> createState() => _PlayerScreenState();
@@ -63,11 +64,23 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   void initState() {
     super.initState();
     _currentSong = widget.song;
+    _seedQueue(widget.initialQueue);
     _startSession();
     _initPlayer();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) setState(() => _animate = true);
     });
+  }
+
+  void _seedQueue(List<Song> songs) {
+    if (songs.isEmpty) return;
+    final currentId = _currentSong?.id;
+    final seen = <int>{if (currentId != null) currentId};
+    for (final song in songs) {
+      if (seen.add(song.id)) {
+        _queue.add(song);
+      }
+    }
   }
 
   Future<void> _startSession([Song? song]) async {
@@ -374,6 +387,12 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   }
 
   void _addToQueue(Song song) {
+    if (_queue.any((item) => item.id == song.id)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Lagu sudah ada di antrian.')),
+      );
+      return;
+    }
     setState(() => _queue.add(song));
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Ditambahkan ke antrian: ${song.title}')),
@@ -508,7 +527,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => _SongPickerSheet(
-        queueCount: _queue.length,
+        queuedIds: _queue.map((song) => song.id).toSet(),
         onPlay: (song) {
           Navigator.of(context).pop();
           _playSong(song);
@@ -1338,12 +1357,12 @@ class _QueuePreview extends StatelessWidget {
 class _SongPickerSheet extends ConsumerStatefulWidget {
   final ValueChanged<Song> onPlay;
   final ValueChanged<Song> onQueue;
-  final int queueCount;
+  final Set<int> queuedIds;
 
   const _SongPickerSheet({
     required this.onPlay,
     required this.onQueue,
-    required this.queueCount,
+    required this.queuedIds,
   });
 
   @override
@@ -1355,11 +1374,13 @@ class _SongPickerSheetState extends ConsumerState<_SongPickerSheet> {
   final _scrollController = ScrollController();
   Timer? _debounce;
   bool _animate = false;
+  late final Set<int> _queuedIds;
 
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
+    _queuedIds = {...widget.queuedIds};
     final state = ref.read(songsListProvider);
     _searchController.text = state.search;
     if (state.songs.isEmpty) {
@@ -1467,9 +1488,9 @@ class _SongPickerSheetState extends ConsumerState<_SongPickerSheet> {
                                 _StatusPill(
                                   label: '${state.songs.length} lagu',
                                 ),
-                                if (widget.queueCount > 0)
+                                if (_queuedIds.isNotEmpty)
                                   _StatusPill(
-                                    label: '${widget.queueCount} antrian',
+                                    label: '${_queuedIds.length} antrian',
                                   ),
                                 if (state.genre != null)
                                   _StatusPill(label: state.genre!),
@@ -1639,12 +1660,18 @@ class _SongPickerSheetState extends ConsumerState<_SongPickerSheet> {
                               final thumbnail = UrlUtils.resolveMediaUrl(
                                 song.thumbnailUrl,
                               );
+                              final isQueued = _queuedIds.contains(song.id);
                               return _SongPickerTile(
                                 song: song,
                                 thumbnail: thumbnail,
                                 onPlay: () => widget.onPlay(song),
-                                onQueue: () => widget.onQueue(song),
+                                onQueue: () {
+                                  if (isQueued) return;
+                                  widget.onQueue(song);
+                                  setState(() => _queuedIds.add(song.id));
+                                },
                                 isCompact: isCompact,
+                                isQueued: isQueued,
                               );
                             },
                           ),
@@ -1665,6 +1692,7 @@ class _SongPickerTile extends StatelessWidget {
   final VoidCallback onPlay;
   final VoidCallback onQueue;
   final bool isCompact;
+  final bool isQueued;
 
   const _SongPickerTile({
     required this.song,
@@ -1672,6 +1700,7 @@ class _SongPickerTile extends StatelessWidget {
     required this.onPlay,
     required this.onQueue,
     required this.isCompact,
+    required this.isQueued,
   });
 
   @override
@@ -1720,6 +1749,7 @@ class _SongPickerTile extends StatelessWidget {
                   spacing: 8,
                   runSpacing: 4,
                   children: [
+                    if (isQueued) const _StatusPill(label: 'Antrian'),
                     if (song.genre != null) _StatusPill(label: song.genre!),
                     if (song.language != null)
                       _StatusPill(label: song.language!),
@@ -1738,9 +1768,9 @@ class _SongPickerTile extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               _SmallActionButton(
-                icon: Icons.add,
-                label: isCompact ? null : 'Queue',
-                onTap: onQueue,
+                icon: isQueued ? Icons.check_circle : Icons.add,
+                label: isCompact ? null : (isQueued ? 'Queued' : 'Queue'),
+                onTap: isQueued ? null : onQueue,
                 outlined: true,
               ),
             ],
@@ -2293,7 +2323,7 @@ class _ToggleCard extends StatelessWidget {
 class _SmallActionButton extends StatelessWidget {
   final IconData icon;
   final String? label;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
   final bool outlined;
 
   const _SmallActionButton({
@@ -2305,29 +2335,40 @@ class _SmallActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final enabled = onTap != null;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         decoration: BoxDecoration(
-          color: outlined ? Colors.transparent : Colors.white,
+          color: outlined
+              ? Colors.transparent
+              : Colors.white.withValues(alpha: enabled ? 1 : 0.45),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.6)),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: enabled ? 0.6 : 0.25),
+          ),
         ),
         child: Row(
           children: [
             Icon(
               icon,
               size: 16,
-              color: outlined ? Colors.white : const Color(0xFF0B1D2A),
+              color: outlined
+                  ? Colors.white.withValues(alpha: enabled ? 1 : 0.45)
+                  : const Color(0xFF0B1D2A)
+                      .withValues(alpha: enabled ? 1 : 0.45),
             ),
             if (label != null) ...[
               const SizedBox(width: 4),
               Text(
                 label!,
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: outlined ? Colors.white : const Color(0xFF0B1D2A),
+                  color: outlined
+                      ? Colors.white.withValues(alpha: enabled ? 1 : 0.45)
+                      : const Color(0xFF0B1D2A)
+                          .withValues(alpha: enabled ? 1 : 0.45),
                   fontWeight: FontWeight.w600,
                 ),
               ),

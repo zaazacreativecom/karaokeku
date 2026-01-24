@@ -44,7 +44,8 @@ class _SongsListScreenState extends ConsumerState<SongsListScreen> {
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
       ref.read(songsListProvider.notifier).loadSongs();
     }
   }
@@ -79,10 +80,15 @@ class _SongsListScreenState extends ConsumerState<SongsListScreen> {
                     decoration: const InputDecoration(labelText: 'Genre'),
                     items: [
                       const DropdownMenuItem(value: null, child: Text('Semua')),
-                      ...genres.map((genre) => DropdownMenuItem(value: genre, child: Text(genre))),
+                      ...genres.map(
+                        (genre) =>
+                            DropdownMenuItem(value: genre, child: Text(genre)),
+                      ),
                     ],
                     onChanged: (value) {
-                      ref.read(songsListProvider.notifier).applyFilters(genre: value);
+                      ref
+                          .read(songsListProvider.notifier)
+                          .applyFilters(genre: value);
                     },
                   ),
                   loading: () => const LinearProgressIndicator(),
@@ -96,10 +102,15 @@ class _SongsListScreenState extends ConsumerState<SongsListScreen> {
                     decoration: const InputDecoration(labelText: 'Bahasa'),
                     items: [
                       const DropdownMenuItem(value: null, child: Text('Semua')),
-                      ...langs.map((lang) => DropdownMenuItem(value: lang, child: Text(lang))),
+                      ...langs.map(
+                        (lang) =>
+                            DropdownMenuItem(value: lang, child: Text(lang)),
+                      ),
                     ],
                     onChanged: (value) {
-                      ref.read(songsListProvider.notifier).applyFilters(language: value);
+                      ref
+                          .read(songsListProvider.notifier)
+                          .applyFilters(language: value);
                     },
                   ),
                   loading: () => const LinearProgressIndicator(),
@@ -111,13 +122,21 @@ class _SongsListScreenState extends ConsumerState<SongsListScreen> {
                   initialValue: state.sortBy,
                   decoration: const InputDecoration(labelText: 'Urutkan'),
                   items: const [
-                    DropdownMenuItem(value: 'created_at', child: Text('Terbaru')),
+                    DropdownMenuItem(
+                      value: 'created_at',
+                      child: Text('Terbaru'),
+                    ),
                     DropdownMenuItem(value: 'title', child: Text('Judul')),
-                    DropdownMenuItem(value: 'play_count', child: Text('Paling sering dimainkan')),
+                    DropdownMenuItem(
+                      value: 'play_count',
+                      child: Text('Paling sering dimainkan'),
+                    ),
                   ],
                   onChanged: (value) {
                     if (value == null) return;
-                    ref.read(songsListProvider.notifier).applyFilters(sortBy: value);
+                    ref
+                        .read(songsListProvider.notifier)
+                        .applyFilters(sortBy: value);
                   },
                 ),
                 const SizedBox(height: 12),
@@ -131,7 +150,9 @@ class _SongsListScreenState extends ConsumerState<SongsListScreen> {
                   ],
                   onChanged: (value) {
                     if (value == null) return;
-                    ref.read(songsListProvider.notifier).applyFilters(sortOrder: value);
+                    ref
+                        .read(songsListProvider.notifier)
+                        .applyFilters(sortOrder: value);
                   },
                 ),
                 const SizedBox(height: 16),
@@ -158,7 +179,9 @@ class _SongsListScreenState extends ConsumerState<SongsListScreen> {
       backgroundColor: Colors.transparent,
       body: Stack(
         children: [
-          Container(decoration: const BoxDecoration(gradient: _primaryGradient)),
+          Container(
+            decoration: const BoxDecoration(gradient: _primaryGradient),
+          ),
           Positioned(
             top: -100,
             right: -60,
@@ -181,7 +204,8 @@ class _SongsListScreenState extends ConsumerState<SongsListScreen> {
             child: RefreshIndicator(
               color: Colors.white,
               backgroundColor: const Color(0xFF00A3FF),
-              onRefresh: () => ref.read(songsListProvider.notifier).loadSongs(reset: true),
+              onRefresh: () =>
+                  ref.read(songsListProvider.notifier).loadSongs(reset: true),
               child: ListView(
                 controller: _scrollController,
                 padding: EdgeInsets.fromLTRB(16, isCompact ? 12 : 20, 16, 32),
@@ -197,16 +221,20 @@ class _SongsListScreenState extends ConsumerState<SongsListScreen> {
                             children: [
                               _GradientText(
                                 text: 'Lagu Karaoke',
-                                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                style: Theme.of(context).textTheme.headlineSmall
+                                    ?.copyWith(
                                       fontWeight: FontWeight.w700,
-                                      color: Colors.white,
+                                      color: const Color.fromARGB(255, 105, 105, 105),
                                     ),
                               ),
                               const SizedBox(height: 6),
                               Text(
                                 'Temukan lagu favoritmu dengan cepat.',
-                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                      color: Colors.white.withValues(alpha: 0.85),
+                                style: Theme.of(context).textTheme.bodyMedium
+                                    ?.copyWith(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.85,
+                                      ),
                                     ),
                               ),
                             ],
@@ -228,12 +256,20 @@ class _SongsListScreenState extends ConsumerState<SongsListScreen> {
                         controller: _searchController,
                         decoration: InputDecoration(
                           hintText: 'Cari judul atau artis',
-                          prefixIcon: const Icon(Icons.search, color: Color(0xFF0B1D2A)),
+                          prefixIcon: const Icon(
+                            Icons.search,
+                            color: Color(0xFF0B1D2A),
+                          ),
                           suffixIcon: IconButton(
-                            icon: const Icon(Icons.close, color: Color(0xFF0B1D2A)),
+                            icon: const Icon(
+                              Icons.close,
+                              color: Color(0xFF0B1D2A),
+                            ),
                             onPressed: () {
                               _searchController.clear();
-                              ref.read(songsListProvider.notifier).applyFilters(search: '');
+                              ref
+                                  .read(songsListProvider.notifier)
+                                  .applyFilters(search: '');
                             },
                           ),
                           filled: true,
@@ -244,7 +280,9 @@ class _SongsListScreenState extends ConsumerState<SongsListScreen> {
                           ),
                         ),
                         onSubmitted: (value) {
-                          ref.read(songsListProvider.notifier).applyFilters(search: value.trim());
+                          ref
+                              .read(songsListProvider.notifier)
+                              .applyFilters(search: value.trim());
                         },
                       ),
                     ),
@@ -265,7 +303,11 @@ class _SongsListScreenState extends ConsumerState<SongsListScreen> {
                           ),
                           loading: () => const SizedBox(
                             height: 140,
-                            child: Center(child: CircularProgressIndicator(color: Colors.white)),
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                              ),
+                            ),
                           ),
                           error: (_, __) => const SizedBox.shrink(),
                         ),
@@ -282,16 +324,18 @@ class _SongsListScreenState extends ConsumerState<SongsListScreen> {
                         : const SizedBox.shrink(),
                   ),
                   ...state.songs.asMap().entries.map(
-                        (entry) => _SongTile(
-                          song: entry.value,
-                          index: entry.key,
-                          isCompact: isCompact,
-                        ),
-                      ),
+                    (entry) => _SongTile(
+                      song: entry.value,
+                      index: entry.key,
+                      isCompact: isCompact,
+                    ),
+                  ),
                   if (state.isLoading)
                     const Padding(
                       padding: EdgeInsets.symmetric(vertical: 16),
-                      child: Center(child: CircularProgressIndicator(color: Colors.white)),
+                      child: Center(
+                        child: CircularProgressIndicator(color: Colors.white),
+                      ),
                     ),
                   if (!state.hasNext && state.songs.isNotEmpty)
                     Padding(
@@ -299,7 +343,8 @@ class _SongsListScreenState extends ConsumerState<SongsListScreen> {
                       child: Center(
                         child: Text(
                           'Tidak ada lagu lagi.',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
                                 color: Colors.white.withValues(alpha: 0.85),
                               ),
                         ),
@@ -320,7 +365,11 @@ class _SongTile extends StatelessWidget {
   final int index;
   final bool isCompact;
 
-  const _SongTile({required this.song, required this.index, required this.isCompact});
+  const _SongTile({
+    required this.song,
+    required this.index,
+    required this.isCompact,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -349,7 +398,9 @@ class _SongTile extends StatelessWidget {
             borderRadius: BorderRadius.circular(18),
             onTap: () {
               Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => SongDetailScreen(songId: song.id)),
+                MaterialPageRoute(
+                  builder: (_) => SongDetailScreen(songId: song.id),
+                ),
               );
             },
             child: Container(
@@ -392,16 +443,14 @@ class _SongTile extends StatelessWidget {
                           song.title,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w700,
-                              ),
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w700),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           song.artist,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: const Color(0xFF6B7B8E),
-                              ),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: const Color(0xFF6B7B8E)),
                         ),
                         const SizedBox(height: 8),
                         Wrap(
@@ -424,7 +473,10 @@ class _SongTile extends StatelessWidget {
                       color: const Color(0xFF0B1D2A).withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.chevron_right, color: Color(0xFF0B1D2A)),
+                    child: const Icon(
+                      Icons.chevron_right,
+                      color: Color(0xFF0B1D2A),
+                    ),
                   ),
                 ],
               ),
@@ -470,7 +522,9 @@ class _TopSongsCarousel extends StatelessWidget {
             child: GestureDetector(
               onTap: () {
                 Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => SongDetailScreen(songId: song.id)),
+                  MaterialPageRoute(
+                    builder: (_) => SongDetailScreen(songId: song.id),
+                  ),
                 );
               },
               child: SizedBox(
@@ -510,7 +564,8 @@ class _TopSongsCarousel extends StatelessWidget {
                               song.title,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(
                                     color: Colors.white,
                                     fontWeight: FontWeight.w700,
                                   ),
@@ -520,7 +575,8 @@ class _TopSongsCarousel extends StatelessWidget {
                               song.artist,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
                                     color: Colors.white.withValues(alpha: 0.85),
                                   ),
                             ),
@@ -531,18 +587,26 @@ class _TopSongsCarousel extends StatelessWidget {
                         top: 12,
                         right: 12,
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.white.withValues(alpha: 0.85),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Row(
                             children: [
-                              const Icon(Icons.trending_up, size: 14, color: Color(0xFF0B1D2A)),
+                              const Icon(
+                                Icons.trending_up,
+                                size: 14,
+                                color: Color(0xFF0B1D2A),
+                              ),
                               const SizedBox(width: 4),
                               Text(
                                 '${song.playCount}',
-                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                style: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(
                                       fontWeight: FontWeight.w700,
                                       color: const Color(0xFF0B1D2A),
                                     ),
@@ -576,9 +640,9 @@ class _SectionTitle extends StatelessWidget {
           child: Text(
             title,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                ),
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+            ),
           ),
         ),
         Container(
@@ -610,9 +674,9 @@ class _TagChip extends StatelessWidget {
       child: Text(
         label,
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w600,
-            ),
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }
@@ -640,9 +704,9 @@ class _ErrorCard extends StatelessWidget {
           Expanded(
             child: Text(
               message,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: const Color(0xFFD32F2F),
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: const Color(0xFFD32F2F)),
             ),
           ),
         ],
@@ -661,10 +725,7 @@ class _GradientText extends StatelessWidget {
   Widget build(BuildContext context) {
     return ShaderMask(
       shaderCallback: (bounds) => _primaryGradient.createShader(bounds),
-      child: Text(
-        text,
-        style: style ?? const TextStyle(color: Colors.white),
-      ),
+      child: Text(text, style: style ?? const TextStyle(color: Colors.white)),
     );
   }
 }
@@ -726,7 +787,11 @@ class _GlowBlob extends StatelessWidget {
   final List<Color> colors;
   final double opacity;
 
-  const _GlowBlob({required this.size, required this.colors, required this.opacity});
+  const _GlowBlob({
+    required this.size,
+    required this.colors,
+    required this.opacity,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -753,7 +818,11 @@ class _AnimatedEntry extends StatelessWidget {
   final Duration duration;
   final Widget child;
 
-  const _AnimatedEntry({required this.animate, required this.duration, required this.child});
+  const _AnimatedEntry({
+    required this.animate,
+    required this.duration,
+    required this.child,
+  });
 
   @override
   Widget build(BuildContext context) {

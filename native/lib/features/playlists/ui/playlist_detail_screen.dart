@@ -5,6 +5,7 @@ import '../../../core/di/providers.dart';
 import '../../../core/utils/url_utils.dart';
 import '../../../widgets/app_network_image.dart';
 import '../../player/ui/player_screen.dart';
+import '../../songs/models/song.dart';
 import '../data/playlists_repository.dart';
 import '../models/playlist.dart';
 
@@ -53,10 +54,44 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
     await _refresh();
   }
 
+  List<Song> _collectSongs(Playlist playlist) {
+    return playlist.items.map((item) => item.song).whereType<Song>().toList();
+  }
+
+  void _playSongs(List<Song> songs, {int startIndex = 0}) {
+    if (songs.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Playlist kosong.')),
+      );
+      return;
+    }
+    final index = startIndex.clamp(0, songs.length - 1).toInt();
+    final startSong = songs[index];
+    final queue = songs.skip(index + 1).toList();
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PlayerScreen(song: startSong, initialQueue: queue),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(widget.title)),
+      floatingActionButton: FutureBuilder<Playlist>(
+        future: _loader,
+        builder: (context, snapshot) {
+          final playlist = snapshot.data;
+          final songs = playlist == null ? const <Song>[] : _collectSongs(playlist);
+          if (songs.isEmpty) return const SizedBox.shrink();
+          return FloatingActionButton.extended(
+            onPressed: () => _playSongs(songs),
+            icon: const Icon(Icons.play_arrow),
+            label: const Text('Play Playlist'),
+          );
+        },
+      ),
       body: FutureBuilder<Playlist>(
         future: _loader,
         builder: (context, snapshot) {
@@ -74,6 +109,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
             return const Center(child: Text('Playlist kosong.'));
           }
 
+          final playlistSongs = _collectSongs(playlist);
           return RefreshIndicator(
             onRefresh: _refresh,
             child: ReorderableListView.builder(
@@ -98,15 +134,16 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                     subtitle: Text(song?.artist ?? ''),
                     trailing: IconButton(
                       icon: const Icon(Icons.delete_outline),
-                      onPressed: () => _removeItem(item),
-                    ),
-                    onTap: song == null
-                        ? null
-                        : () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(builder: (_) => PlayerScreen(song: song)),
-                            );
-                          },
+                    onPressed: () => _removeItem(item),
+                  ),
+                  onTap: song == null
+                      ? null
+                      : () {
+                          final startIndex =
+                              playlistSongs.indexWhere((entry) => entry.id == song.id);
+                          _playSongs(playlistSongs,
+                              startIndex: startIndex < 0 ? 0 : startIndex);
+                        },
                   ),
                 );
               },
